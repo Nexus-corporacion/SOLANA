@@ -616,7 +616,7 @@
       socketStatus: 'disconnected',
       wsLatency: 0,
       lastUpdated: '',
-      forceTV: false,
+      forceTV: true,
       priceHistoryBuffers: {}
     };
 
@@ -734,6 +734,46 @@
       lucide.createIcons();
     }
 
+    async function fetchHistoricalPrices(tokenAddress, pairAddress) {
+      if (tokenAddress) {
+        try {
+          let url = `https://api.coingecko.com/api/v3/coins/solana/contract/${tokenAddress}/market_chart?vs_currency=usd&days=1`;
+          let res = await fetch(url);
+          if (res.ok) {
+            let data = await res.json();
+            if (data && Array.isArray(data.prices) && data.prices.length > 0) {
+              let prices = data.prices.map(p => p[1]);
+              if (prices.length >= 15) {
+                return prices;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("[HISTORIC] CoinGecko fetch failed:", err);
+        }
+      }
+
+      if (pairAddress) {
+        try {
+          let url = `https://io.dexscreener.com/dex/1/bars/solana/${pairAddress}?limit=100`;
+          let res = await fetch(url);
+          if (res.ok) {
+            let data = await res.json();
+            if (data && Array.isArray(data.bars) && data.bars.length > 0) {
+              let prices = data.bars.map(b => parseFloat(b.close || b.c || 0));
+              if (prices.length >= 15) {
+                return prices;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("[HISTORIC] DexScreener bars fetch failed:", err);
+        }
+      }
+
+      return null;
+    }
+
     async function fetchMarketMetrics() {
       if (state.tokens.length === 0) return;
 
@@ -761,22 +801,50 @@
             state.priceHistoryBuffers[token.address] = [];
           }
           let buf = state.priceHistoryBuffers[token.address];
-          buf.push(currentPrice);
-          if (buf.length > 50) buf.shift();
+          if (buf.length < 15) {
+            let realHist = await fetchHistoricalPrices(token.address, primary.pairAddress);
+            if (realHist && realHist.length >= 15) {
+              state.priceHistoryBuffers[token.address] = realHist;
+              buf = state.priceHistoryBuffers[token.address];
+            } else {
+              let backupHist = createHistoryCurves(currentPrice, h1);
+              state.priceHistoryBuffers[token.address] = backupHist;
+              buf = state.priceHistoryBuffers[token.address];
+            }
+          } else {
+            buf.push(currentPrice);
+            if (buf.length > 150) buf.shift();
+          }
+
+          // Downsampling function to extract timeframe-specific price lists using real history
+          const getPricesForTimeframe = (pBuf, tf, currPrice, tm5, th1, th24) => {
+            let step = 1;
+            if (tf === '1m') step = 1;
+            else if (tf === '5m') step = 1;
+            else if (tf === '15m') step = 3;
+            else if (tf === '30m') step = 6;
+            else if (tf === '1h') step = 12;
+            else if (tf === '4h') step = 48;
+            
+            const filtered = pBuf.filter((_, idx) => idx % step === 0);
+            if (filtered.length >= 15) {
+              return filtered;
+            }
+            let drift = th1;
+            if (tf === '1m' || tf === '5m') drift = tm5;
+            if (tf === '1h' || tf === '4h') drift = th24;
+            return createHistoryCurves(currPrice, drift);
+          };
 
           // Calculate RSI levels across timeframes
           let rsiByTimeframe = {};
           ['1m', '5m', '15m', '30m', '1h', '4h'].forEach(tf => {
-            let drift = h1;
-            if (tf === '1m' || tf === '5m') drift = m5;
-            if (tf === '1h' || tf === '4h') drift = h24;
-
-            let simulated = createHistoryCurves(currentPrice, drift);
-            rsiByTimeframe[tf] = calculateRSIVal(simulated);
+            const subPrices = getPricesForTimeframe(buf, tf, currentPrice, m5, h1, h24);
+            rsiByTimeframe[tf] = calculateRSIVal(subPrices);
           });
 
-          let structureHistory = createHistoryCurves(currentPrice, h1);
-          let { peaks, trend } = detectStructure(structureHistory);
+          const structPrices = getPricesForTimeframe(buf, '15m', currentPrice, m5, h1, h24);
+          let { peaks, trend } = detectStructure(structPrices);
 
           let activeRsi = rsiByTimeframe[state.activeTimeframe] || 50;
           let buys = primary.txns?.h1?.buys || 1;
@@ -983,9 +1051,8 @@
 
       label.innerText = `${active.symbol}/USD`;
 
-      // Draw Tradingview widget or detailed live custom sparkline fallback
-      const isWellKnown = STABLE_TV_SYMBOLS.includes(active.symbol.toUpperCase());
-      const showFallback = !isWellKnown && !state.forceTV;
+      // Draw Tradingview widget (via Birdeye) or detailed live custom sparkline fallback
+      const showFallback = !state.forceTV;
 
       if (showFallback) {
         let pricesHistory = state.priceHistoryBuffers[active.address] || [];
@@ -994,7 +1061,7 @@
         let maxPrice = hasH ? Math.max(...pricesHistory) : active.price;
         let avgPrice = hasH ? (pricesHistory.reduce((a,b)=>a+b, 0) / pricesHistory.length) : active.price;
 
-        document.getElementById('toggle-chart-mode-btn').innerText = 'Forzar Tradingview';
+        document.getElementById('toggle-chart-mode-btn').innerText = 'Ver Gráfico de Velas (Birdeye)';
         document.getElementById('toggle-chart-mode-btn').className = 'px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-[9px] rounded font-mono transition-all uppercase';
 
         // Draw custom sparkline
@@ -1033,8 +1100,8 @@
             <i data-lucide="info" class="h-5 w-5 text-cyan-400 shrink-0 mt-0.5"></i>
             <div>
               <p class="text-xs text-cyan-300 font-mono leading-relaxed">
-                TradingView no dispone actualmente del símbolo <strong class="text-white">${active.symbol}</strong>.<br />
-                El monitoreo cuantitativo continúa de forma ininterrumpida utilizando datos en tiempo real de Birdeye.
+                Análisis Cuantitativo: Histograma de Ticks en tiempo real.<br />
+                Utilice el botón superior para alternar al Gráfico de Velas de TradingView (vía Birdeye).
               </p>
             </div>
           </div>
@@ -1073,37 +1140,10 @@
           </div>
         `;
       } else {
-        document.getElementById('toggle-chart-mode-btn').innerText = 'Gráfico Activo';
+        document.getElementById('toggle-chart-mode-btn').innerText = 'Ver Histograma de Ticks';
         document.getElementById('toggle-chart-mode-btn').className = 'px-2 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[9px] rounded font-mono transition-all uppercase';
         
-        c.innerHTML = `<div id="tv-embedded-frame" class="w-full h-full bg-slate-950 rounded overflow-hidden"></div>`;
-        
-        // Load Tradingview dynamic object
-        let container = document.getElementById('tv-embedded-frame');
-        let scr = document.createElement('script');
-        scr.src = 'https://s3.tradingview.com/tv.js';
-        scr.type = 'text/javascript';
-        scr.async = true;
-        scr.onload = () => {
-          if (typeof window !== 'undefined' && window.TradingView) {
-            new window.TradingView.widget({
-              autosize: true,
-              symbol: `PYTH:${active.symbol.toUpperCase()}USD`,
-              interval: '15',
-              timezone: 'Etc/UTC',
-              theme: 'dark',
-              style: '1',
-              locale: 'es',
-              toolbar_bg: '#020617',
-              enable_publishing: false,
-              hide_side_toolbar: false,
-              allow_symbol_change: false,
-              container_id: 'tv-embedded-frame',
-              studies: ['RSI@tv-basicstudies']
-            });
-          }
-        };
-        c.appendChild(scr);
+        c.innerHTML = `<iframe src="https://chart.birdeye.so/v2/solana/${active.address}?theme=dark" class="w-full h-full border-0 rounded bg-slate-950 min-h-[352px]" allowfullscreen></iframe>`;
       }
     }
 
