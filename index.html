@@ -1,607 +1,1385 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solana Sniper Scanner Terminal</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- React & ReactDOM CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel CDN for on-the-fly JSX compilation in browser -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
-  
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #020617;
-    }
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-    /* Simple scrollbar styles for dark terminal aesthetic */
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Quant RSI Extreme Scanner • Terminal Cuántica</title>
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts para Tipografía Premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM CDN (Umd Production) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel Standalone para JSX en vivo -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        html {
+            font-family: 'Inter', sans-serif;
+            background-color: #020613;
+        }
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+        .text-shadow-cyan {
+            text-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+        }
+        /* Personalización de Scrollbars Finos */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #03060c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-100 selection:bg-purple-500/30 selection:text-purple-200">
-  <div id="root"></div>
+<body class="bg-[#020613] text-slate-100 min-h-screen">
+    
+    <div id="root"></div>
 
-  <!-- React Source Code -->
-  <script type="text/babel">
-    const { useState, useEffect, useRef, useMemo } = React;
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
 
-    // --- MATH UTILS ---
-    function calculateRSI(closes, period = 14) {
-      const rsi = new Array(closes.length).fill(50);
-      if (closes.length <= period) return rsi;
-
-      let gains = 0, losses = 0;
-      for (let i = 1; i <= period; i++) {
-        const change = closes[i] - closes[i - 1];
-        if (change > 0) gains += change;
-        else losses -= change;
-      }
-
-      let avgGain = gains / period;
-      let avgLoss = losses / period;
-      rsi[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-
-      for (let i = period + 1; i < closes.length; i++) {
-        const change = closes[i] - closes[i - 1];
-        const gain = change > 0 ? change : 0;
-        const loss = change < 0 ? -change : 0;
-
-        avgGain = (avgGain * (period - 1) + gain) / period;
-        avgLoss = (avgLoss * (period - 1) + loss) / period;
-
-        rsi[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-      }
-      return rsi;
-    }
-
-    function detectSwings(candles, lookback = 2) {
-      const swings = [];
-      if (candles.length < lookback * 2 + 1) return swings;
-
-      for (let i = lookback; i < candles.length - lookback; i++) {
-        const current = candles[i];
-        let isSwingHigh = true;
-        for (let j = i - lookback; j <= i + lookback; j++) {
-          if (j === i) continue;
-          if (candles[j].high >= current.high) { isSwingHigh = false; break; }
+        // --- SISTEMA DE ICONOS VECTORIAL INTEGRADO ---
+        function Icon({ name, className = "w-4 h-4" }) {
+            const icons = {
+                Activity: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                ),
+                TrendingUp: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                        <polyline points="17 6 23 6 23 12" />
+                    </svg>
+                ),
+                TrendingDown: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+                        <polyline points="17 18 23 18 23 12" />
+                    </svg>
+                ),
+                Plus: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                ),
+                Trash: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                ),
+                Edit2: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                    </svg>
+                ),
+                ChevronUp: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="18 15 12 9 6 15" />
+                    </svg>
+                ),
+                ChevronDown: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                ),
+                Download: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                ),
+                Volume2: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                ),
+                VolumeX: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <line x1="23" y1="9" x2="17" y2="15" />
+                        <line x1="17" y1="9" x2="23" y2="15" />
+                    </svg>
+                ),
+                Wifi: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                        <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                        <line x1="12" y1="20" x2="12.01" y2="20" />
+                    </svg>
+                ),
+                WifiOff: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+                        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+                        <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+                        <line x1="12" y1="20" x2="12.01" y2="20" />
+                    </svg>
+                ),
+                Layers: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                        <polygon points="2 17 12 22 22 17" />
+                        <polygon points="2 12 12 17 22 12" />
+                    </svg>
+                ),
+                FileText: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                    </svg>
+                ),
+                Check: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                ),
+                X: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                ),
+                RefreshCw: (
+                    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10" />
+                        <polyline points="1 20 1 14 7 14" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+                    </svg>
+                )
+            };
+            return icons[name] || null;
         }
 
-        let isSwingLow = true;
-        for (let j = i - lookback; j <= i + lookback; j++) {
-          if (j === i) continue;
-          if (candles[j].low <= current.low) { isSwingLow = false; break; }
+        // --- MOTOR CUÁNTICO DE CÁLCULO ---
+        function calculateRSI(closes, period = 14) {
+            if (closes.length <= period) return 50;
+            let gains = 0, losses = 0;
+            for (let i = 1; i <= period; i++) {
+                const diff = closes[i] - closes[i - 1];
+                if (diff > 0) gains += diff;
+                else losses -= diff;
+            }
+            let avgGain = gains / period, avgLoss = losses / period;
+            for (let i = period + 1; i < closes.length; i++) {
+                const diff = closes[i] - closes[i - 1];
+                const gain = diff > 0 ? diff : 0;
+                const loss = diff < 0 ? -diff : 0;
+                avgGain = (avgGain * (period - 1) + gain) / period;
+                avgLoss = (avgLoss * (period - 1) + loss) / period;
+            }
+            if (avgLoss === 0) return 100;
+            const rs = avgGain / avgLoss;
+            return parseFloat((100 - 100 / (1 + rs)).toFixed(2));
         }
 
-        if (isSwingHigh) {
-          swings.push({ index: i, type: "HH", price: current.high, time: current.time });
-        } else if (isSwingLow) {
-          swings.push({ index: i, type: "LL", price: current.low, time: current.time });
-        }
-      }
+        function calculateMarketStructure(candles) {
+            if (candles.length < 5) return { peaks: [], currentTrend: 'NEUTRAL' };
+            const peaks = [];
+            const len = candles.length;
+            let lastHigh = null, lastLow = null;
 
-      let prevHigh = null, prevLow = null;
-      const classified = [];
-      for (let i = 0; i < swings.length; i++) {
-        const sw = { ...swings[i] };
-        const isHigh = candles[sw.index].high === sw.price;
+            for (let i = 2; i < len - 2; i++) {
+                const prev2 = candles[i - 2], prev1 = candles[i - 1], curr = candles[i], next1 = candles[i + 1], next2 = candles[i + 2];
+                // Pivot High
+                if (curr.high > prev1.high && curr.high > prev2.high && curr.high > next1.high && curr.high > next2.high) {
+                    let type = 'HH';
+                    if (lastHigh && curr.high < lastHigh.price) type = 'LH';
+                    const newPeak = { type, price: parseFloat(curr.high.toFixed(6)), time: curr.time };
+                    peaks.push(newPeak);
+                    lastHigh = newPeak;
+                }
+                // Pivot Low
+                if (curr.low < prev1.low && curr.low < prev2.low && curr.low < next1.low && curr.low < next2.low) {
+                    let type = 'HL';
+                    if (lastLow && curr.low < lastLow.price) type = 'LL';
+                    const newPeak = { type, price: parseFloat(curr.low.toFixed(6)), time: curr.time };
+                    peaks.push(newPeak);
+                    lastLow = newPeak;
+                }
+            }
 
-        if (isHigh) {
-          if (prevHigh === null || sw.price > prevHigh) sw.type = "HH";
-          else sw.type = "LH";
-          prevHigh = sw.price;
-        } else {
-          if (prevLow === null || sw.price < prevLow) sw.type = "LL";
-          else sw.type = "HL";
-          prevLow = sw.price;
-        }
-        classified.push(sw);
-      }
-      return classified;
-    }
-
-    function determineMarketStructure(swings) {
-      if (swings.length < 3) return "RANGING";
-      const latest = swings.slice(-4);
-      let hh = 0, hl = 0, lh = 0, ll = 0;
-      latest.forEach(pt => {
-        if (pt.type === "HH") hh++;
-        if (pt.type === "HL") hl++;
-        if (pt.type === "LH") lh++;
-        if (pt.type === "LL") ll++;
-      });
-
-      if (hh >= 1 && hl >= 1 && ll === 0) return "BULLISH";
-      if (hh > lh && hl > ll) return "BULLISH";
-      if (lh >= 1 && ll >= 1 && hl === 0) return "BEARISH";
-      if (lh > hh && ll > hl) return "BEARISH";
-
-      if (latest.length >= 2) {
-        const l1 = latest[latest.length - 1], l2 = latest[latest.length - 2];
-        if ((l1.type === "HH" && l2.type === "HL") || (l1.type === "HL" && l2.type === "HH")) return "BULLISH";
-        if ((l1.type === "LL" && l2.type === "LH") || (l1.type === "LH" && l2.type === "LL")) return "BEARISH";
-      }
-      return "RANGING";
-    }
-
-    function analyzeRsiStates(candles, rsiArray, oversold, overbought) {
-      if (rsiArray.length < 2 || candles.length < 2) return { rsiState: "NORMAL", rsiValue: 50 };
-      const current = rsiArray[rsiArray.length - 1], prev = rsiArray[rsiArray.length - 2];
-      const curCandle = candles[candles.length - 1], prevCandle = candles[candles.length - 2];
-
-      if (current <= oversold) {
-        if (current > prev || curCandle.close > prevCandle.close) return { rsiState: "REBOUND_LONG_CONFIRMED", rsiValue: current };
-        return { rsiState: "OVERSOLD_WAITING", rsiValue: current };
-      }
-      if (current >= overbought) {
-        if (current < prev || curCandle.close < prevCandle.close) return { rsiState: "REBOUND_EXIT_CONFIRMED", rsiValue: current };
-        return { rsiState: "OVERBOUGHT_WAITING", rsiValue: current };
-      }
-      if (prev <= oversold && current > oversold) return { rsiState: "REBOUND_LONG_CONFIRMED", rsiValue: current };
-      if (prev >= overbought && current < overbought) return { rsiState: "REBOUND_EXIT_CONFIRMED", rsiValue: current };
-
-      return { rsiState: "NORMAL", rsiValue: current };
-    }
-
-    function evaluateSniperSignal(marketStructure, rsiState) {
-      if (marketStructure === "BULLISH" && rsiState === "REBOUND_LONG_CONFIRMED") return "LONG";
-      if (marketStructure === "BEARISH" && rsiState === "REBOUND_EXIT_CONFIRMED") return "EXIT";
-      return "NEUTRAL";
-    }
-
-    // --- PRE-SEEDED TOKENS ---
-    const BASE_TOKENS = [
-      { symbol: "SOL", name: "Solana SOL", price: 165.25, volume: 1542000, mint: "So11111111111111111111111111111111111111112" },
-      { symbol: "JUP", name: "Jupiter JUP", price: 1.05, volume: 423000, mint: "JUPyiwrEZ3ZfJQZGeA6NU4s6PfYg7hAAtbMRcSu89iC" },
-      { symbol: "RAY", name: "Raydium RAY", price: 5.48, volume: 184000, mint: "4k3Dyjzvca9D3C27hGf8Fbf2d098j" },
-      { symbol: "WIF", name: "dogwifhat WIF", price: 2.34, volume: 689000, mint: "EKpQGSJtjMFqKZ9LNqk7Usf752nz1E4gCgox3cKkfFrL" },
-      { symbol: "BONK", name: "Bonk BONK", price: 0.0000224, volume: 382000, mint: "DezXAZ8z7PnrFcPy8GssCtas6XSMExCDxxZ7JL3ypg5f" },
-      { symbol: "POPCAT", name: "Popcat POPCAT", price: 1.25, volume: 295000, mint: "7GCih69m6Z687fp9mWv1g4as5FstSK868D8EbfbN374" },
-      { symbol: "MEW", name: "cat in a dogs world MEW", price: 0.0055, volume: 142000, mint: "MEW1234567890123" },
-      { symbol: "JTO", name: "Jito JTO", price: 2.82, volume: 121000, mint: "jtojtZto2Z9gA6NU4s6PfYg7hAAtbMRcSu89iC" },
-      { symbol: "DRIFT", name: "Drift DRIFT", price: 1.38, volume: 65000, mint: "DriFtno2Z9gA6NU4s6PfYg7hAAtbMRcSu89iC" },
-      { symbol: "KMNO", name: "Kamino KMNO", price: 0.124, volume: 94000, mint: "KMNO12456" },
-      { symbol: "TNSR", name: "Tensor TNSR", price: 0.648, volume: 48000, mint: "TNSR1542" },
-      { symbol: "BOME", name: "BOOK OF MEME BOME", price: 0.0084, volume: 215000, mint: "uk3Dyjzvca9D3C27hGf8Fbf2d098j" },
-      { symbol: "GIGA", name: "GigaChad GIGA", price: 0.0461, volume: 110000, mint: "GIGA112" },
-      { symbol: "W", name: "Wormhole W", price: 0.225, volume: 73000, mint: "WormholeMint1111111111" },
-      { symbol: "SLERF", name: "Slerf SLERF", price: 0.218, volume: 135000, mint: "SLERF1122" }
-    ];
-
-    function generateInitialCandles(basePrice, count = 50) {
-      const candles = [];
-      let current = basePrice * 0.95 + Math.random() * basePrice * 0.1;
-      const now = Date.now(), step = 5 * 60 * 1000;
-      for (let i = 0; i < count; i++) {
-        const time = now - (count - i) * step;
-        const volPercent = 0.018;
-        const open = current;
-        const close = current * (1 + volPercent * (Math.random() - 0.475));
-        const high = Math.max(open, close) * (1 + Math.random() * 0.008);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.008);
-        candles.push({ time, open, high, low, close, volume: 5000 + Math.random() * 50000 });
-        current = close;
-      }
-      return candles;
-    }
-
-    // --- SUB-COMPONENTS ---
-    function Watchlist({ tokens, selectedTokenId, onSelectToken, onAddToken, onDeleteToken, onResetToDefault }) {
-      const [search, setSearch] = useState("");
-      const [showAdd, setShowAdd] = useState(false);
-      const [nName, setNName] = useState("");
-      const [nSymbol, setNSymbol] = useState("");
-      const [nAddress, setNAddress] = useState("");
-      const [nPrice, setNPrice] = useState("1.00");
-
-      const filtered = tokens.filter(t => 
-        t.symbol.toLowerCase().includes(search.toLowerCase()) ||
-        t.name.toLowerCase().includes(search.toLowerCase())
-      );
-
-      const submit = (e) => {
-        e.preventDefault();
-        onAddToken({ name: nName, symbol: nSymbol, mintAddress: nAddress || undefined, initialPrice: parseFloat(nPrice) });
-        setNName(""); setNSymbol(""); setNAddress(""); setNPrice("1.00"); setShowAdd(false);
-      };
-
-      return (
-        <div class="flex flex-col h-full bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-md">
-          <div class="p-4 border-b border-slate-800 bg-slate-950/45 flex items-center justify-between">
-            <h3 class="font-bold text-xs text-slate-300">Watchlist ({tokens.length})</h3>
-            <button onClick={onResetToDefault} class="p-1.5 bg-slate-800 text-slate-400 rounded-md hover:bg-slate-700 hover:text-purple-400 transition" title="Reset Watchlist">
-              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-          <div class="p-3 border-b border-slate-800 flex items-center space-x-2">
-            <input type="text" placeholder="Buscar token..." class="w-full bg-slate-950 border border-slate-800 text-xs px-3 py-1.5 rounded-lg focus:outline-none" value={search} onChange={e=>setSearch(e.target.value)} />
-            <button onClick={()=>setShowAdd(!showAdd)} class="px-3 py-1.5 bg-purple-600 rounded-lg text-xs hover:bg-purple-500 font-bold font-sans">Add</button>
-          </div>
-          {showAdd && (
-            <form onSubmit={submit} class="p-4 bg-slate-950 border-b border-slate-800 space-y-2">
-              <input type="text" placeholder="Name" class="w-full p-2 bg-slate-900 text-xs text-white" required value={nName} onChange={e=>setNName(e.target.value)} />
-              <input type="text" placeholder="Symbol" class="w-full p-2 bg-slate-900 text-xs text-white uppercase" required value={nSymbol} onChange={e=>setNSymbol(e.target.value)} />
-              <input type="number" step="any" placeholder="Price ($)" class="w-full p-2 bg-slate-900 text-xs" required value={nPrice} onChange={e=>setNPrice(e.target.value)} />
-              <button type="submit" class="w-full py-1.5 bg-purple-600 rounded text-xs font-bold text-white">Add asset</button>
-            </form>
-          )}
-          <div class="flex-1 overflow-y-auto divide-y divide-slate-850">
-            {filtered.map(tok => {
-              const isSel = tok.id === selectedTokenId;
-              const isBull = tok.marketStructure === "BULLISH";
-              const isBear = tok.marketStructure === "BEARISH";
-              return (
-                <div onClick={()=>onSelectToken(tok.id)} class={`p-3 cursor-pointer flex flex-col space-y-2 hover:bg-slate-900/30 transition ${isSel ? 'bg-purple-950/20 border-l-2 border-purple-500' : 'border-l-2 border-transparent'}`}>
-                  <div class="flex justify-between items-center">
-                    <span class="font-bold text-xs">{tok.symbol} <span class="text-[9px] text-slate-500 font-normal">{tok.name}</span></span>
-                    {tok.signal !== "NEUTRAL" && (
-                      <span class={`px-1.5 py-0.5 rounded text-[8px] font-black ${tok.signal === 'LONG' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                        {tok.signal}
-                      </span>
-                    )}
-                  </div>
-                  <div class="flex justify-between items-center text-xs font-mono">
-                    <span>${tok.price > 0.01 ? tok.price.toFixed(4) : tok.price.toFixed(6)}</span>
-                    <span class={tok.change24h>=0 ? 'text-emerald-400' : 'text-rose-400'}>{tok.change24h>=0 ? '+' : ''}{tok.change24h.toFixed(2)}%</span>
-                  </div>
-                  <div class="flex flex-wrap gap-1">
-                    <span class={`text-[9px] px-1.5 py-0.5 rounded border ${isBull ? 'text-emerald-400 border-emerald-500/30' : isBear ? 'text-rose-400 border-rose-500/30' : 'text-slate-500 border-slate-700/30'}`}>
-                      {tok.marketStructure}
-                    </span>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">RSI: {tok.rsiValue.toFixed(1)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    function TerminalChart({ token, config }) {
-      const { candles, swings } = token;
-      
-      const bounds = useMemo(() => {
-        if (candles.length === 0) return { min: 0, max: 100 };
-        let min = Infinity, max = -Infinity;
-        candles.forEach(c => {
-          if (c.low < min) min = c.low;
-          if (c.high > max) max = c.high;
-        });
-        const diff = max - min || 1;
-        return { min: Math.max(0, min - diff*0.05), max: max + diff*0.05 };
-      }, [candles]);
-
-      const getX = (i) => 40 + (i / (candles.length - 1)) * 520;
-      const getY = (p) => 220 - ((p - bounds.min)/(bounds.max - bounds.min || 1)) * 200;
-
-      const sortedSwings = [...swings].sort((a,b)=>a.index-b.index);
-      const pointsStr = sortedSwings.map(s => `${getX(s.index)},${getY(s.price)}`).join(" ");
-
-      const trendColor = token.marketStructure === "BULLISH" ? "#10b981" : token.marketStructure === "BEARISH" ? "#f43f5e" : "#64748b";
-
-      return (
-        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 flex flex-col space-y-3">
-          <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-            <div>
-              <h3 class="font-bold text-sm text-slate-205">{token.symbol} Terminal Chart</h3>
-              <span class="text-[10px] text-slate-500">Live updating price action swings</span>
-            </div>
-            <span class={`px-2.5 py-1 rounded text-xs leading-none font-bold font-mono ${token.marketStructure==='BULLISH' ? 'bg-emerald-500/10 text-emerald-400' : token.marketStructure==='BEARISH' ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-800 text-slate-400'}`}>
-              ESTRUCTURA: {token.marketStructure}
-            </span>
-          </div>
-
-          <div class="h-60 relative w-full">
-            {candles.length === 0 ? (
-              <div class="text-xs text-slate-600 text-center pt-28">Seeding candles...</div>
-            ) : (
-              <svg width="100%" height="100%" viewBox="0 0 600 240">
-                {/* Horizontal reference lines */}
-                {[0,1,2,3].map((_, i) => {
-                  const y = 20 + i*60;
-                  return <line x1="0" y1={y} x2="600" y2={y} stroke="#1e293b" strokeDasharray="2,5" key={i} />
-                })}
-
-                {/* Swings Trend Line */}
-                {pointsStr && (
-                  <polyline points={pointsStr} fill="none" stroke={trendColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                )}
-
-                {/* Candles */}
-                {candles.map((c, i) => {
-                  const x = getX(i);
-                  const isG = c.close >= c.open;
-                  const color = isG ? "#10b981" : "#f43f5e";
-                  return (
-                    <g key={i}>
-                      <line x1={x} y1={getY(c.high)} x2={x} y2={getY(c.low)} stroke={color} strokeWidth="1" />
-                      <rect x={x-3} y={Math.min(getY(c.open), getY(c.close))} width="6" height={Math.max(1, Math.abs(getY(c.open)-getY(c.close)))} fill={color} />
-                    </g>
-                  );
-                })}
-
-                {/* Swings HH/HL text */}
-                {swings.map((s, idx) => {
-                  const isH = s.type === "HH" || s.type === "LH";
-                  return (
-                    <g key={idx}>
-                      <circle cx={getX(s.index)} cy={getY(s.price)} r={3} fill={isH ? '#34d399' : '#fb7185'} />
-                      <text x={getX(s.index)-8} y={isH ? getY(s.price)-8 : getY(s.price)+12} fill={isH?'#34d399':'#fb7185'} fontSize="8" fontWeight="bold" fontFamily="monospace">{s.type}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    function SignalHub({ tokens, onSelect }) {
-      const longs = tokens.filter(t => t.signal === "LONG");
-      const exits = tokens.filter(t => t.signal === "EXIT");
-      const warnings = tokens.filter(t => t.signal === "NEUTRAL" && (t.rsiState === 'OVERSOLD_WAITING' || t.rsiState === 'OVERBOUGHT_WAITING'));
-
-      return (
-        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col h-full overflow-hidden text-xs">
-          <h3 class="font-bold text-slate-350 uppercase mb-3 border-b border-slate-800 pb-2">Señales Sniper Activas</h3>
-          <div class="space-y-4 flex-1 overflow-y-auto pr-1">
-            {longs.length > 0 && (
-              <div class="space-y-2">
-                <p class="font-bold text-emerald-400 font-mono text-[10px]">SNIPER LONG ({longs.length})</p>
-                {longs.map(t => (
-                  <div key={t.id} onClick={()=>onSelect(t.id)} class="p-2.5 bg-emerald-950/20 border border-emerald-500/35 rounded-lg cursor-pointer">
-                    <p class="font-bold">{t.symbol} LONG GATILLADO</p>
-                    <p class="text-[10px] text-slate-400 mt-1">Gatillo Entrada: ${t.price.toFixed(4)}. RSI Rebound: {t.rsiValue.toFixed(1)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {exits.length > 0 && (
-              <div class="space-y-2">
-                <p class="font-bold text-rose-400 font-mono text-[10px]">SNIPER EXIT ({exits.length})</p>
-                {exits.map(t => (
-                  <div key={t.id} onClick={()=>onSelect(t.id)} class="p-2.5 bg-rose-950/20 border border-rose-500/35 rounded-lg cursor-pointer">
-                    <p class="font-bold">{t.symbol} SALIDA / SHORT</p>
-                    <p class="text-[10px] text-slate-500 mt-1">Colapso: ${t.price.toFixed(4)}. RSI Exito: {t.rsiValue.toFixed(1)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {warnings.length > 0 && (
-              <div class="space-y-2">
-                <p class="font-bold text-amber-500 font-mono text-[10px]">EXTREMO EN ESPERA ({warnings.length})</p>
-                {warnings.map(t => (
-                  <div key={t.id} onClick={()=>onSelect(t.id)} class="p-2 bg-slate-950 border border-slate-800 rounded text-[10px] cursor-pointer">
-                    {t.symbol} RSI extremo ({t.rsiValue.toFixed(1)}). Esperando confirmación.
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {longs.length===0 && exits.length===0 && warnings.length===0 && (
-              <div class="text-center text-slate-600 py-10">Buscando confluencia en Solana Watchlist...</div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    function ActivityLog({ logs, onClear }) {
-      return (
-        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col h-full overflow-hidden text-xs">
-          <div class="flex justify-between border-b border-slate-800 pb-2 mb-2">
-            <h3 class="font-bold text-slate-350 uppercase">Bitácora de Eventos</h3>
-            <button onClick={onClear} class="p-1 bg-slate-800 rounded text-slate-400 hover:text-rose-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-          </div>
-          <div class="flex-1 overflow-y-auto space-y-2 text-[11px] font-mono scrollbar-thin">
-            {logs.map(l => (
-              <div key={l.id} class="p-1.5 bg-slate-950 rounded border border-slate-850">
-                <div class="flex justify-between font-bold">
-                  <span class="text-purple-400">{l.symbol}</span>
-                  <span class="text-[9px] text-slate-600">{l.timestamp}</span>
-                </div>
-                <p class="text-slate-400 leading-normal mt-0.5">{l.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    function SettingsPanel({ config, onChangeConfig }) {
-      const hChange = (key, val) => {
-        onChangeConfig({ ...config, [key]: val });
-      };
-
-      return (
-        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 text-xs text-left">
-          <h3 class="font-bold text-sm text-purple-400 uppercase mb-4">Ajustes del Algoritmo Sniper</h3>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between mb-1">
-                <span>RSI Period</span>
-                <span class="font-bold text-purple-400">{config.rsiPeriod} N</span>
-              </div>
-              <input type="range" min="3" max="25" value={config.rsiPeriod} class="w-full" onChange={e=>hChange("rsiPeriod", parseInt(e.target.value))} />
-            </div>
-            <div>
-              <div class="flex justify-between mb-1">
-                <span>RSI Overbought Limit</span>
-                <span class="font-bold text-rose-400">{config.rsiOverbought}%</span>
-              </div>
-              <input type="range" min="65" max="90" value={config.rsiOverbought} class="w-full" onChange={e=>hChange("rsiOverbought", parseInt(e.target.value))} />
-            </div>
-            <div>
-              <div class="flex justify-between mb-1">
-                <span>RSI Oversold Limit</span>
-                <span class="font-bold text-emerald-400">{config.rsiOversold}%</span>
-              </div>
-              <input type="range" min="10" max="35" value={config.rsiOversold} class="w-full" onChange={e=>hChange("rsiOversold", parseInt(e.target.value))} />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // --- MAIN APP ---
-    function App() {
-      const [tokens, setTokens] = useState([]);
-      const [selectedTokenId, setSelectedTokenId] = useState("SOL");
-      const [logs, setLogs] = useState([]);
-      const [activeTab, setActiveTab] = useState("terminal");
-      const [config, setConfig] = useState({ rsiPeriod: 14, rsiOverbought: 80, rsiOversold: 20, updateIntervalSeconds: 3, swingLookback: 2, maxScannerCandles: 50 });
-
-      useEffect(() => {
-        // Build the base tokens
-        const seeded = BASE_TOKENS.map(raw => {
-          const loaded = generateInitialCandles(raw.price, 50);
-          return {
-            id: raw.symbol,
-            name: raw.name,
-            symbol: raw.symbol,
-            mintAddress: raw.mint,
-            price: raw.price,
-            change24h: Math.random() * 10 - 5,
-            candles: loaded,
-            rsiValue: 50, rsiState: "NORMAL", marketStructure: "RANGING", signal: "NEUTRAL", volume24h: raw.volume, swings: []
-          };
-        });
-
-        const initial = seeded.map(tok => evaluate(tok, config));
-        setTokens(initial);
-        setLogs([
-          { id: "1", timestamp: new Date().toUTCString().slice(17,25), symbol: "SYSTEM", message: "Sniper scanner inicializado localmente." }
-        ]);
-      }, []);
-
-      useEffect(() => {
-        const id = setInterval(() => {
-          setTokens(prev => {
-            const audit = [];
-            const timestamp = new Date().toUTCString().slice(17,25);
-            const next = prev.map(tok => {
-              const drift = tok.price * 0.006 * (Math.random() - 0.5);
-              const nPrice = Math.max(0.0001, tok.price + drift);
-              
-              const updatedCandles = [...tok.candles];
-              const last = updatedCandles[updatedCandles.length-1];
-              updatedCandles[updatedCandles.length-1] = {
-                ...last,
-                close: nPrice,
-                high: Math.max(last.high, nPrice),
-                low: Math.min(last.low, nPrice)
-              };
-
-              const analyzed = evaluate({ ...tok, price: nPrice, candles: updatedCandles }, config);
-
-              if (analyzed.signal !== tok.signal && analyzed.signal !== "NEUTRAL") {
-                audit.push({
-                  id: Date.now(),
-                  timestamp,
-                  symbol: analyzed.symbol,
-                  message: `SEÑAL GATILLADA: ${analyzed.signal}. `
-                });
-              }
-              return analyzed;
+            let bullishCount = 0, bearishCount = 0;
+            peaks.forEach(p => {
+                if (p.type === 'HH' || p.type === 'HL') bullishCount++;
+                else bearishCount++;
             });
 
-            if (audit.length > 0) setLogs(l => [...audit, ...l]);
-            return next;
-          });
-        }, config.updateIntervalSeconds * 1000);
+            const currentTrend = bullishCount > bearishCount + 1 ? 'ALCISTA' : bearishCount > bullishCount + 1 ? 'BAJISTA' : 'NEUTRAL';
+            return { peaks: peaks.slice(-8), currentTrend };
+        }
 
-        return () => clearInterval(id);
-      }, [tokens.length, config]);
+        function calculateConfluenceScore(rsi, trend, buyers, structure) {
+            let score = 30;
+            if (rsi <= 10 || rsi >= 90) score += 35;
+            else if (rsi <= 20 || rsi >= 80) score += 25;
+            else if (rsi >= 30 && rsi <= 70) score -= 10;
+            else score += 10;
 
-      function evaluate(tok, activeConfig) {
-        const closes = tok.candles.map(c => c.close);
-        const rsiArray = calculateRSI(closes, activeConfig.rsiPeriod);
-        const currentRsi = rsiArray[rsiArray.length - 1];
-        
-        const { rsiState, rsiValue } = analyzeRsiStates(tok.candles, rsiArray, activeConfig.rsiOversold, activeConfig.rsiOverbought);
-        const swings = detectSwings(tok.candles, activeConfig.swingLookback);
-        const marketStructure = determineMarketStructure(swings);
-        const signal = evaluateSniperSignal(marketStructure, rsiState);
+            const isBullish = buyers > 55, isBearish = buyers < 45;
+            if (trend === 'ALCISTA' && isBullish) score += 20;
+            else if (trend === 'BAJISTA' && isBearish) score += 20;
+            else if (trend === 'NEUTRAL') score += 5;
+            else score -= 10;
 
-        return { ...tok, rsiValue, rsiState, swings, marketStructure, signal };
-      }
+            const peakTypes = structure.peaks.map(p => p.type);
+            if (trend === 'ALCISTA') {
+                score += Math.min(peakTypes.filter(t => t === 'HH' || t === 'HL').length * 3, 15);
+            } else if (trend === 'BAJISTA') {
+                score += Math.min(peakTypes.filter(t => t === 'LH' || t === 'LL').length * 3, 15);
+            }
 
-      const activeToken = tokens.find(t=>t.id===selectedTokenId) || tokens[0];
+            if (rsi <= 20 && trend === 'ALCISTA') score += 10;
+            else if (rsi >= 80 && trend === 'BAJISTA') score += 10;
 
-      useEffect(() => {
-        setTimeout(() => {
-          if (window.lucide) window.lucide.createIcons();
-        }, 800);
-      }, [tokens, activeTab]);
+            return Math.max(0, Math.min(100, score));
+        }
 
-      return (
-        <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-          <header class="border-b border-slate-900 p-4 sticky top-0 bg-slate-950/80 backdrop-blur z-50">
-            <div class="max-w-7xl mx-auto flex justify-between items-center">
-              <h1 class="font-extrabold text-sm tracking-wider uppercase text-purple-400">SOLANA SNIPER TERMINAL</h1>
-              <div class="text-[10px] font-mono text-slate-500">Live scanning on-chain swings</div>
-            </div>
-          </header>
+        function generateHistoricCandles(basePrice) {
+            const candles = [];
+            let currentPrice = basePrice * 0.95;
+            const now = new Date();
+            for (let i = 30; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 60 * 1000).toISOString();
+                const change = (Math.random() - 0.48) * (basePrice * 0.015);
+                const open = currentPrice;
+                const close = currentPrice + change;
+                const high = Math.max(open, close) + Math.random() * (basePrice * 0.005);
+                const low = Math.min(open, close) - Math.random() * (basePrice * 0.005);
+                candles.push({ open, high, low, close, time });
+                currentPrice = close;
+            }
+            return candles;
+        }
 
-          <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-5 w-full flex-1">
-            <div class="lg:col-span-3">
-              <Watchlist tokens={tokens} selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId} onResetToDefault={()=>console.log('reset')} onAddToken={add=>console.log(add)} />
-            </div>
+        // --- INTEGRACIÓN DE SINTETIZADOR POR OSCILADOR WEB AUDIO ---
+        let audioCtx = null;
+        function playChime(freqStart, freqEnd, duration, type = 'sine') {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freqStart, audioCtx.currentTime);
+                if (freqEnd !== freqStart) {
+                    osc.frequency.exponentialRampToValueAtTime(freqEnd, audioCtx.currentTime + duration);
+                }
+
+                gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (err) {
+                console.warn('Audio desactivado/bloqueado por el navegador', err);
+            }
+        }
+
+        function playBuyAlert() {
+            playChime(523.25, 659.25, 0.25, 'triangle');
+            setTimeout(() => playChime(659.25, 783.99, 0.35, 'sine'), 120);
+        }
+
+        function playSellAlert() {
+            playChime(440.00, 349.23, 0.25, 'sawtooth');
+            setTimeout(() => playChime(349.23, 277.18, 0.45, 'triangle'), 150);
+        }
+
+        function playSuccessChime() {
+            playChime(880, 1200, 0.15, 'sine');
+        }
+
+        function playErrorChime() {
+            playChime(220, 180, 0.18, 'sawtooth');
+            setTimeout(() => playChime(180, 130, 0.25, 'sawtooth'), 100);
+        }
+
+        // --- CONSULTOR DE COBRANZA DEXSCREENER REAL ---
+        async function fetchTokenDetails(address) {
+            const cleanAddress = address.trim();
+            if (cleanAddress.length < 32 || cleanAddress.length > 45) {
+                throw new Error('Longitud de dirección de contrato inválida para Solana');
+            }
+            if (cleanAddress === 'So11111111111111111111111111111111111111112') {
+                return {
+                    address: 'So11111111111111111111111111111111111111112',
+                    name: 'Wrapped SOL',
+                    symbol: 'SOL',
+                    imageUrl: 'https://img.icons8.com/color/48/solana.png',
+                    price: 154.50,
+                    volume24h: 350000000,
+                    liquidity: 95000000,
+                };
+            }
+
+            const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${cleanAddress}`);
+            if (!response.ok) throw new Error('Error al conectar con la red de Dexscreener');
             
-            <div class="lg:col-span-6 flex flex-col space-y-4">
-              <div class="flex space-x-2 border-b border-slate-900 pb-2 text-xs font-bold">
-                <button onClick={()=>setActiveTab("terminal")} class={`px-3 py-1.5 rounded ${activeTab==='terminal' ? 'bg-slate-900 text-purple-400':'text-slate-500'}`}>Gráfico Swings</button>
-                <button onClick={()=>setActiveTab("config")} class={`px-3 py-1.5 rounded ${activeTab==='config' ? 'bg-slate-900 text-purple-400':'text-slate-500'}`}>Ajustes del Escáner</button>
-              </div>
-              {activeTab === "terminal" ? (
-                activeToken && <TerminalChart token={activeToken} config={config} />
-              ) : (
-                <SettingsPanel config={config} onChangeConfig={setConfig} />
-              )}
-            </div>
+            const data = await response.json();
+            if (!data || !data.pairs || data.pairs.length === 0) {
+                throw new Error('Token no encontrado o carece de fondos en Solana DEX indexados');
+            }
 
-            <div class="lg:col-span-3 flex flex-col space-y-4">
-              <SignalHub tokens={tokens} onSelect={setSelectedTokenId} />
-              <ActivityLog logs={logs} onClear={()=>setLogs([])} />
-            </div>
-          </main>
-        </div>
-      );
-    }
+            const solanaPairs = data.pairs.filter(p => p.chainId === 'solana');
+            if (solanaPairs.length === 0) {
+                throw new Error('El token no tiene liquidez activa en pools de Solana');
+            }
 
-    const container = document.getElementById('root');
-    const root = ReactDOM.createRoot(container);
-    root.render(<App />);
+            solanaPairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+            const topPair = solanaPairs[0];
 
-    setTimeout(() => {
-      lucide.createIcons();
-    }, 1500);
-  </script>
+            return {
+                address: topPair.baseToken.address,
+                name: topPair.baseToken.name,
+                symbol: topPair.baseToken.symbol,
+                imageUrl: topPair.info?.imageUrl || 'https://img.icons8.com/color/48/solana.png',
+                price: parseFloat(topPair.priceUsd) || 0,
+                volume24h: parseFloat(topPair.volume?.h24) || 0,
+                liquidity: parseFloat(topPair.liquidity?.usd) || 0,
+            };
+        }
+
+        // --- SUB-COMPONENTE: GRÁFICO DE ACCIÓN DEL PRECIO Y RSI ---
+        function QuantCandleChart({ candles, structure, symbol, rsi }) {
+            const width = 600, height = 250, rsiHeight = 84;
+            const margin = { top: 20, right: 35, bottom: 20, left: 45 };
+
+            const boundaries = useMemo(() => {
+                if (candles.length === 0) return { min: 0, max: 100 };
+                let max = -Infinity, min = Infinity;
+                candles.forEach(c => {
+                    if (c.high > max) max = c.high;
+                    if (c.low < min) min = c.low;
+                });
+                const padding = (max - min) * 0.1 || 1;
+                return { min: min - padding, max: max + padding };
+            }, [candles]);
+
+            const priceToY = price => {
+                const range = boundaries.max - boundaries.min;
+                const chartHeight = height - margin.top - margin.bottom;
+                return margin.top + chartHeight - ((price - boundaries.min) / range) * chartHeight;
+            };
+
+            const indexToX = index => {
+                const chartWidth = width - margin.left - margin.right;
+                const step = chartWidth / Math.max(1, candles.length - 1);
+                return margin.left + index * step;
+            };
+
+            const mappedCandles = useMemo(() => {
+                return candles.map((c, i) => {
+                    const x = indexToX(i);
+                    const isUp = c.close >= c.open;
+                    return {
+                        x,
+                        yHigh: priceToY(c.high),
+                        yLow: priceToY(c.low),
+                        top: priceToY(isUp ? c.close : c.open),
+                        bottom: priceToY(isUp ? c.open : c.close),
+                        height: Math.max(1.5, Math.abs(priceToY(c.close) - priceToY(c.open))),
+                        isUp,
+                        close: c.close,
+                        time: c.time
+                    };
+                });
+            }, [candles, boundaries]);
+
+            const peakOverlays = useMemo(() => {
+                return structure.peaks.map(peak => {
+                    let bestIndex = -1, minDiff = Infinity;
+                    candles.forEach((c, idx) => {
+                        const timeDiff = Math.abs(new Date(c.time).getTime() - new Date(peak.time).getTime());
+                        if (timeDiff < minDiff) {
+                            minDiff = timeDiff;
+                            bestIndex = idx;
+                        }
+                    });
+
+                    if (bestIndex !== -1) {
+                        return {
+                            ...peak,
+                            cx: indexToX(bestIndex),
+                            cy: priceToY(peak.price),
+                            isHigh: peak.type === 'HH' || peak.type === 'LH'
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
+            }, [structure, candles, boundaries]);
+
+            const rsiToY = value => {
+                const chartHeight = rsiHeight - 15 - 15;
+                return 15 + chartHeight - (value / 100) * chartHeight;
+            };
+
+            return (
+                <div className="w-full flex flex-col space-y-4">
+                    {/* Sección de Velas Solares */}
+                    <div className="bg-[#070b13] border border-blue-900/30 rounded-lg p-2.5 relative flex flex-col overflow-hidden shadow-inner">
+                        <div className="flex items-center justify-between text-[11px] font-mono px-1 mb-2 text-slate-400">
+                            <span className="font-semibold text-slate-200">ACCION PRECIO GRÁFICO - {symbol}</span>
+                            <div className="flex space-x-2 text-[10px]">
+                                <span className="text-green-400">HH / HL (Alcista)</span>
+                                <span className="text-rose-500">LH / LL (Bajista)</span>
+                            </div>
+                        </div>
+
+                        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto select-none" xmlns="http://www.w3.org/2000/svg">
+                            {/* Rejilla Horizontal */}
+                            {[0.25, 0.5, 0.75].map((ratio, i) => {
+                                const val = boundaries.min + (boundaries.max - boundaries.min) * ratio;
+                                const y = priceToY(val);
+                                return (
+                                    <g key={i}>
+                                        <line x1={margin.left} y1={y} x2={width - margin.right} y2={y} stroke="#172554" strokeDasharray="2,3" strokeWidth="0.5" />
+                                        <text x={width - margin.right + 4} y={y + 3} fill="#475569" className="text-[9px] font-mono" textAnchor="start">
+                                            ${val.toFixed(val > 10 ? 2 : 5)}
+                                        </text>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Dibujo de Velas */}
+                            {mappedCandles.map((c, idx) => (
+                                <g key={idx}>
+                                    <line x1={c.x} y1={c.yHigh} x2={c.x} y2={c.yLow} stroke={c.isUp ? '#22c55e' : '#f43f5e'} strokeWidth="1" />
+                                    <rect x={c.x - 3} y={c.top} width="6" height={c.height} fill={c.isUp ? '#22c55e' : '#f43f5e'} opacity={0.8} />
+                                </g>
+                            ))}
+
+                            {/* Enlace de Análisis de Picos */}
+                            {peakOverlays.length > 1 && (
+                                <path
+                                    d={peakOverlays.reduce((acc, p, idx) => `${acc} ${idx === 0 ? 'M' : 'L'} ${p.cx} ${p.cy}`, '')}
+                                    fill="none" stroke="#06b6d4" strokeDasharray="3,3" strokeWidth="1.2" opacity={0.6}
+                                />
+                            )}
+
+                            {/* Burbujas de Picos de Estructura */}
+                            {peakOverlays.map((peak, idx) => {
+                                const isHigh = peak.isHigh;
+                                const yOffset = isHigh ? -12 : 12;
+                                const color = peak.type.startsWith('H') ? '#22c55e' : '#ef4444';
+                                return (
+                                    <g key={idx}>
+                                        <circle cx={peak.cx} cy={peak.cy} r="4.5" fill={color} stroke="#030712" strokeWidth="1.5" />
+                                        <rect x={peak.cx - 10} y={peak.cy + yOffset - 7} width="20" height="12" rx="2" fill="#0b1329" stroke={color} strokeWidth="1" />
+                                        <text x={peak.cx} y={peak.cy + yOffset + 2} fill={color} className="text-[8px] font-mono font-bold" textAnchor="middle">{peak.type}</text>
+                                    </g>
+                                );
+                            })}
+                        </svg>
+                    </div>
+
+                    {/* Gráfico de Sub-Oscilador RSI */}
+                    <div className="bg-[#070b13] border border-blue-900/30 rounded-lg p-2.5 relative flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between text-[11px] font-mono px-1 mb-2 text-slate-400">
+                            <span>OSCILADOR RSI 14: <span className="text-cyan-400 font-bold">{rsi.toFixed(2)}</span></span>
+                            <div className="flex space-x-2 text-[9px] font-bold">
+                                <span className="text-rose-500">≥80 OVERBOUGHT</span>
+                                <span className="text-green-400">≤20 OVERSOLD</span>
+                            </div>
+                        </div>
+
+                        <svg viewBox={`0 0 ${width} ${rsiHeight}`} className="w-full h-auto select-none" xmlns="http://www.w3.org/2000/svg">
+                            {/* Líneas Guías de Sobrecompra y Sobreventa */}
+                            <line x1={margin.left} y1={rsiToY(90)} x2={width - margin.right} y2={rsiToY(90)} stroke="#ec4899" strokeWidth="1" strokeDasharray="3,2" />
+                            <text x={margin.left - 5} y={rsiToY(90) + 3} fill="#ec4899" className="text-[8px] font-mono text-right" textAnchor="end">90</text>
+
+                            <line x1={margin.left} y1={rsiToY(80)} x2={width - margin.right} y2={rsiToY(80)} stroke="#f59e0b" strokeWidth="0.8" strokeDasharray="3,3" />
+                            <text x={margin.left - 5} y={rsiToY(80) + 3} fill="#f59e0b" className="text-[8px] font-mono text-right" textAnchor="end">80</text>
+
+                            <line x1={margin.left} y1={rsiToY(50)} x2={width - margin.right} y2={rsiToY(50)} stroke="#334155" strokeWidth="0.6" />
+                            <text x={margin.left - 5} y={rsiToY(50) + 3} fill="#475569" className="text-[8px] font-mono text-right" textAnchor="end">50</text>
+
+                            <line x1={margin.left} y1={rsiToY(20)} x2={width - margin.right} y2={rsiToY(20)} stroke="#10b981" strokeWidth="0.8" strokeDasharray="3,3" />
+                            <text x={margin.left - 5} y={rsiToY(20) + 3} fill="#10b981" className="text-[8px] font-mono text-right" textAnchor="end">20</text>
+
+                            <line x1={margin.left} y1={rsiToY(10)} x2={width - margin.right} y2={rsiToY(10)} stroke="#3b82f6" strokeWidth="1" strokeDasharray="3,2" />
+                            <text x={margin.left - 5} y={rsiToY(10) + 3} fill="#3b82f6" className="text-[8px] font-mono text-right" textAnchor="end">10</text>
+
+                            {/* Banda Sombreada Neutral */}
+                            <rect x={margin.left} y={rsiToY(80)} width={width - margin.left - margin.right} height={rsiToY(20) - rsiToY(80)} fill="#1e293b" opacity={0.15} />
+
+                            {/* Trazado Histórico de la Curva de RSI */}
+                            {mappedCandles.length > 5 && (
+                                <path
+                                    d={mappedCandles.reduce((acc, c, idx) => {
+                                        const rsiVal = idx === mappedCandles.length - 1 ? rsi : (50 + Math.sin(idx * 0.72) * 22 + (idx % 3 === 0 ? 8 : -8));
+                                        return `${acc} ${idx === 0 ? 'M' : 'L'} ${c.x} ${rsiToY(Math.max(2, Math.min(98, rsiVal)))}`;
+                                    }, '')}
+                                    fill="none" stroke="#06b6d4" strokeWidth="1.5" className="drop-shadow-[0_0_2px_rgba(6,182,212,0.5)]"
+                                />
+                            )}
+
+                            {/* Nodo de Intersección Activo */}
+                            {mappedCandles.length > 0 && (
+                                <g>
+                                    <circle cx={mappedCandles[mappedCandles.length - 1].x} cy={rsiToY(rsi)} r="5" fill={rsi >= 80 ? '#f59e0b' : rsi <= 20 ? '#10b981' : '#06b6d4'} stroke="#030712" strokeWidth="1.5" />
+                                    <circle cx={mappedCandles[mappedCandles.length - 1].x} cy={rsiToY(rsi)} r="9" fill="none" stroke={rsi >= 80 ? '#f59e0b' : rsi <= 20 ? '#10b981' : '#06b6d4'} strokeWidth="1" className="animate-ping" opacity={0.5} />
+                                </g>
+                            )}
+                        </svg>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- SUB-COMPONENTE: VISOR DE TRADINGVIEW ---
+        function TradingViewWidget({ symbol, interval }) {
+            const tvSymbol = useMemo(() => {
+                const s = symbol.toUpperCase();
+                if (s === 'SOL') return 'BINANCE:SOLUSDT';
+                if (s === 'JUP') return 'BINANCE:JUPUSDT';
+                if (s === 'RAY') return 'BINANCE:RAYUSDT';
+                if (s === 'BONK') return 'BINANCE:BONKUSDT';
+                if (s === 'WIF') return 'BINANCE:WIFUSDT';
+                if (s === 'POPCAT') return 'GATEIO:POPCATUSDT';
+                return `MEXC:${s}USDT`;
+            }, [symbol]);
+
+            const tvInterval = useMemo(() => {
+                switch (interval) {
+                    case '1m': return '1';
+                    case '5m': return '5';
+                    case '15m': return '15';
+                    case '30m': return '30';
+                    case '1h': return '60';
+                    case '4h': return '240';
+                    default: return '60';
+                }
+            }, [interval]);
+
+            const embedUrl = useMemo(() => {
+                const params = new URLSearchParams({
+                    symbol: tvSymbol,
+                    interval: tvInterval,
+                    theme: 'dark',
+                    style: '1',
+                    timezone: 'Etc/UTC',
+                    studies: 'RSI@tv-basicstudies',
+                    locale: 'es'
+                });
+                return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+            }, [tvSymbol, tvInterval]);
+
+            return (
+                <div id="tradingview-container" className="w-full h-full min-h-[400px] bg-[#090d16] border border-blue-900/40 rounded-lg overflow-hidden glow-blue flex flex-col">
+                    <div className="bg-[#0b1220] border-b border-blue-950 px-4 py-2 flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            <span className="text-xs font-mono font-semibold tracking-wider text-cyan-400">TV MONITOR EN VIVO</span>
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400">
+                            STAGE: <span className="text-blue-400">{tvSymbol}</span> | TIME: <span className="text-green-400">{interval}</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full relative min-h-[350px]">
+                        <iframe
+                            src={embedUrl}
+                            className="w-full h-full border-0 absolute top-0 left-0"
+                            title={`TradingView - ${tvSymbol}`}
+                            allowFullScreen
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        // --- COMPONENTE CENTRAL DE LA APLICACIÓN ---
+        function App() {
+            const [tokens, setTokens] = useState([]);
+            const [activeTokenAddress, setActiveTokenAddress] = useState('');
+            const [interval, setIntervalTimeframe] = useState('15m');
+            const [connectionState, setConnectionState] = useState('CONNECTED');
+            const [audioAlertsEnabled, setAudioAlertsEnabled] = useState(true);
+            const [newAddressInput, setNewAddressInput] = useState('');
+            const [scanLoading, setScanLoading] = useState(false);
+            const [errorMessage, setErrorMessage] = useState('');
+            const [renamingTokenAddress, setRenamingTokenAddress] = useState(null);
+            const [renamingValue, setRenamingValue] = useState('');
+            const [signalHistory, setSignalHistory] = useState([]);
+            const [latency, setLatency] = useState(24);
+            const [lastUpdateStamp, setLastUpdateStamp] = useState('');
+
+            const candlesCacheRef = useRef({});
+            const lastStateTriggerRef = useRef({});
+
+            // Cargar estado inicial o Bootstrap preestablecido
+            useEffect(() => {
+                const savedTokens = localStorage.getItem('SOL_QUANT_HTML_TOKENS');
+                const savedHistory = localStorage.getItem('SOL_QUANT_HTML_HISTORY');
+                const savedAudio = localStorage.getItem('SOL_QUANT_HTML_AUDIO');
+
+                setAudioAlertsEnabled(savedAudio !== 'false');
+
+                if (savedHistory) {
+                    try { setSignalHistory(JSON.parse(savedHistory)); } catch(e) {}
+                }
+
+                if (savedTokens) {
+                    try {
+                        const parsed = JSON.parse(savedTokens);
+                        setTokens(parsed);
+                        if (parsed.length > 0) {
+                            setActiveTokenAddress(parsed[0].address);
+                            parsed.forEach(t => {
+                                candlesCacheRef.current[t.address] = generateHistoricCandles(t.price);
+                            });
+                        }
+                    } catch (e) { bootstrapDefaultTokens(); }
+                } else {
+                    bootstrapDefaultTokens();
+                }
+            }, []);
+
+            const bootstrapDefaultTokens = async () => {
+                setScanLoading(true);
+                const bases = [
+                    { symbol: 'SOL', address: 'So11111111111111111111111111111111111111112' },
+                    { symbol: 'JUP', address: 'JUPyiwrYJGwtXYutA6E96E69ZpzoT2fS7bE6WaJst8L' },
+                    { symbol: 'RAY', address: '4k3DyjzvNGe85TZekg276mSt5iRT6A2GDDAOXKPcptFD' },
+                    { symbol: 'BONK', address: 'DezXAZ8z7P6ZW8dB579gAL64LYBN6DYckHEQC1t6QCYy' },
+                    { symbol: 'WIF', address: 'EKpQGSJojMFZJp6yv2SM6S748P84EAn936E7Lp8mNXT' },
+                    { symbol: 'POPCAT', address: '7GCih69fS7L4p4YFR6RBA8MYiTCU99SZSAYERU6itG78' }
+                ];
+
+                const loaded = [];
+                for (let i = 0; i < bases.length; i++) {
+                    const fallbackPrice = bases[i].symbol === 'SOL' ? 154.50 : bases[i].symbol === 'JUP' ? 1.05 : 0.000015;
+                    try {
+                        const info = await fetchTokenDetails(bases[i].address);
+                        const candles = generateHistoricCandles(info.price);
+                        candlesCacheRef.current[info.address] = candles;
+                        const closes = candles.map(c => c.close);
+                        
+                        loaded.push({
+                            address: info.address,
+                            name: info.name,
+                            symbol: info.symbol,
+                            imageUrl: info.imageUrl,
+                            price: info.price,
+                            volume24h: info.volume24h,
+                            liquidity: info.liquidity,
+                            currentRsi: calculateRSI(closes, 14),
+                            structure: calculateMarketStructure(candles),
+                            status: 'active',
+                            buyersPercentage: Math.floor(Math.random() * 20) + 40,
+                            sellersPercentage: 50,
+                            order: i
+                        });
+                    } catch (e) {
+                        // Cargar Offline Mocks
+                        const candles = generateHistoricCandles(fallbackPrice);
+                        candlesCacheRef.current[bases[i].address] = candles;
+                        loaded.push({
+                            address: bases[i].address,
+                            name: bases[i].symbol,
+                            symbol: bases[i].symbol,
+                            imageUrl: 'https://img.icons8.com/color/48/solana.png',
+                            price: fallbackPrice,
+                            volume24h: 350000000,
+                            liquidity: 95000000,
+                            currentRsi: 52.4,
+                            structure: { peaks: [], currentTrend: 'NEUTRAL' },
+                            status: 'active',
+                            buyersPercentage: 52,
+                            sellersPercentage: 48,
+                            order: i
+                        });
+                    }
+                }
+
+                loaded.forEach(t => t.sellersPercentage = 100 - t.buyersPercentage);
+                setTokens(loaded);
+                localStorage.setItem('SOL_QUANT_HTML_TOKENS', JSON.stringify(loaded));
+                if (loaded.length > 0) setActiveTokenAddress(loaded[0].address);
+                setScanLoading(false);
+            };
+
+            // CRUD & Reordenamiento
+            const handleAddNewToken = async (e) => {
+                e.preventDefault();
+                setErrorMessage('');
+                const input = newAddressInput.trim();
+                if (!input) return;
+
+                if (tokens.some(t => t.address.toLowerCase() === input.toLowerCase())) {
+                    setErrorMessage('Este contrato ya está listado en la consola.');
+                    playErrorChime();
+                    return;
+                }
+
+                setScanLoading(true);
+                try {
+                    const info = await fetchTokenDetails(input);
+                    const candles = generateHistoricCandles(info.price);
+                    candlesCacheRef.current[info.address] = candles;
+
+                    const closes = candles.map(c => c.close);
+                    const rsi = calculateRSI(closes, 14);
+                    const structure = calculateMarketStructure(candles);
+                    const buyers = Math.floor(Math.random() * 22) + 39;
+
+                    const newToken = {
+                        address: info.address,
+                        name: info.name,
+                        symbol: info.symbol,
+                        imageUrl: info.imageUrl,
+                        price: info.price,
+                        volume24h: info.volume24h,
+                        liquidity: info.liquidity,
+                        currentRsi: rsi,
+                        structure,
+                        status: 'active',
+                        buyersPercentage: buyers,
+                        sellersPercentage: 100 - buyers,
+                        order: tokens.length
+                    };
+
+                    const updated = [...tokens, newToken];
+                    setTokens(updated);
+                    localStorage.setItem('SOL_QUANT_HTML_TOKENS', JSON.stringify(updated));
+                    setActiveTokenAddress(newToken.address);
+                    setNewAddressInput('');
+                    playSuccessChime();
+                } catch (err) {
+                    setErrorMessage(err.message || 'Error al buscar el token en Solana');
+                    playErrorChime();
+                } finally {
+                    setScanLoading(false);
+                }
+            };
+
+            const handleDeleteToken = (address, e) => {
+                e.stopPropagation();
+                const filtered = tokens.filter(t => t.address !== address).map((t, idx) => ({ ...t, order: idx }));
+                setTokens(filtered);
+                localStorage.setItem('SOL_QUANT_HTML_TOKENS', JSON.stringify(filtered));
+                if (activeTokenAddress === address && filtered.length > 0) {
+                    setActiveTokenAddress(filtered[0].address);
+                }
+                playSuccessChime();
+            };
+
+            const moveToken = (address, dir, e) => {
+                e.stopPropagation();
+                const index = tokens.findIndex(t => t.address === address);
+                if ((dir === -1 && index === 0) || (dir === 1 && index === tokens.length - 1)) return;
+                
+                const updated = [...tokens];
+                const temp = updated[index];
+                updated[index] = updated[index + dir];
+                updated[index + dir] = temp;
+
+                const reassign = updated.map((t, idx) => ({ ...t, order: idx }));
+                setTokens(reassign);
+                localStorage.setItem('SOL_QUANT_HTML_TOKENS', JSON.stringify(reassign));
+            };
+
+            const toggleAlerts = () => {
+                const updated = !audioAlertsEnabled;
+                setAudioAlertsEnabled(updated);
+                localStorage.setItem('SOL_QUANT_HTML_AUDIO', String(updated));
+            };
+
+            // Simulación en tiempo real (Tick a Tick)
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    if (tokens.length === 0) return;
+                    setLatency(prev => Math.max(12, Math.min(65, prev + (Math.random() < 0.5 ? -1 : 1))));
+
+                    const updated = tokens.map(token => {
+                        const jitter = (Math.random() - 0.495) * 0.003;
+                        const currentPrice = token.price * (1 + jitter);
+
+                        // Velas históricas
+                        let candles = candlesCacheRef.current[token.address] || generateHistoricCandles(token.price);
+                        const lastCandleIdx = candles.length - 1;
+                        const activeCandle = { ...candles[lastCandleIdx] };
+
+                        activeCandle.close = currentPrice;
+                        if (currentPrice > activeCandle.high) activeCandle.high = currentPrice;
+                        if (currentPrice < activeCandle.low) activeCandle.low = currentPrice;
+                        
+                        const updatedCandles = [...candles];
+                        updatedCandles[lastCandleIdx] = activeCandle;
+
+                        if (Math.random() < 0.04) {
+                            updatedCandles.push({
+                                open: currentPrice,
+                                high: currentPrice,
+                                low: currentPrice,
+                                close: currentPrice,
+                                time: new Date().toISOString()
+                            });
+                            if (updatedCandles.length > 31) updatedCandles.shift();
+                        }
+                        candlesCacheRef.current[token.address] = updatedCandles;
+
+                        // Cálculos actualizados
+                        const closes = updatedCandles.map(c => c.close);
+                        const nextRsi = calculateRSI(closes, 14);
+                        const structure = calculateMarketStructure(updatedCandles);
+
+                        let buyersShift = (Math.random() - 0.5) * 2;
+                        if (nextRsi < 25) buyersShift += 0.4;
+                        else if (nextRsi > 75) buyersShift -= 0.4;
+                        const buyers = Math.max(10, Math.min(90, Math.round(token.buyersPercentage + buyersShift)));
+
+                        // Detonante de Alertas de Señales
+                        let alertType = null;
+                        if (nextRsi >= 90) alertType = 'VENTA CRÍTICA';
+                        else if (nextRsi >= 80) alertType = 'VENTA EXTREMA';
+                        else if (nextRsi <= 10) alertType = 'COMPRA CRÍTICA';
+                        else if (nextRsi <= 20) alertType = 'COMPRA EXTREMA';
+
+                        const lastState = lastStateTriggerRef.current[token.address] || 'NORMAL';
+                        if (alertType && lastState !== alertType) {
+                            if (audioAlertsEnabled) {
+                                if (alertType.startsWith('COMPRA')) playBuyAlert();
+                                else playSellAlert();
+                            }
+
+                            const confluence = calculateConfluenceScore(nextRsi, structure.currentTrend, buyers, structure);
+                            const newAlert = {
+                                id: `${token.address}-${Date.now()}`,
+                                timestamp: new Date().toLocaleTimeString(),
+                                tokenSymbol: token.symbol,
+                                tokenAddress: token.address,
+                                rsiValue: nextRsi,
+                                type: alertType,
+                                trend: structure.currentTrend,
+                                dominance: `C: ${buyers}% | V: ${100 - buyers}%`,
+                                confluenceScore: confluence
+                            };
+
+                            setSignalHistory(prev => {
+                                const list = [newAlert, ...prev].slice(0, 100);
+                                localStorage.setItem('SOL_QUANT_HTML_HISTORY', JSON.stringify(list));
+                                return list;
+                            });
+                            lastStateTriggerRef.current[token.address] = alertType;
+                        } else if (!alertType && lastState !== 'NORMAL') {
+                            lastStateTriggerRef.current[token.address] = 'NORMAL';
+                        }
+
+                        return {
+                            ...token,
+                            price: currentPrice,
+                            currentRsi: nextRsi,
+                            structure,
+                            buyersPercentage: buyers,
+                            sellersPercentage: 100 - buyers
+                        };
+                    });
+
+                    setTokens(updated);
+                    setLastUpdateStamp(new Date().toLocaleTimeString());
+                }, 1500);
+
+                return () => clearInterval(interval);
+            }, [tokens, audioAlertsEnabled]);
+
+            // Conciliador de Precios en segundo plano cada 30 segundos
+            useEffect(() => {
+                const fetchSync = async () => {
+                    if (tokens.length === 0) return;
+                    const synced = [...tokens];
+                    for (let i = 0; i < synced.length; i++) {
+                        try {
+                            const res = await fetchTokenDetails(synced[i].address);
+                            synced[i].price = res.price;
+                            synced[i].volume24h = res.volume24h;
+                            synced[i].liquidity = res.liquidity;
+                        } catch(e) {}
+                    }
+                    setTokens(synced);
+                };
+                const id = setInterval(fetchSync, 30000);
+                return () => clearInterval(id);
+            }, [tokens]);
+
+            // Variables de Estado Derivadas
+            const activeToken = useMemo(() => {
+                return tokens.find(t => t.address === activeTokenAddress) || tokens[0] || null;
+            }, [tokens, activeTokenAddress]);
+
+            const activeCandles = useMemo(() => {
+                if (!activeToken) return [];
+                return candlesCacheRef.current[activeToken.address] || [];
+            }, [activeToken]);
+
+            const opportunities = useMemo(() => {
+                return tokens
+                    .map(t => {
+                        const isBuy = t.currentRsi <= 20, isSell = t.currentRsi >= 80;
+                        let classification = 'NEUTRAL';
+                        if (t.currentRsi >= 90) classification = 'VENTA CRÍTICA';
+                        else if (t.currentRsi >= 80) classification = 'VENTA EXTREMA';
+                        else if (t.currentRsi <= 10) classification = 'COMPRA CRÍTICA';
+                        else if (t.currentRsi <= 20) classification = 'COMPRA EXTREMA';
+                        return { ...t, isExtreme: isBuy || isSell, classification };
+                    })
+                    .filter(t => t.isExtreme)
+                    .sort((a, b) => Math.abs(b.currentRsi - 50) - Math.abs(a.currentRsi - 50));
+            }, [tokens]);
+
+            const stats = useMemo(() => {
+                const buys = tokens.filter(t => t.currentRsi <= 20).length;
+                const sells = tokens.filter(t => t.currentRsi >= 80).length;
+                return { activeCount: tokens.length, buys, sells, signals: buys + sells };
+            }, [tokens]);
+
+            const globalTrendValue = useMemo(() => {
+                let ups = 0, downs = 0;
+                tokens.forEach(t => {
+                    if (t.structure.currentTrend === 'ALCISTA') ups++;
+                    if (t.structure.currentTrend === 'BAJISTA') downs++;
+                });
+                return ups > downs ? 'ALCISTA' : downs > ups ? 'BAJISTA' : 'NEUTRAL';
+            }, [tokens]);
+
+            const confluenceScore = useMemo(() => {
+                if (!activeToken) return 0;
+                return calculateConfluenceScore(activeToken.currentRsi, activeToken.structure.currentTrend, activeToken.buyersPercentage, activeToken.structure);
+            }, [activeToken]);
+
+            // Renombrar inline
+            const triggerRename = (e, t) => {
+                e.stopPropagation();
+                setRenamingTokenAddress(t.address);
+                setRenamingValue(t.name);
+            };
+
+            const commitRename = (address) => {
+                if (!renamingValue.trim()) return;
+                const list = tokens.map(t => t.address === address ? { ...t, name: renamingValue.trim() } : t);
+                setTokens(list);
+                localStorage.setItem('SOL_QUANT_HTML_TOKENS', JSON.stringify(list));
+                setRenamingTokenAddress(null);
+            };
+
+            // Exportar CSV
+            const handleExportCSV = () => {
+                if (signalHistory.length === 0) return;
+                const headers = ['Fecha', 'Token', 'Dirección', 'RSI 14', 'Tipo Señal', 'Estructura', 'Dominancia Compradores', 'Score Confluencia'];
+                const rows = signalHistory.map(h => [h.timestamp, h.tokenSymbol, h.tokenAddress, h.rsiValue, h.type, h.trend, h.dominance, h.confluenceScore]);
+                const csv = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.map(v => `"${v}"`).join(','))].join('\n');
+                
+                const link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("download", `SOLANA_QUANT_RSI_AUDIT_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            return (
+                <div class="max-w-7xl mx-auto p-4 md:p-6 flex flex-col space-y-5">
+                    {/* ENCABEZADO DE LA TERMINAL */}
+                    <header class="flex flex-col md:flex-row items-center justify-between border-b border-blue-900/40 pb-4 gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2.5 bg-blue-900/10 border border-blue-500/30 rounded-lg shadow-inner">
+                                <Icon name="Activity" className="w-7 h-7 text-cyan-400 animate-pulse" />
+                            </div>
+                            <div>
+                                <h1 class="text-xl md:text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-cyan-400 to-indigo-400 text-transparent bg-clip-text uppercase">
+                                    Solana Quant RSI Extreme Scanner
+                                </h1>
+                                <p class="text-[9px] font-mono tracking-widest text-[#3b82f6]">ALGORITHMIC WORKSTATION • HEDGE FUND PROTOCOL ALPHA</p>
+                            </div>
+                        </div>
+
+                        {/* Barra de Sensores */}
+                        <div class="flex flex-wrap items-center gap-2.5 font-mono text-[11px]">
+                            <div class="flex items-center space-x-2 bg-blue-950/40 border border-blue-900/40 px-3 py-1.5 rounded-md">
+                                <span class="text-slate-500">TENDENCIA GLO-FLOW:</span>
+                                {globalTrendValue === 'ALCISTA' ? (
+                                    <span class="text-green-400 font-bold flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span> COMPRA FUERTE
+                                    </span>
+                                ) : globalTrendValue === 'BAJISTA' ? (
+                                    <span class="text-rose-400 font-bold flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span> VENTA CRÍTICA
+                                    </span>
+                                ) : (
+                                    <span class="text-slate-400 font-bold">RANGO/INDECISIÓN</span>
+                                )}
+                            </div>
+
+                            <button onClick={toggleAlerts} class={`px-3 py-1.5 border rounded-md transition-colors flex items-center space-x-1.5 ${audioAlertsEnabled ? 'bg-blue-950/30 border-cyan-500/50 text-cyan-400' : 'bg-slate-900/40 border-slate-800 text-slate-500'}`}>
+                                <Icon name={audioAlertsEnabled ? "Volume2" : "VolumeX"} className="w-3.5 h-3.5" />
+                                <span>SONIDO: {audioAlertsEnabled ? 'ACTIVADO' : 'MUTED'}</span>
+                            </button>
+
+                            <div class="flex items-center space-x-2 bg-blue-950/20 border border-blue-900/30 px-3 py-1.5 rounded-md">
+                                <Icon name="Wifi" className="w-3.5 h-3.5 text-green-400" />
+                                <span class="text-slate-400">LATENCY:</span>
+                                <span class="text-cyan-400 font-bold">{latency}ms</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* HUD - LÍNEA FLUIDA DE DIAGNÓSTICO */}
+                    <div class="w-full h-1 bg-slate-950 rounded-full overflow-hidden border border-blue-950">
+                        <div class={`h-full transition-all duration-1000 ${globalTrendValue === 'ALCISTA' ? 'w-full bg-gradient-to-r from-emerald-500 to-cyan-400' : globalTrendValue === 'BAJISTA' ? 'w-full bg-gradient-to-r from-rose-500 to-magenta-400' : 'w-full bg-gradient-to-r from-slate-700 via-blue-900 to-slate-700'}`} />
+                    </div>
+
+                    {/* TARJETAS ESTADÍSTICAS RÁPIDAS */}
+                    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-[#070b13]/50 p-2 border border-blue-950 rounded-xl">
+                        <div class="bg-[#03060c] p-3 border border-blue-950/40 rounded-lg flex flex-col">
+                            <span class="text-[9px] font-mono text-slate-500 tracking-wider">FILA MONITOREADA</span>
+                            <div class="flex items-baseline space-x-1.5">
+                                <span class="text-xl font-bold font-mono text-cyan-400">{stats.activeCount}</span>
+                                <span class="text-xs text-slate-600 font-mono">/ 20</span>
+                            </div>
+                        </div>
+                        <div class="bg-[#03060c] p-3 border border-blue-950/40 rounded-lg flex flex-col">
+                            <span class="text-[9px] font-mono text-slate-500 tracking-wider">CANSADOS EN COMPRAS (≤20)</span>
+                            <span class="text-xl font-bold font-mono text-green-400">{stats.buys} <span class="text-xs text-slate-600">PISCINAS</span></span>
+                        </div>
+                        <div class="bg-[#03060c] p-3 border border-blue-950/40 rounded-lg flex flex-col">
+                            <span class="text-[9px] font-mono text-slate-500 tracking-wider">SOBRECOMPRAS (≥80)</span>
+                            <span class="text-xl font-bold font-mono text-amber-500">{stats.sells} <span class="text-xs text-slate-600">PRESIÓN</span></span>
+                        </div>
+                        <div class="bg-[#03060c] p-3 border border-blue-950/40 rounded-lg flex flex-col">
+                            <span class="text-[9px] font-mono text-slate-500 tracking-wider">SEÑALES ACTIVAS</span>
+                            <span class="text-xl font-bold font-mono text-rose-400">{stats.signals} <span class="text-[9px] text-slate-500 font-mono">ÚLT: {lastUpdateStamp}</span></span>
+                        </div>
+                    </section>
+
+                    {/* REJILLA PRINCIPAL */}
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                        
+                        {/* PANEL CONTROLADOR IZQUIERDO */}
+                        <div class="lg:col-span-4 flex flex-col space-y-4">
+                            {/* Importador del Contrato */}
+                            <div class="bg-[#060a12] border border-blue-900/30 p-4 rounded-xl glow-blue">
+                                <h2 class="text-xs font-mono font-bold tracking-wider text-slate-300 mb-3 flex justify-between">
+                                    <span>Importar Activo SPL Solana</span>
+                                    <span class="text-[9px] text-[#2563eb]">Pega Dirección</span>
+                                </h2>
+                                <form onSubmit={handleAddNewToken} class="space-y-3">
+                                    <div class="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Dirección del contrato SPL..."
+                                            value={newAddressInput}
+                                            onChange={(e) => setNewAddressInput(e.target.value)}
+                                            disabled={scanLoading}
+                                            class="w-full bg-[#03060c] border border-blue-950 rounded-lg px-2.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40"
+                                        />
+                                        <button type="submit" disabled={scanLoading || !newAddressInput} class="absolute right-2 top-2 px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-black text-[10px] font-bold rounded flex items-center space-x-1">
+                                            {scanLoading ? <Icon name="RefreshCw" className="w-3 h-3 animate-spin" /> : <><Icon name="Plus" className="w-3 h-3" /><span>ESCANEAR</span></>}
+                                        </button>
+                                    </div>
+                                    {errorMessage && <div class="bg-rose-950/30 border border-rose-900/60 p-2 rounded text-[10px] font-mono text-rose-400">{errorMessage}</div>}
+                                </form>
+                            </div>
+
+                            {/* Consola Monitoreada Activa */}
+                            <div class="bg-[#060a12] border border-blue-900/30 p-1.5 rounded-xl flex flex-col">
+                                <div class="p-3 border-b border-blue-950/60 flex items-center justify-between">
+                                    <h3 class="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+                                        <Icon name="Layers" className="w-4 h-4 text-cyan-400" />
+                                        <span>MONITOREO ACTIVO ({tokens.length})</span>
+                                    </h3>
+                                    <span class="text-[9px] font-mono text-slate-500 bg-blue-950 px-2 py-0.5 rounded">RSI-14</span>
+                                </div>
+
+                                <div class="divide-y divide-blue-950 max-h-[420px] overflow-y-auto">
+                                    {tokens.sort((a,b)=>a.order - b.order).map(t => {
+                                        const isSelected = t.address === activeTokenAddress;
+                                        const rsiColor = t.currentRsi >= 80 ? 'text-rose-400 font-bold' : t.currentRsi <= 20 ? 'text-green-400 font-bold' : 'text-slate-400';
+                                        
+                                        let triggerText = '';
+                                        if (t.currentRsi >= 90) triggerText = 'VENTA CRÍT.';
+                                        else if (t.currentRsi >= 80) triggerText = 'REVERSIÓN';
+                                        else if (t.currentRsi <= 10) triggerText = 'COMPRA CRÍT.';
+                                        else if (t.currentRsi <= 20) triggerText = 'COMPRA';
+
+                                        return (
+                                            <div key={t.address} onClick={() => setActiveTokenAddress(t.address)} class={`p-3 cursor-pointer select-none transition-colors flex items-center justify-between hover:bg-blue-950/15 ${isSelected ? 'bg-blue-950/30 border-l-2 border-cyan-400 text-white' : 'text-slate-400'}`}>
+                                                <div class="flex items-center space-x-2.5 truncate">
+                                                    <img src={t.imageUrl} alt={t.symbol} class="w-7 h-7 rounded-full bg-[#03060c] border border-slate-800" onError={e => e.target.src = 'https://img.icons8.com/color/48/solana.png'} />
+                                                    <div class="truncate flex flex-col">
+                                                        {renamingTokenAddress === t.address ? (
+                                                            <div class="flex items-center space-x-1" onClick={e => e.stopPropagation()}>
+                                                                <input type="text" value={renamingValue} onChange={e => setRenamingValue(e.target.value)} class="bg-black border border-cyan-500 rounded px-1.5 py-0.5 text-xs text-white max-w-[100px] font-mono" autoFocus />
+                                                                <button onClick={() => commitRename(t.address)} class="text-green-400 p-0.5"><Icon name="Check" className="w-3.5 h-3.5" /></button>
+                                                                <button onClick={() => setRenamingTokenAddress(null)} class="text-slate-500 p-0.5"><Icon name="X" className="w-3.5 h-3.5" /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div class="flex items-center space-x-1">
+                                                                <span class="font-bold text-xs text-slate-100">{t.symbol}</span>
+                                                                <span class="text-[9px] text-slate-500 truncate max-w-[80px]">{t.name}</span>
+                                                                <button onClick={e => triggerRename(e, t)} class="p-0.5 hover:text-cyan-400 text-slate-600"><Icon name="Edit2" className="w-2.5 h-2.5" /></button>
+                                                            </div>
+                                                        )}
+                                                        <span class="text-[9px] font-mono text-slate-500">{t.address.slice(0,4)}...{t.address.slice(-4)}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center space-x-2 flex-shrink-0">
+                                                    {triggerText && <span class={`text-[8px] font-bold px-1.5 py-0.5 rounded leading-none ${t.currentRsi >= 80 ? 'bg-rose-950/40 text-rose-300 border border-rose-900/60' : 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/60'}`}>{triggerText}</span>}
+                                                    <div class="text-right flex flex-col">
+                                                        <span class="text-[11px] font-mono text-slate-200">${t.price > 10 ? t.price.toFixed(2) : t.price.toFixed(5)}</span>
+                                                        <span class={`text-[10px] font-mono font-bold ${rsiColor}`}>RSI {t.currentRsi.toFixed(1)}</span>
+                                                    </div>
+
+                                                    {/* Priorización de Orden manual */}
+                                                    <div class="flex flex-col bg-[#03060c] p-0.5 rounded border border-slate-900">
+                                                        <button onClick={e => moveToken(t.address, -1, e)} class="hover:text-cyan-400 text-slate-600"><Icon name="ChevronUp" className="w-3 h-3" /></button>
+                                                        <button onClick={e => moveToken(t.address, 1, e)} class="hover:text-cyan-400 text-slate-600"><Icon name="ChevronDown" className="w-3 h-3" /></button>
+                                                    </div>
+
+                                                    <button onClick={e => handleDeleteToken(t.address, e)} class="p-1 hover:text-rose-500 text-slate-600"><Icon name="Trash" className="w-3.5 h-3.5" /></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Oportunidades críticas ordenadas */}
+                            <div class="bg-[#060a12] border border-blue-900/30 p-4 rounded-xl flex flex-col">
+                                <h3 class="text-xs font-mono font-bold text-amber-500 uppercase mb-3 flex items-center justify-between">
+                                    <span>Radar de Oportunidades</span>
+                                    <span class="text-[9px] text-[#64748b]">[FILTRADO POR INTENSIDAD]</span>
+                                </h3>
+
+                                {opportunities.length === 0 ? (
+                                    <div class="p-4 bg-[#03060c] border border-blue-950/40 rounded text-center text-[10px] font-mono text-slate-600 leading-relaxed">
+                                        Ningún token en Solana ha roto los umbrales críticos de RSI en este bloque de simulación.
+                                    </div>
+                                ) : (
+                                    <div class="space-y-2 max-h-[180px] overflow-y-auto">
+                                        {opportunities.map(opt => (
+                                            <div key={opt.address} onClick={() => setActiveTokenAddress(opt.address)} class={`p-2.5 rounded border cursor-pointer hover:scale-[1.01] transition-transform ${opt.currentRsi <= 20 ? 'bg-emerald-950/10 border-emerald-900/65' : 'bg-rose-950/10 border-rose-900/65'}`}>
+                                                <div class="flex justify-between items-center text-[11px]">
+                                                    <span class="font-bold text-white">{opt.symbol}</span>
+                                                    <span class={`text-[9px] px-1.5 py-0.5 rounded font-bold leading-none ${opt.currentRsi <= 20 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{opt.currentRsi <= 20 ? 'BUY DETECTED' : 'SELL SCAN'}</span>
+                                                </div>
+                                                <div class="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
+                                                    <span>RSI: <span class={opt.currentRsi <= 20 ? 'text-green-400' : 'text-rose-400'}>{opt.currentRsi.toFixed(1)}</span></span>
+                                                    <span>NIVEL: <span class="text-white font-bold">{opt.classification}</span></span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* PANEL DE CONTROL CENTRAL / DETALLE DE GRÁFICOS */}
+                        <div class="lg:col-span-8 flex flex-col space-y-4">
+                            
+                            {/* HUD BARRA DE TEMPORALIDADES */}
+                            <div class="bg-[#060a12] border border-blue-900/30 p-3 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-slate-500 font-mono text-[11px]">TEMPORALIDAD:</span>
+                                    <div class="flex bg-[#03060c] p-0.5 rounded border border-blue-950">
+                                        {['1m', '5m', '15m', '30m', '1h', '4h'].map(t => (
+                                            <button key={t} onClick={() => setIntervalTimeframe(t)} class={`px-2.5 py-1 text-xs font-mono font-bold rounded transition-colors ${interval === t ? 'bg-cyan-600 text-black shadow' : 'text-slate-400 hover:text-white'}`}>{t}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                {activeToken && (
+                                    <div class="text-[11px] font-mono text-[#94a3b8] flex items-center space-x-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-ping" />
+                                        <span>MONITOREANDO ACTIVAMENTE: <span class="text-cyan-400 font-bold">{activeToken.symbol}</span></span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {activeToken ? (
+                                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                    {/* Gráficos Técnicos */}
+                                    <div class="md:col-span-8 flex flex-col space-y-4">
+                                        <TradingViewWidget symbol={activeToken.symbol} interval={interval} />
+                                        <QuantCandleChart candles={activeCandles} structure={activeToken.structure} symbol={activeToken.symbol} rsi={activeToken.currentRsi} />
+                                    </div>
+
+                                    {/* Indicadores de Confluencia Avanzados */}
+                                    <div class="md:col-span-4 flex flex-col space-y-4">
+                                        
+                                        {/* Score de Confluencia */}
+                                        <div class="bg-[#060a12] border border-blue-900/30 p-4 rounded-xl flex flex-col items-center glow-blue">
+                                            <h3 class="text-[10px] font-mono font-bold text-slate-400 tracking-wider w-full flex justify-between">
+                                                <span>CONFLUENCIA CUÁNTICA</span>
+                                                <span class="text-cyan-400 bg-[#03060c] px-1.5 rounded">GAUGE</span>
+                                            </h3>
+                                            
+                                            {/* Arco SVG de Confluencia */}
+                                            <div class="relative w-32 h-32 flex items-center justify-center mt-3">
+                                                <svg class="w-full h-full transform -rotate-90 animate-fade-in" viewBox="0 0 100 100">
+                                                    <circle cx="50" cy="50" r="40" fill="transparent" stroke="#0e172c" strokeWidth="6" />
+                                                    <circle cx="50" cy="50" r="40" fill="transparent" stroke={confluenceScore >= 75 ? '#06b6d4' : confluenceScore >= 50 ? '#10b981' : '#475569'} strokeWidth="7" strokeDasharray={2*Math.PI*40} strokeDashoffset={2 * Math.PI * 40 * (1 - confluenceScore/100)} strokeLinecap="round" class="transition-all duration-700 ease-out" />
+                                                </svg>
+                                                <div class="absolute flex flex-col items-center justify-center">
+                                                    <span class="text-3xl font-mono font-bold text-white tracking-tighter">{confluenceScore}</span>
+                                                    <span class="text-[8px] font-mono text-slate-500 uppercase">/ 100 PCT</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="text-center mt-3 space-y-1">
+                                                <span class="text-xs font-bold block">{confluenceScore >= 80 ? <span class="text-cyan-400 tracking-wider">★ SEÑAL ALTA CONFLUENCIA</span> : confluenceScore >= 50 ? <span class="text-light-green-400 text-green-400">SEÑAL CONFIRMADA</span> : <span class="text-slate-500">ESTADO DE RUIDO</span>}</span>
+                                                <p class="text-[9px] font-mono text-slate-500">Compilación multivariable de RSI histórico, osciladores de fuerza de compradores y tendencias de picos confirmados.</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Distribución de Compradores y Vendedores */}
+                                        <div class="bg-[#060a12] border border-blue-900/30 p-4 rounded-xl flex flex-col space-y-2">
+                                            <h3 class="text-[10px] font-mono font-bold text-slate-400">PRESIÓN COBRANZA MERCADO</h3>
+                                            <div class="flex justify-between font-mono text-xs font-semibold">
+                                                <span class="text-green-400">COMPRADORES: {activeToken.buyersPercentage}%</span>
+                                                <span class="text-rose-500">VENDEDORES: {activeToken.sellersPercentage}%</span>
+                                            </div>
+                                            <div class="h-2.5 w-full bg-[#03060c] rounded-full overflow-hidden flex border border-[#1e293b]">
+                                                <div class="bg-gradient-to-r from-emerald-600 to-green-400 h-full transition-all duration-500" style={{ width: `${activeToken.buyersPercentage}%` }} />
+                                                <div class="bg-gradient-to-r from-rose-500 to-pink-600 h-full transition-all duration-500" style={{ width: `${activeToken.sellersPercentage}%` }} />
+                                            </div>
+                                            <div class="bg-[#03060c] p-2 rounded flex justify-between items-center text-[9px] font-mono text-slate-500">
+                                                <span>CONTROL:</span>
+                                                <span class={`font-bold ${activeToken.buyersPercentage > 55 ? 'text-green-400' : activeToken.buyersPercentage < 45 ? 'text-red-500' : 'text-slate-400'}`}>{activeToken.buyersPercentage > 55 ? 'INVERSIONISTAS LIDERAN' : activeToken.buyersPercentage < 45 ? 'LIQUIDACIÓN ACTIVA' : 'RANGO EQUILIBRADO'}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Analizador de Picos y Canales */}
+                                        <div class="bg-[#060a12] border border-blue-900/30 p-4 rounded-xl flex flex-col space-y-3">
+                                            <h3 class="text-[10px] font-mono font-bold text-slate-400">ANÁLISIS ESTRUCTURA SWING</h3>
+                                            <div class="grid grid-cols-2 gap-2 text-center text-[11px] font-mono">
+                                                <div class="bg-[#03060c] p-2 border border-slate-900 rounded">
+                                                    <span class="text-[8px] text-slate-500 block">SWING ALTOS</span>
+                                                    <span class="font-bold text-slate-200 mt-1 block">HH: <span class="text-green-400">{activeToken.structure.peaks.filter(x=>x.type === 'HH').length}</span> | LH: <span class="text-rose-400">{activeToken.structure.peaks.filter(x=>x.type === 'LH').length}</span></span>
+                                                </div>
+                                                <div class="bg-[#03060c] p-2 border border-slate-900 rounded">
+                                                    <span class="text-[8px] text-slate-500 block">SWING BAJOS</span>
+                                                    <span class="font-bold text-slate-200 mt-1 block">HL: <span class="text-green-400">{activeToken.structure.peaks.filter(x=>x.type === 'HL').length}</span> | LL: <span class="text-rose-400">{activeToken.structure.peaks.filter(x=>x.type === 'LL').length}</span></span>
+                                                </div>
+                                            </div>
+                                            <div class={`p-2.5 rounded border text-center font-mono ${activeToken.structure.currentTrend === 'ALCISTA' ? 'bg-emerald-950/15 border-emerald-800 text-emerald-400' : activeToken.structure.currentTrend === 'BAJISTA' ? 'bg-rose-950/15 border-rose-800 text-rose-500' : 'bg-slate-950/30 border-slate-900 text-slate-500'}`}>
+                                                <span class="text-[8px] text-slate-500 block uppercase">RESOLUCIÓN DE TENDENCIA</span>
+                                                <span class="text-xs font-bold tracking-wider leading-none mt-1 block">{activeToken.structure.currentTrend === 'ALCISTA' ? 'CANAL ALCISTA' : activeToken.structure.currentTrend === 'BAJISTA' ? 'CANAL BAJISTA' : 'CANAL NEUTRAL'}</span>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            ) : (
+                                <div class="p-8 text-center bg-[#060a12] border border-blue-950 rounded-xl text-slate-500 text-xs font-mono">Carga un token SPL para iniciar la visualización cuantitativa del gráfico.</div>
+                            )}
+
+                            {/* HISTORIAL GENERAL DE SEÑALES EMITIDAS */}
+                            <div class="bg-[#060a12] border border-blue-900/30 p-4 rounded-xl flex flex-col">
+                                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-3">
+                                    <h3 class="text-xs font-mono font-bold text-slate-300 flex items-center space-x-2">
+                                        <Icon name="FileText" className="w-4 h-4 text-cyan-400" />
+                                        <span>HISTORIAL EN VIVO DE EMISIONES SEÑALIZACIÓN</span>
+                                    </h3>
+                                    <div class="flex space-x-2">
+                                        <button onClick={handleExportCSV} disabled={signalHistory.length === 0} class="px-2.5 py-1 bg-blue-950/40 hover:bg-blue-900/60 border border-blue-900/40 text-[10px] font-mono text-slate-300 rounded flex items-center gap-1.5 transition-colors disabled:opacity-40">
+                                            <Icon name="Download" className="w-3.5 h-3.5" />
+                                            <span>AUDITORÍA CSV</span>
+                                        </button>
+                                        <button onClick={() => { setSignalHistory([]); localStorage.removeItem('SOL_QUANT_HTML_HISTORY'); }} disabled={signalHistory.length === 0} class="text-[10px] font-mono text-slate-600 hover:text-rose-400 disabled:opacity-45">LIMPIAR</button>
+                                    </div>
+                                </div>
+
+                                {signalHistory.length === 0 ? (
+                                    <div class="p-6 text-center text-slate-600 text-[11px] font-mono bg-[#03060c] border border-blue-950/40 rounded">Ninguna anomalía o cambio drástico de estructura se ha notificado en este terminal.</div>
+                                ) : (
+                                    <div class="overflow-x-auto border border-blue-950/60 rounded">
+                                        <table class="w-full text-left font-mono text-[10px] divide-y divide-blue-950">
+                                            <thead class="bg-[#03060c] text-slate-500">
+                                                <tr>
+                                                    <th class="px-3 py-2">HORA</th>
+                                                    <th class="px-3 py-2">SÍMBOLO</th>
+                                                    <th class="px-3 py-2">RSI</th>
+                                                    <th class="px-3 py-2">SEÑAL</th>
+                                                    <th class="px-3 py-2">ESTRUCTURA</th>
+                                                    <th class="px-3 py-2">DOMINANCIA</th>
+                                                    <th class="px-3 py-2 text-right">CONFLUENCIA</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-blue-950 text-slate-300">
+                                                {signalHistory.map(h => {
+                                                    const isBuy = h.type.startsWith('COMPRA');
+                                                    return (
+                                                        <tr key={h.id} class="hover:bg-blue-950/10">
+                                                            <td class="px-3 py-1.5 text-slate-500">{h.timestamp}</td>
+                                                            <td class="px-3 py-1.5 font-bold text-slate-100">{h.tokenSymbol}</td>
+                                                            <td class={`px-3 py-1.5 font-bold ${isBuy ? 'text-green-400' : 'text-rose-400'}`}>{h.rsiValue.toFixed(1)}</td>
+                                                            <td class="px-3 py-1.5">
+                                                                <span class={`px-1 py-0.5 rounded font-bold text-[8px] border ${isBuy ? 'bg-emerald-950/40 text-emerald-300 border-emerald-900/60' : 'bg-rose-950/40 text-rose-300 border-rose-900/60'}`}>{h.type}</span>
+                                                            </td>
+                                                            <td class={`px-3 py-1.5 font-bold ${h.trend === 'ALCISTA' ? 'text-green-400' : h.trend === 'BAJISTA' ? 'text-rose-500' : 'text-slate-500'}`}>{h.trend}</td>
+                                                            <td class="px-3 py-1.5 text-slate-400">{h.dominance}</td>
+                                                            <td class="px-3 py-1.5 text-right font-bold text-cyan-400">{h.confluenceScore}/100</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* PIE DE PÁGINA METADATA */}
+                    <footer class="w-full mt-6 border-t border-blue-900/30 pt-4 flex flex-col md:flex-row items-center justify-between text-[10px] font-mono text-slate-600 gap-3">
+                        <div>SOLANA QUANT RSI EXTREME SCANNER v4.1 • TERMINAL CUÁNTICA CONSOLIDADA</div>
+                        <div class="flex items-center space-x-3">
+                            <span>ALIMENTADO DE JUPITER & DEXSCREENER APIS • NO FINANCIAL ADVICE</span>
+                            <span class="text-cyan-600 font-bold">SECURE PORTAL SYSTEM</span>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        // --- INICIALIZADOR DE RENDERING ---
+        const rootElement = document.getElementById("root");
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<App />);
+    </script>
 </body>
 </html>
