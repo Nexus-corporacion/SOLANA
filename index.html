@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Sniper Scanner Terminal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel CDN for on-the-fly JSX compilation in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Simple scrollbar styles for dark terminal aesthetic */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 selection:bg-purple-500/30 selection:text-purple-200">
+  <div id="root"></div>
+
+  <!-- React Source Code -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // --- MATH UTILS ---
+    function calculateRSI(closes, period = 14) {
+      const rsi = new Array(closes.length).fill(50);
+      if (closes.length <= period) return rsi;
+
+      let gains = 0, losses = 0;
+      for (let i = 1; i <= period; i++) {
+        const change = closes[i] - closes[i - 1];
+        if (change > 0) gains += change;
+        else losses -= change;
+      }
+
+      let avgGain = gains / period;
+      let avgLoss = losses / period;
+      rsi[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+
+      for (let i = period + 1; i < closes.length; i++) {
+        const change = closes[i] - closes[i - 1];
+        const gain = change > 0 ? change : 0;
+        const loss = change < 0 ? -change : 0;
+
+        avgGain = (avgGain * (period - 1) + gain) / period;
+        avgLoss = (avgLoss * (period - 1) + loss) / period;
+
+        rsi[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+      }
+      return rsi;
+    }
+
+    function detectSwings(candles, lookback = 2) {
+      const swings = [];
+      if (candles.length < lookback * 2 + 1) return swings;
+
+      for (let i = lookback; i < candles.length - lookback; i++) {
+        const current = candles[i];
+        let isSwingHigh = true;
+        for (let j = i - lookback; j <= i + lookback; j++) {
+          if (j === i) continue;
+          if (candles[j].high >= current.high) { isSwingHigh = false; break; }
+        }
+
+        let isSwingLow = true;
+        for (let j = i - lookback; j <= i + lookback; j++) {
+          if (j === i) continue;
+          if (candles[j].low <= current.low) { isSwingLow = false; break; }
+        }
+
+        if (isSwingHigh) {
+          swings.push({ index: i, type: "HH", price: current.high, time: current.time });
+        } else if (isSwingLow) {
+          swings.push({ index: i, type: "LL", price: current.low, time: current.time });
+        }
+      }
+
+      let prevHigh = null, prevLow = null;
+      const classified = [];
+      for (let i = 0; i < swings.length; i++) {
+        const sw = { ...swings[i] };
+        const isHigh = candles[sw.index].high === sw.price;
+
+        if (isHigh) {
+          if (prevHigh === null || sw.price > prevHigh) sw.type = "HH";
+          else sw.type = "LH";
+          prevHigh = sw.price;
+        } else {
+          if (prevLow === null || sw.price < prevLow) sw.type = "LL";
+          else sw.type = "HL";
+          prevLow = sw.price;
+        }
+        classified.push(sw);
+      }
+      return classified;
+    }
+
+    function determineMarketStructure(swings) {
+      if (swings.length < 3) return "RANGING";
+      const latest = swings.slice(-4);
+      let hh = 0, hl = 0, lh = 0, ll = 0;
+      latest.forEach(pt => {
+        if (pt.type === "HH") hh++;
+        if (pt.type === "HL") hl++;
+        if (pt.type === "LH") lh++;
+        if (pt.type === "LL") ll++;
+      });
+
+      if (hh >= 1 && hl >= 1 && ll === 0) return "BULLISH";
+      if (hh > lh && hl > ll) return "BULLISH";
+      if (lh >= 1 && ll >= 1 && hl === 0) return "BEARISH";
+      if (lh > hh && ll > hl) return "BEARISH";
+
+      if (latest.length >= 2) {
+        const l1 = latest[latest.length - 1], l2 = latest[latest.length - 2];
+        if ((l1.type === "HH" && l2.type === "HL") || (l1.type === "HL" && l2.type === "HH")) return "BULLISH";
+        if ((l1.type === "LL" && l2.type === "LH") || (l1.type === "LH" && l2.type === "LL")) return "BEARISH";
+      }
+      return "RANGING";
+    }
+
+    function analyzeRsiStates(candles, rsiArray, oversold, overbought) {
+      if (rsiArray.length < 2 || candles.length < 2) return { rsiState: "NORMAL", rsiValue: 50 };
+      const current = rsiArray[rsiArray.length - 1], prev = rsiArray[rsiArray.length - 2];
+      const curCandle = candles[candles.length - 1], prevCandle = candles[candles.length - 2];
+
+      if (current <= oversold) {
+        if (current > prev || curCandle.close > prevCandle.close) return { rsiState: "REBOUND_LONG_CONFIRMED", rsiValue: current };
+        return { rsiState: "OVERSOLD_WAITING", rsiValue: current };
+      }
+      if (current >= overbought) {
+        if (current < prev || curCandle.close < prevCandle.close) return { rsiState: "REBOUND_EXIT_CONFIRMED", rsiValue: current };
+        return { rsiState: "OVERBOUGHT_WAITING", rsiValue: current };
+      }
+      if (prev <= oversold && current > oversold) return { rsiState: "REBOUND_LONG_CONFIRMED", rsiValue: current };
+      if (prev >= overbought && current < overbought) return { rsiState: "REBOUND_EXIT_CONFIRMED", rsiValue: current };
+
+      return { rsiState: "NORMAL", rsiValue: current };
+    }
+
+    function evaluateSniperSignal(marketStructure, rsiState) {
+      if (marketStructure === "BULLISH" && rsiState === "REBOUND_LONG_CONFIRMED") return "LONG";
+      if (marketStructure === "BEARISH" && rsiState === "REBOUND_EXIT_CONFIRMED") return "EXIT";
+      return "NEUTRAL";
+    }
+
+    // --- PRE-SEEDED TOKENS ---
+    const BASE_TOKENS = [
+      { symbol: "SOL", name: "Solana SOL", price: 165.25, volume: 1542000, mint: "So11111111111111111111111111111111111111112" },
+      { symbol: "JUP", name: "Jupiter JUP", price: 1.05, volume: 423000, mint: "JUPyiwrEZ3ZfJQZGeA6NU4s6PfYg7hAAtbMRcSu89iC" },
+      { symbol: "RAY", name: "Raydium RAY", price: 5.48, volume: 184000, mint: "4k3Dyjzvca9D3C27hGf8Fbf2d098j" },
+      { symbol: "WIF", name: "dogwifhat WIF", price: 2.34, volume: 689000, mint: "EKpQGSJtjMFqKZ9LNqk7Usf752nz1E4gCgox3cKkfFrL" },
+      { symbol: "BONK", name: "Bonk BONK", price: 0.0000224, volume: 382000, mint: "DezXAZ8z7PnrFcPy8GssCtas6XSMExCDxxZ7JL3ypg5f" },
+      { symbol: "POPCAT", name: "Popcat POPCAT", price: 1.25, volume: 295000, mint: "7GCih69m6Z687fp9mWv1g4as5FstSK868D8EbfbN374" },
+      { symbol: "MEW", name: "cat in a dogs world MEW", price: 0.0055, volume: 142000, mint: "MEW1234567890123" },
+      { symbol: "JTO", name: "Jito JTO", price: 2.82, volume: 121000, mint: "jtojtZto2Z9gA6NU4s6PfYg7hAAtbMRcSu89iC" },
+      { symbol: "DRIFT", name: "Drift DRIFT", price: 1.38, volume: 65000, mint: "DriFtno2Z9gA6NU4s6PfYg7hAAtbMRcSu89iC" },
+      { symbol: "KMNO", name: "Kamino KMNO", price: 0.124, volume: 94000, mint: "KMNO12456" },
+      { symbol: "TNSR", name: "Tensor TNSR", price: 0.648, volume: 48000, mint: "TNSR1542" },
+      { symbol: "BOME", name: "BOOK OF MEME BOME", price: 0.0084, volume: 215000, mint: "uk3Dyjzvca9D3C27hGf8Fbf2d098j" },
+      { symbol: "GIGA", name: "GigaChad GIGA", price: 0.0461, volume: 110000, mint: "GIGA112" },
+      { symbol: "W", name: "Wormhole W", price: 0.225, volume: 73000, mint: "WormholeMint1111111111" },
+      { symbol: "SLERF", name: "Slerf SLERF", price: 0.218, volume: 135000, mint: "SLERF1122" }
+    ];
+
+    function generateInitialCandles(basePrice, count = 50) {
+      const candles = [];
+      let current = basePrice * 0.95 + Math.random() * basePrice * 0.1;
+      const now = Date.now(), step = 5 * 60 * 1000;
+      for (let i = 0; i < count; i++) {
+        const time = now - (count - i) * step;
+        const volPercent = 0.018;
+        const open = current;
+        const close = current * (1 + volPercent * (Math.random() - 0.475));
+        const high = Math.max(open, close) * (1 + Math.random() * 0.008);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.008);
+        candles.push({ time, open, high, low, close, volume: 5000 + Math.random() * 50000 });
+        current = close;
+      }
+      return candles;
+    }
+
+    // --- SUB-COMPONENTS ---
+    function Watchlist({ tokens, selectedTokenId, onSelectToken, onAddToken, onDeleteToken, onResetToDefault }) {
+      const [search, setSearch] = useState("");
+      const [showAdd, setShowAdd] = useState(false);
+      const [nName, setNName] = useState("");
+      const [nSymbol, setNSymbol] = useState("");
+      const [nAddress, setNAddress] = useState("");
+      const [nPrice, setNPrice] = useState("1.00");
+
+      const filtered = tokens.filter(t => 
+        t.symbol.toLowerCase().includes(search.toLowerCase()) ||
+        t.name.toLowerCase().includes(search.toLowerCase())
+      );
+
+      const submit = (e) => {
+        e.preventDefault();
+        onAddToken({ name: nName, symbol: nSymbol, mintAddress: nAddress || undefined, initialPrice: parseFloat(nPrice) });
+        setNName(""); setNSymbol(""); setNAddress(""); setNPrice("1.00"); setShowAdd(false);
+      };
+
+      return (
+        <div class="flex flex-col h-full bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-md">
+          <div class="p-4 border-b border-slate-800 bg-slate-950/45 flex items-center justify-between">
+            <h3 class="font-bold text-xs text-slate-300">Watchlist ({tokens.length})</h3>
+            <button onClick={onResetToDefault} class="p-1.5 bg-slate-800 text-slate-400 rounded-md hover:bg-slate-700 hover:text-purple-400 transition" title="Reset Watchlist">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div class="p-3 border-b border-slate-800 flex items-center space-x-2">
+            <input type="text" placeholder="Buscar token..." class="w-full bg-slate-950 border border-slate-800 text-xs px-3 py-1.5 rounded-lg focus:outline-none" value={search} onChange={e=>setSearch(e.target.value)} />
+            <button onClick={()=>setShowAdd(!showAdd)} class="px-3 py-1.5 bg-purple-600 rounded-lg text-xs hover:bg-purple-500 font-bold font-sans">Add</button>
+          </div>
+          {showAdd && (
+            <form onSubmit={submit} class="p-4 bg-slate-950 border-b border-slate-800 space-y-2">
+              <input type="text" placeholder="Name" class="w-full p-2 bg-slate-900 text-xs text-white" required value={nName} onChange={e=>setNName(e.target.value)} />
+              <input type="text" placeholder="Symbol" class="w-full p-2 bg-slate-900 text-xs text-white uppercase" required value={nSymbol} onChange={e=>setNSymbol(e.target.value)} />
+              <input type="number" step="any" placeholder="Price ($)" class="w-full p-2 bg-slate-900 text-xs" required value={nPrice} onChange={e=>setNPrice(e.target.value)} />
+              <button type="submit" class="w-full py-1.5 bg-purple-600 rounded text-xs font-bold text-white">Add asset</button>
+            </form>
+          )}
+          <div class="flex-1 overflow-y-auto divide-y divide-slate-850">
+            {filtered.map(tok => {
+              const isSel = tok.id === selectedTokenId;
+              const isBull = tok.marketStructure === "BULLISH";
+              const isBear = tok.marketStructure === "BEARISH";
+              return (
+                <div onClick={()=>onSelectToken(tok.id)} class={`p-3 cursor-pointer flex flex-col space-y-2 hover:bg-slate-900/30 transition ${isSel ? 'bg-purple-950/20 border-l-2 border-purple-500' : 'border-l-2 border-transparent'}`}>
+                  <div class="flex justify-between items-center">
+                    <span class="font-bold text-xs">{tok.symbol} <span class="text-[9px] text-slate-500 font-normal">{tok.name}</span></span>
+                    {tok.signal !== "NEUTRAL" && (
+                      <span class={`px-1.5 py-0.5 rounded text-[8px] font-black ${tok.signal === 'LONG' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                        {tok.signal}
+                      </span>
+                    )}
+                  </div>
+                  <div class="flex justify-between items-center text-xs font-mono">
+                    <span>${tok.price > 0.01 ? tok.price.toFixed(4) : tok.price.toFixed(6)}</span>
+                    <span class={tok.change24h>=0 ? 'text-emerald-400' : 'text-rose-400'}>{tok.change24h>=0 ? '+' : ''}{tok.change24h.toFixed(2)}%</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    <span class={`text-[9px] px-1.5 py-0.5 rounded border ${isBull ? 'text-emerald-400 border-emerald-500/30' : isBear ? 'text-rose-400 border-rose-500/30' : 'text-slate-500 border-slate-700/30'}`}>
+                      {tok.marketStructure}
+                    </span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">RSI: {tok.rsiValue.toFixed(1)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function TerminalChart({ token, config }) {
+      const { candles, swings } = token;
+      
+      const bounds = useMemo(() => {
+        if (candles.length === 0) return { min: 0, max: 100 };
+        let min = Infinity, max = -Infinity;
+        candles.forEach(c => {
+          if (c.low < min) min = c.low;
+          if (c.high > max) max = c.high;
+        });
+        const diff = max - min || 1;
+        return { min: Math.max(0, min - diff*0.05), max: max + diff*0.05 };
+      }, [candles]);
+
+      const getX = (i) => 40 + (i / (candles.length - 1)) * 520;
+      const getY = (p) => 220 - ((p - bounds.min)/(bounds.max - bounds.min || 1)) * 200;
+
+      const sortedSwings = [...swings].sort((a,b)=>a.index-b.index);
+      const pointsStr = sortedSwings.map(s => `${getX(s.index)},${getY(s.price)}`).join(" ");
+
+      const trendColor = token.marketStructure === "BULLISH" ? "#10b981" : token.marketStructure === "BEARISH" ? "#f43f5e" : "#64748b";
+
+      return (
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 flex flex-col space-y-3">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div>
+              <h3 class="font-bold text-sm text-slate-205">{token.symbol} Terminal Chart</h3>
+              <span class="text-[10px] text-slate-500">Live updating price action swings</span>
+            </div>
+            <span class={`px-2.5 py-1 rounded text-xs leading-none font-bold font-mono ${token.marketStructure==='BULLISH' ? 'bg-emerald-500/10 text-emerald-400' : token.marketStructure==='BEARISH' ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-800 text-slate-400'}`}>
+              ESTRUCTURA: {token.marketStructure}
+            </span>
+          </div>
+
+          <div class="h-60 relative w-full">
+            {candles.length === 0 ? (
+              <div class="text-xs text-slate-600 text-center pt-28">Seeding candles...</div>
+            ) : (
+              <svg width="100%" height="100%" viewBox="0 0 600 240">
+                {/* Horizontal reference lines */}
+                {[0,1,2,3].map((_, i) => {
+                  const y = 20 + i*60;
+                  return <line x1="0" y1={y} x2="600" y2={y} stroke="#1e293b" strokeDasharray="2,5" key={i} />
+                })}
+
+                {/* Swings Trend Line */}
+                {pointsStr && (
+                  <polyline points={pointsStr} fill="none" stroke={trendColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+
+                {/* Candles */}
+                {candles.map((c, i) => {
+                  const x = getX(i);
+                  const isG = c.close >= c.open;
+                  const color = isG ? "#10b981" : "#f43f5e";
+                  return (
+                    <g key={i}>
+                      <line x1={x} y1={getY(c.high)} x2={x} y2={getY(c.low)} stroke={color} strokeWidth="1" />
+                      <rect x={x-3} y={Math.min(getY(c.open), getY(c.close))} width="6" height={Math.max(1, Math.abs(getY(c.open)-getY(c.close)))} fill={color} />
+                    </g>
+                  );
+                })}
+
+                {/* Swings HH/HL text */}
+                {swings.map((s, idx) => {
+                  const isH = s.type === "HH" || s.type === "LH";
+                  return (
+                    <g key={idx}>
+                      <circle cx={getX(s.index)} cy={getY(s.price)} r={3} fill={isH ? '#34d399' : '#fb7185'} />
+                      <text x={getX(s.index)-8} y={isH ? getY(s.price)-8 : getY(s.price)+12} fill={isH?'#34d399':'#fb7185'} fontSize="8" fontWeight="bold" fontFamily="monospace">{s.type}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function SignalHub({ tokens, onSelect }) {
+      const longs = tokens.filter(t => t.signal === "LONG");
+      const exits = tokens.filter(t => t.signal === "EXIT");
+      const warnings = tokens.filter(t => t.signal === "NEUTRAL" && (t.rsiState === 'OVERSOLD_WAITING' || t.rsiState === 'OVERBOUGHT_WAITING'));
+
+      return (
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col h-full overflow-hidden text-xs">
+          <h3 class="font-bold text-slate-350 uppercase mb-3 border-b border-slate-800 pb-2">Señales Sniper Activas</h3>
+          <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+            {longs.length > 0 && (
+              <div class="space-y-2">
+                <p class="font-bold text-emerald-400 font-mono text-[10px]">SNIPER LONG ({longs.length})</p>
+                {longs.map(t => (
+                  <div key={t.id} onClick={()=>onSelect(t.id)} class="p-2.5 bg-emerald-950/20 border border-emerald-500/35 rounded-lg cursor-pointer">
+                    <p class="font-bold">{t.symbol} LONG GATILLADO</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Gatillo Entrada: ${t.price.toFixed(4)}. RSI Rebound: {t.rsiValue.toFixed(1)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {exits.length > 0 && (
+              <div class="space-y-2">
+                <p class="font-bold text-rose-400 font-mono text-[10px]">SNIPER EXIT ({exits.length})</p>
+                {exits.map(t => (
+                  <div key={t.id} onClick={()=>onSelect(t.id)} class="p-2.5 bg-rose-950/20 border border-rose-500/35 rounded-lg cursor-pointer">
+                    <p class="font-bold">{t.symbol} SALIDA / SHORT</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Colapso: ${t.price.toFixed(4)}. RSI Exito: {t.rsiValue.toFixed(1)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {warnings.length > 0 && (
+              <div class="space-y-2">
+                <p class="font-bold text-amber-500 font-mono text-[10px]">EXTREMO EN ESPERA ({warnings.length})</p>
+                {warnings.map(t => (
+                  <div key={t.id} onClick={()=>onSelect(t.id)} class="p-2 bg-slate-950 border border-slate-800 rounded text-[10px] cursor-pointer">
+                    {t.symbol} RSI extremo ({t.rsiValue.toFixed(1)}). Esperando confirmación.
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {longs.length===0 && exits.length===0 && warnings.length===0 && (
+              <div class="text-center text-slate-600 py-10">Buscando confluencia en Solana Watchlist...</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ActivityLog({ logs, onClear }) {
+      return (
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col h-full overflow-hidden text-xs">
+          <div class="flex justify-between border-b border-slate-800 pb-2 mb-2">
+            <h3 class="font-bold text-slate-350 uppercase">Bitácora de Eventos</h3>
+            <button onClick={onClear} class="p-1 bg-slate-800 rounded text-slate-400 hover:text-rose-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div class="flex-1 overflow-y-auto space-y-2 text-[11px] font-mono scrollbar-thin">
+            {logs.map(l => (
+              <div key={l.id} class="p-1.5 bg-slate-950 rounded border border-slate-850">
+                <div class="flex justify-between font-bold">
+                  <span class="text-purple-400">{l.symbol}</span>
+                  <span class="text-[9px] text-slate-600">{l.timestamp}</span>
+                </div>
+                <p class="text-slate-400 leading-normal mt-0.5">{l.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function SettingsPanel({ config, onChangeConfig }) {
+      const hChange = (key, val) => {
+        onChangeConfig({ ...config, [key]: val });
+      };
+
+      return (
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 text-xs text-left">
+          <h3 class="font-bold text-sm text-purple-400 uppercase mb-4">Ajustes del Algoritmo Sniper</h3>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>RSI Period</span>
+                <span class="font-bold text-purple-400">{config.rsiPeriod} N</span>
+              </div>
+              <input type="range" min="3" max="25" value={config.rsiPeriod} class="w-full" onChange={e=>hChange("rsiPeriod", parseInt(e.target.value))} />
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>RSI Overbought Limit</span>
+                <span class="font-bold text-rose-400">{config.rsiOverbought}%</span>
+              </div>
+              <input type="range" min="65" max="90" value={config.rsiOverbought} class="w-full" onChange={e=>hChange("rsiOverbought", parseInt(e.target.value))} />
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>RSI Oversold Limit</span>
+                <span class="font-bold text-emerald-400">{config.rsiOversold}%</span>
+              </div>
+              <input type="range" min="10" max="35" value={config.rsiOversold} class="w-full" onChange={e=>hChange("rsiOversold", parseInt(e.target.value))} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- MAIN APP ---
+    function App() {
+      const [tokens, setTokens] = useState([]);
+      const [selectedTokenId, setSelectedTokenId] = useState("SOL");
+      const [logs, setLogs] = useState([]);
+      const [activeTab, setActiveTab] = useState("terminal");
+      const [config, setConfig] = useState({ rsiPeriod: 14, rsiOverbought: 80, rsiOversold: 20, updateIntervalSeconds: 3, swingLookback: 2, maxScannerCandles: 50 });
+
+      useEffect(() => {
+        // Build the base tokens
+        const seeded = BASE_TOKENS.map(raw => {
+          const loaded = generateInitialCandles(raw.price, 50);
+          return {
+            id: raw.symbol,
+            name: raw.name,
+            symbol: raw.symbol,
+            mintAddress: raw.mint,
+            price: raw.price,
+            change24h: Math.random() * 10 - 5,
+            candles: loaded,
+            rsiValue: 50, rsiState: "NORMAL", marketStructure: "RANGING", signal: "NEUTRAL", volume24h: raw.volume, swings: []
+          };
+        });
+
+        const initial = seeded.map(tok => evaluate(tok, config));
+        setTokens(initial);
+        setLogs([
+          { id: "1", timestamp: new Date().toUTCString().slice(17,25), symbol: "SYSTEM", message: "Sniper scanner inicializado localmente." }
+        ]);
+      }, []);
+
+      useEffect(() => {
+        const id = setInterval(() => {
+          setTokens(prev => {
+            const audit = [];
+            const timestamp = new Date().toUTCString().slice(17,25);
+            const next = prev.map(tok => {
+              const drift = tok.price * 0.006 * (Math.random() - 0.5);
+              const nPrice = Math.max(0.0001, tok.price + drift);
+              
+              const updatedCandles = [...tok.candles];
+              const last = updatedCandles[updatedCandles.length-1];
+              updatedCandles[updatedCandles.length-1] = {
+                ...last,
+                close: nPrice,
+                high: Math.max(last.high, nPrice),
+                low: Math.min(last.low, nPrice)
+              };
+
+              const analyzed = evaluate({ ...tok, price: nPrice, candles: updatedCandles }, config);
+
+              if (analyzed.signal !== tok.signal && analyzed.signal !== "NEUTRAL") {
+                audit.push({
+                  id: Date.now(),
+                  timestamp,
+                  symbol: analyzed.symbol,
+                  message: `SEÑAL GATILLADA: ${analyzed.signal}. `
+                });
+              }
+              return analyzed;
+            });
+
+            if (audit.length > 0) setLogs(l => [...audit, ...l]);
+            return next;
+          });
+        }, config.updateIntervalSeconds * 1000);
+
+        return () => clearInterval(id);
+      }, [tokens.length, config]);
+
+      function evaluate(tok, activeConfig) {
+        const closes = tok.candles.map(c => c.close);
+        const rsiArray = calculateRSI(closes, activeConfig.rsiPeriod);
+        const currentRsi = rsiArray[rsiArray.length - 1];
+        
+        const { rsiState, rsiValue } = analyzeRsiStates(tok.candles, rsiArray, activeConfig.rsiOversold, activeConfig.rsiOverbought);
+        const swings = detectSwings(tok.candles, activeConfig.swingLookback);
+        const marketStructure = determineMarketStructure(swings);
+        const signal = evaluateSniperSignal(marketStructure, rsiState);
+
+        return { ...tok, rsiValue, rsiState, swings, marketStructure, signal };
+      }
+
+      const activeToken = tokens.find(t=>t.id===selectedTokenId) || tokens[0];
+
+      useEffect(() => {
+        setTimeout(() => {
+          if (window.lucide) window.lucide.createIcons();
+        }, 800);
+      }, [tokens, activeTab]);
+
+      return (
+        <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+          <header class="border-b border-slate-900 p-4 sticky top-0 bg-slate-950/80 backdrop-blur z-50">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+              <h1 class="font-extrabold text-sm tracking-wider uppercase text-purple-400">SOLANA SNIPER TERMINAL</h1>
+              <div class="text-[10px] font-mono text-slate-500">Live scanning on-chain swings</div>
+            </div>
+          </header>
+
+          <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-5 w-full flex-1">
+            <div class="lg:col-span-3">
+              <Watchlist tokens={tokens} selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId} onResetToDefault={()=>console.log('reset')} onAddToken={add=>console.log(add)} />
+            </div>
+            
+            <div class="lg:col-span-6 flex flex-col space-y-4">
+              <div class="flex space-x-2 border-b border-slate-900 pb-2 text-xs font-bold">
+                <button onClick={()=>setActiveTab("terminal")} class={`px-3 py-1.5 rounded ${activeTab==='terminal' ? 'bg-slate-900 text-purple-400':'text-slate-500'}`}>Gráfico Swings</button>
+                <button onClick={()=>setActiveTab("config")} class={`px-3 py-1.5 rounded ${activeTab==='config' ? 'bg-slate-900 text-purple-400':'text-slate-500'}`}>Ajustes del Escáner</button>
+              </div>
+              {activeTab === "terminal" ? (
+                activeToken && <TerminalChart token={activeToken} config={config} />
+              ) : (
+                <SettingsPanel config={config} onChangeConfig={setConfig} />
+              )}
+            </div>
+
+            <div class="lg:col-span-3 flex flex-col space-y-4">
+              <SignalHub tokens={tokens} onSelect={setSelectedTokenId} />
+              <ActivityLog logs={logs} onClear={()=>setLogs([])} />
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<App />);
+
+    setTimeout(() => {
+      lucide.createIcons();
+    }, 1500);
+  </script>
+</body>
+</html>
