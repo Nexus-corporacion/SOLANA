@@ -250,7 +250,7 @@
       <div class="lg:col-span-8 flex flex-col gap-6">
         
         <!-- Custom Telemetry Visual HUD -->
-        <div class="bg-slate-950/60 border border-slate-800/60 rounded-lg p-4 flex flex-col h-[400px] shadow-2xl relative overflow-hidden">
+        <div class="bg-slate-950/60 border border-slate-800/60 rounded-lg p-4 flex flex-col h-[530px] shadow-2xl relative overflow-hidden">
           <span class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-cyan-500/40"></span>
           <span class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-cyan-500/40"></span>
 
@@ -260,17 +260,6 @@
               <h2 class="font-mono text-xs uppercase tracking-wider text-slate-200 font-semibold flex items-center gap-2">
                 TELEMETRÍA VISUAL & CHARTING: <span id="active-ticker-label" class="text-cyan-400 font-bold">SOL/USD</span>
               </h2>
-            </div>
-            <div class="flex bg-slate-900 border border-slate-800/80 p-0.5 rounded gap-1">
-              <button id="chart-btn-birdeye" class="px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40">
-                Birdeye TV
-              </button>
-              <button id="chart-btn-dexscreener" class="px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40">
-                DexScreener
-              </button>
-              <button id="chart-btn-histogram" class="px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40">
-                Histograma Ticks
-              </button>
             </div>
           </div>
 
@@ -1059,135 +1048,29 @@
 
       label.innerText = `${active.symbol}/USD`;
 
-      // Update button highlights
-      const btnBirdeye = document.getElementById('chart-btn-birdeye');
-      const btnDex = document.getElementById('chart-btn-dexscreener');
-      const btnHist = document.getElementById('chart-btn-histogram');
-
-      if (btnBirdeye) {
-        btnBirdeye.className = state.chartType === 'birdeye'
-          ? 'px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold bg-cyan-500 text-slate-950 font-bold'
-          : 'px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40';
-      }
-      if (btnDex) {
-        btnDex.className = state.chartType === 'dexscreener'
-          ? 'px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold bg-cyan-500 text-slate-950 font-bold'
-          : 'px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40';
-      }
-      if (btnHist) {
-        btnHist.className = state.chartType === 'histogram'
-          ? 'px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold bg-cyan-500 text-slate-950 font-bold'
-          : 'px-2 py-0.5 text-[9px] rounded font-mono transition-all uppercase font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40';
-      }
-
-      if (state.chartType === 'histogram') {
-        let pricesHistory = state.priceHistoryBuffers[active.address] || [];
-        let hasH = pricesHistory.length > 1;
-        let minPrice = hasH ? Math.min(...pricesHistory) : active.price;
-        let maxPrice = hasH ? Math.max(...pricesHistory) : active.price;
-        let avgPrice = hasH ? (pricesHistory.reduce((a,b)=>a+b, 0) / pricesHistory.length) : active.price;
-
-        // Draw custom sparkline
-        let svgCode = '';
-        if (hasH) {
-          let points = pricesHistory.map((p, i) => {
-            let x = (i / (pricesHistory.length - 1)) * 420;
-            let y = 90 - 10 - ((p - minPrice) / (maxPrice - minPrice || 1)) * (90 - 20);
-            return `${x},${y}`;
-          });
-
-          // Markers
-          let lastIdx = pricesHistory.length - 1;
-          let lx = (lastIdx / (pricesHistory.length - 1)) * 420;
-          let ly = 90 - 10 - ((pricesHistory[lastIdx] - minPrice) / (maxPrice - minPrice || 1)) * (90 - 20);
-
-          svgCode = `
-            <svg class="w-full h-full overflow-visible" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="standalone-chart-grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.2"/>
-                  <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <path d="M 0,90 L ${points.join(' L ')} L 420,90 Z" fill="url(#standalone-chart-grad)" />
-              <path d="M ${points.join(' L ')}" fill="none" stroke="#22d3ee" stroke-width="2" />
-              <circle cx="${lx}" cy="${ly}" r="4" fill="#22d3ee" class="animate-ping" />
-            </svg>
-          `;
-        } else {
-          svgCode = '<div class="flex-1 flex items-center justify-center text-slate-600 font-mono text-[10px] uppercase">Esperando ticker de blocks para acumular ticks históricos de precios...</div>';
-        }
-
-        c.innerHTML = `
-          <div class="p-3 bg-cyan-950/30 border border-cyan-500/20 rounded flex items-start gap-3 mb-3">
-            <i data-lucide="info" class="h-5 w-5 text-cyan-400 shrink-0 mt-0.5"></i>
-            <div>
-              <p class="text-xs text-cyan-300 font-mono leading-relaxed">
-                Análisis Cuantitativo: Histograma de Ticks en tiempo real.<br />
-                Utilice los botones superiores para alternar al Gráfico de Velas de Birdeye TV de forma ininterrumpida.
-              </p>
-            </div>
+      // Render beautiful Candlestick HTML5 interactive canvas!
+      c.innerHTML = `
+        <div class="flex-grow w-full relative bg-slate-950/80 rounded border border-slate-800/80 overflow-hidden flex flex-col" style="height: 420px;">
+          <canvas id="canvas-candlestick-chart" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          <div class="bg-slate-900 border border-slate-800/65 p-1.5 rounded text-center">
+            <span class="text-[8.5px] font-mono text-slate-500 uppercase">Volumen 24h</span>
+            <p class="text-[11px] font-mono font-bold text-white mt-0.5">$${(active.volume24h || 0).toLocaleString()}</p>
           </div>
-
-          <div class="flex-1 bg-slate-900/40 border border-slate-800/40 rounded p-3 flex flex-col justify-between mb-3 min-h-0 relative">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
-                <i data-lucide="area-chart" class="h-3 w-3"></i> Histograma de Ticks Activos (${pricesHistory.length})
-              </span>
-              <span class="text-[10px] font-mono text-cyan-400">PROMEDIO: $${avgPrice < 0.01 ? avgPrice.toFixed(6) : avgPrice.toFixed(3)}</span>
-            </div>
-            
-            <div class="flex-1 min-h-0 flex items-end justify-center relative py-1">
-              ${svgCode}
-            </div>
-
-            <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 border-t border-slate-800/50 pt-2 mt-1">
-              <span>MÍN: $${minPrice < 0.01 ? minPrice.toFixed(6) : minPrice.toFixed(3)}</span>
-              <span>MÁX: $${maxPrice < 0.01 ? maxPrice.toFixed(6) : maxPrice.toFixed(3)}</span>
-            </div>
+          <div class="bg-slate-900 border border-slate-800/65 p-1.5 rounded text-center">
+            <span class="text-[8.5px] font-mono text-slate-500 uppercase">Liquidez Pool</span>
+            <p class="text-[11px] font-mono font-bold text-white mt-0.5">$${(active.liquidity || 0).toLocaleString()}</p>
           </div>
-
-          <div class="grid grid-cols-3 gap-3">
-            <div class="bg-slate-900 border border-slate-800/65 p-2 rounded text-center">
-              <span class="text-[9px] font-mono text-slate-500 uppercase">Volumen 24h</span>
-              <p class="text-[11px] font-mono font-bold text-white mt-0.5">$${(active.volume24h || 0).toLocaleString()}</p>
-            </div>
-            <div class="bg-slate-900 border border-slate-800/65 p-2 rounded text-center">
-              <span class="text-[9px] font-mono text-slate-500 uppercase">Liquidez Pool</span>
-              <p class="text-[11px] font-mono font-bold text-white mt-0.5">$${(active.liquidity || 0).toLocaleString()}</p>
-            </div>
-            <div class="bg-slate-900 border border-slate-800/65 p-2 rounded text-center">
-              <span class="text-[9px] font-mono text-slate-500 uppercase">Spread de Bloque</span>
-              <p class="text-[11px] font-mono font-bold text-cyan-400 mt-0.5">0.04%</p>
-            </div>
+          <div class="bg-slate-900 border border-slate-800/65 p-1.5 rounded text-center">
+            <span class="text-[8.5px] font-mono text-slate-500 uppercase">Spread de Bloque</span>
+            <p class="text-[11px] font-mono font-bold text-cyan-400 mt-0.5">0.04%</p>
           </div>
-        `;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      } else {
-        // Render beautiful Candlestick HTML5 interactive canvas!
-        c.innerHTML = `
-          <div class="flex-grow w-full relative bg-slate-950/80 rounded border border-slate-800/80 overflow-hidden flex flex-col" style="height: 290px;">
-            <canvas id="canvas-candlestick-chart" class="w-full h-full block cursor-crosshair"></canvas>
-          </div>
-          <div class="grid grid-cols-3 gap-3 mt-3">
-            <div class="bg-slate-900 border border-slate-800/65 p-1.5 rounded text-center">
-              <span class="text-[8.5px] font-mono text-slate-500 uppercase">Volumen 24h</span>
-              <p class="text-[11px] font-mono font-bold text-white mt-0.5">$${(active.volume24h || 0).toLocaleString()}</p>
-            </div>
-            <div class="bg-slate-900 border border-slate-800/65 p-1.5 rounded text-center">
-              <span class="text-[8.5px] font-mono text-slate-500 uppercase">Liquidez Pool</span>
-              <p class="text-[11px] font-mono font-bold text-white mt-0.5">$${(active.liquidity || 0).toLocaleString()}</p>
-            </div>
-            <div class="bg-slate-900 border border-slate-800/65 p-1.5 rounded text-center">
-              <span class="text-[8.5px] font-mono text-slate-500 uppercase">Spread de Bloque</span>
-              <p class="text-[11px] font-mono font-bold text-cyan-400 mt-0.5">0.04%</p>
-            </div>
-          </div>
-        `;
-        const canvas = document.getElementById('canvas-candlestick-chart');
-        if (canvas) {
-          initInteractiveCanvasChart(canvas, active);
-        }
+        </div>
+      `;
+      const canvas = document.getElementById('canvas-candlestick-chart');
+      if (canvas) {
+        initInteractiveCanvasChart(canvas, active);
       }
     }
 
@@ -1294,14 +1177,75 @@
         }
       });
 
+      // Analyze real-time BOS & CHoCH events (Break of Structure / Change of Character)
+      const events = [];
+      let currentTrend = 'range';
+      const activeHighs = [];
+      const activeLows = [];
+
+      swings.forEach(s => {
+        if (s.type === 'high') {
+          activeHighs.push({ index: s.index, price: s.price, broken: false, label: s.label });
+        } else {
+          activeLows.push({ index: s.index, price: s.price, broken: false, label: s.label });
+        }
+      });
+
+      for (let i = 0; i < n; i++) {
+        const close = closes[i];
+        activeHighs.forEach(ah => {
+          if (!ah.broken && i > ah.index && close > ah.price) {
+            ah.broken = true;
+            const isCHoCH = currentTrend === 'bear';
+            events.push({
+              index: i,
+              price: ah.price,
+              type: isCHoCH ? 'CHoCH' : 'BOS',
+              dir: 'bull',
+              fromIndex: ah.index
+            });
+            currentTrend = 'bull';
+          }
+        });
+
+        activeLows.forEach(al => {
+          if (!al.broken && i > al.index && close < al.price) {
+            al.broken = true;
+            const isCHoCH = currentTrend === 'bull';
+            events.push({
+              index: i,
+              price: al.price,
+              type: isCHoCH ? 'CHoCH' : 'BOS',
+              dir: 'bear',
+              fromIndex: al.index
+            });
+            currentTrend = 'bear';
+          }
+        });
+      }
+
       // SR levels
       const currentPrice = closes[n - 1];
       const resistances = swings.filter(s => s.type === 'high' && s.price > currentPrice)
-        .sort((a,b) => a.price - b.price).slice(0, 2);
+        .sort((a,b) => a.price - b.price).slice(0, 3);
       const supports = swings.filter(s => s.type === 'low' && s.price < currentPrice)
-        .sort((a,b) => b.price - a.price).slice(0, 2);
+        .sort((a,b) => b.price - a.price).slice(0, 3);
 
       let crosshair = null;
+
+      function drawRoundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h);
+        ctx.arcTo(x, y + h, x, y + h - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+      }
 
       function draw() {
         const dpr = window.devicePixelRatio || 1;
@@ -1315,12 +1259,13 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
 
-        ctx.fillStyle = '#020617';
+        // Solid background matching ATE skin
+        ctx.fillStyle = '#060b10';
         ctx.fillRect(0, 0, width, height);
 
-        const padRight = 75;
-        const padTop = 15;
-        const padBottom = 20;
+        const padRight = 85;
+        const padTop = 20;
+        const padBottom = 25;
         const padLeft = 10;
         const chartW = width - padLeft - padRight;
         const chartH = height - padTop - padBottom;
@@ -1335,41 +1280,112 @@
         const getX = i => padLeft + (i / (candles.length - 1)) * chartW;
         const getY = v => padTop + (1 - (v - pMin) / pRange) * chartH;
 
-        // Grid Lines
-        ctx.strokeStyle = '#0f172a';
+        // Draw Grid Lines (Detailed Swiss layout)
+        ctx.strokeStyle = '#0e1e2e';
         ctx.lineWidth = 1;
-        ctx.font = '9px monospace';
-        ctx.fillStyle = '#64748b';
+        ctx.font = '9px Consolas, monospace';
+        ctx.fillStyle = '#4a6278';
 
         for (let i = 0; i <= 5; i++) {
           const val = pMin + (i / 5) * pRange;
           const y = getY(val);
-          ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(width - padRight, y); ctx.stroke();
-          ctx.fillText(val < 0.1 ? val.toFixed(5) : val.toFixed(2), width - padRight + 5, y + 3);
+          ctx.beginPath();
+          ctx.moveTo(padLeft, y);
+          ctx.lineTo(width - padRight, y);
+          ctx.stroke();
+          
+          ctx.fillText(val < 0.1 ? val.toFixed(5) : val.toFixed(2), width - padRight + 6, y + 3);
         }
 
-        // supports and resistances
+        // Draw Time Grid Lines at interval ticks
+        const timeStep = Math.max(1, Math.floor(candles.length / 6));
+        for (let i = 0; i < candles.length; i += timeStep) {
+          const x = getX(i);
+          ctx.beginPath();
+          ctx.moveTo(x, padTop);
+          ctx.lineTo(x, height - padBottom);
+          ctx.stroke();
+        }
+
+        // Draw BOS & CHoCH Breakout Lines and Tags
+        ctx.font = 'bold 8.5px Consolas, monospace';
+        events.forEach(ev => {
+          const y = getY(ev.price);
+          const color = ev.dir === 'bull' ? '#00e896' : '#ff3d5a';
+          
+          // Breakout dotted connector
+          ctx.strokeStyle = color + '66'; // semi-transparent
+          ctx.setLineDash([2, 4]);
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(getX(ev.fromIndex), y);
+          ctx.lineTo(getX(ev.index), y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Breakout Marker Pill
+          const tagX = getX(Math.floor((ev.fromIndex + ev.index) / 2));
+          const tagW = ev.type === 'CHoCH' ? 38 : 22;
+          const tagH = 12;
+          
+          ctx.fillStyle = ev.dir === 'bull' ? 'rgba(0, 232, 150, 0.12)' : 'rgba(255, 61, 90, 0.12)';
+          ctx.strokeStyle = color + '80';
+          ctx.lineWidth = 0.5;
+          drawRoundRect(ctx, tagX - tagW / 2, y - tagH / 2, tagW, tagH, 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center';
+          ctx.fillText(ev.type, tagX, y + 3.5);
+          ctx.textAlign = 'left';
+        });
+
+        // Resistances Level Lines
         resistances.forEach((r, idx) => {
           const y = getY(r.price);
-          ctx.strokeStyle = 'rgba(249, 115, 22, 0.25)';
-          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = 'rgba(255, 170, 48, 0.2)';
+          ctx.setLineDash([3, 3]);
           ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(width - padRight, y); ctx.stroke();
           ctx.setLineDash([]);
-          ctx.fillStyle = 'rgba(249, 115, 22, 0.7)';
-          ctx.fillText(`R${idx + 1}`, width - padRight + 45, y - 2);
+          
+          // Badge
+          ctx.fillStyle = 'rgba(255, 170, 48, 0.15)';
+          drawRoundRect(ctx, width - padRight + 1, y - 8, padRight - 2, 16, 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffaa30';
+          ctx.lineWidth = 0.5;
+          drawRoundRect(ctx, width - padRight + 1, y - 8, padRight - 2, 16, 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffaa30';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText(`R${idx + 1} ${r.price < 0.1 ? r.price.toFixed(5) : r.price.toFixed(2)}`, width - padRight + 4, y + 35 / 10);
         });
 
+        // Supports Level Lines
         supports.forEach((s, idx) => {
           const y = getY(s.price);
-          ctx.strokeStyle = 'rgba(14, 165, 233, 0.25)';
-          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = 'rgba(42, 159, 255, 0.2)';
+          ctx.setLineDash([3, 3]);
           ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(width - padRight, y); ctx.stroke();
           ctx.setLineDash([]);
-          ctx.fillStyle = 'rgba(14, 165, 233, 0.7)';
-          ctx.fillText(`S${idx + 1}`, width - padRight + 45, y + 8);
+
+          // Badge
+          ctx.fillStyle = 'rgba(42, 159, 255, 0.15)';
+          drawRoundRect(ctx, width - padRight + 1, y - 8, padRight - 2, 16, 2);
+          ctx.fill();
+          ctx.strokeStyle = '#2a9fff';
+          ctx.lineWidth = 0.5;
+          drawRoundRect(ctx, width - padRight + 1, y - 8, padRight - 2, 16, 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#2a9fff';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText(`S${idx + 1} ${s.price < 0.1 ? s.price.toFixed(5) : s.price.toFixed(2)}`, width - padRight + 4, y + 35 / 10);
         });
 
-        // Candles
+        // Candles (Red and Green with shadows and borders)
         candles.forEach((c, i) => {
           const x = getX(i);
           const openY = getY(c.open);
@@ -1378,75 +1394,124 @@
           const lowY = getY(c.low);
           const isUp = c.close >= c.open;
 
-          ctx.strokeStyle = isUp ? '#047857' : '#b91c1c';
+          ctx.strokeStyle = isUp ? '#009e60' : '#b82840';
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(x, highY); ctx.lineTo(x, lowY); ctx.stroke();
 
-          ctx.fillStyle = isUp ? '#10b981' : '#ef4444';
-          const bodyW = Math.max(3, chartW / candles.length * 0.65);
+          ctx.fillStyle = isUp ? '#00c47a' : '#e03050';
+          const bodyW = Math.max(2.5, chartW / candles.length * 0.65);
           const bodyY = Math.min(openY, closeY);
           const bodyH = Math.max(1, Math.abs(openY - closeY));
           ctx.fillRect(x - bodyW / 2, bodyY, bodyW, bodyH);
+
+          ctx.strokeStyle = isUp ? 'rgba(0,220,120,0.4)' : 'rgba(200,40,65,0.4)';
+          ctx.strokeRect(x - bodyW / 2, bodyY, bodyW, bodyH);
         });
 
-        // KAMA Adaptive line
-        ctx.lineWidth = 2;
+        // KAMA Adaptive Line segments with depth glows
         for (let i = 1; i < candles.length; i++) {
           if (kama[i] !== null && kama[i - 1] !== null) {
             const isUp = kama[i] > kama[i - 1];
-            ctx.strokeStyle = isUp ? '#00e896' : '#ff3d5a';
+            const color = isUp ? '#00e896' : '#ff3d5a';
+            
+            // Soft background trace for glow
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.4;
             ctx.beginPath();
             ctx.moveTo(getX(i - 1), getY(kama[i - 1]));
             ctx.lineTo(getX(i), getY(kama[i]));
             ctx.stroke();
+
+            // Reset shadow
+            ctx.shadowBlur = 0;
           }
         }
 
-        // Swings Point labels
-        ctx.font = 'bold 8px monospace';
+        // Swings Point labels HH, HL, LH, LL
+        ctx.font = 'bold 8.5px Consolas, monospace';
         ctx.textAlign = 'center';
         swings.forEach(s => {
           const x = getX(s.index);
           const isHigh = s.type === 'high';
-          const y = getY(s.price) + (isHigh ? -12 : 12);
+          const y = getY(s.price) + (isHigh ? -15 : 15);
           
-          ctx.fillStyle = isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-          ctx.strokeStyle = isHigh ? '#ef4444' : '#10b981';
-          const labelW = 16, labelH = 10;
-          ctx.fillRect(x - labelW / 2, y - labelH / 2, labelW, labelH);
-          ctx.strokeRect(x - labelW / 2, y - labelH / 2, labelW, labelH);
-          ctx.fillStyle = isHigh ? '#fca5a5' : '#6ee7b7';
-          ctx.fillText(s.label, x, y + 3);
+          // Connect tick
+          ctx.strokeStyle = isHigh ? '#ff3d5a' : '#00e896';
+          ctx.lineWidth = 0.8;
+          ctx.globalAlpha = 0.45;
+          ctx.beginPath();
+          ctx.moveTo(x, getY(s.price));
+          ctx.lineTo(x, y + (isHigh ? 4 : -4));
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+
+          ctx.fillStyle = isHigh ? 'rgba(255, 61, 90, 0.12)' : 'rgba(0, 232, 150, 0.12)';
+          ctx.strokeStyle = isHigh ? 'rgba(255, 61, 90, 0.45)' : 'rgba(0, 232, 150, 0.45)';
+          ctx.lineWidth = 0.5;
+          const labelW = 18, labelH = 11;
+          drawRoundRect(ctx, x - labelW / 2, y - labelH / 2, labelW, labelH, 2.5);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = isHigh ? '#ff3d5a' : '#00e896';
+          ctx.fillText(s.label, x, y + 3.5);
         });
         ctx.textAlign = 'left';
 
-        // Volume blocks
+        // Volume Profile Columns at very bottom (Clean overlay)
         candles.forEach((c, i) => {
           const x = getX(i);
           const isUp = c.close >= c.open;
           const vMax = Math.max(...candles.map(cand => cand.volume)) || 1;
-          const volH = Math.max(2, (c.volume / vMax) * 18);
-          ctx.fillStyle = isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+          const volH = Math.max(2, (c.volume / vMax) * 24);
+          ctx.fillStyle = isUp ? 'rgba(0, 196, 122, 0.28)' : 'rgba(224, 48, 80, 0.28)';
           const blockW = Math.max(2, chartW / candles.length * 0.65);
           ctx.fillRect(x - blockW / 2, height - padBottom - volH, blockW, volH);
         });
 
-        // Crosshairs
-        if (crosshair && crosshair.x >= padLeft && crosshair.x <= width - padRight) {
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+        // Draw Live Price dotted current axis
+        const liveColor = currentPrice >= candles[Math.max(0, n - 2)].close ? '#00c47a' : '#e03050';
+        ctx.strokeStyle = liveColor + '66';
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, getY(currentPrice));
+        ctx.lineTo(width - padRight, getY(currentPrice));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Live Price axial badge
+        ctx.fillStyle = liveColor;
+        drawRoundRect(ctx, width - padRight + 1, getY(currentPrice) - 9, padRight - 2, 18, 3);
+        ctx.fill();
+        
+        ctx.fillStyle = '#020617';
+        ctx.font = 'bold 9.5px Consolas, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(currentPrice < 0.1 ? currentPrice.toFixed(5) : currentPrice.toFixed(2), width - padRight + padRight / 2, getY(currentPrice) + 3.5);
+        ctx.textAlign = 'left';
+
+        // Interactive dynamic crosshairs
+        if (crosshair && crosshair.x >= padLeft && crosshair.x <= width - padRight && crosshair.y >= padTop && crosshair.y <= height - padBottom) {
+          ctx.strokeStyle = 'rgba(100, 160, 200, 0.3)';
           ctx.setLineDash([2, 2]);
           ctx.beginPath(); ctx.moveTo(crosshair.x, padTop); ctx.lineTo(crosshair.x, height - padBottom); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(padLeft, crosshair.y); ctx.lineTo(width - padRight, crosshair.y); ctx.stroke();
           ctx.setLineDash([]);
 
+          // Price tracking box
           const hoverPrice = pMax - ((crosshair.y - padTop) / chartH) * pRange;
           ctx.fillStyle = '#0f172a';
-          ctx.fillRect(width - padRight + 2, crosshair.y - 7, padRight - 4, 14);
+          drawRoundRect(ctx, width - padRight + 2, crosshair.y - 7, padRight - 4, 14, 2);
+          ctx.fill();
           ctx.strokeStyle = '#334155';
-          ctx.strokeRect(width - padRight + 2, crosshair.y - 7, padRight - 4, 14);
+          ctx.lineWidth = 0.5;
+          drawRoundRect(ctx, width - padRight + 2, crosshair.y - 7, padRight - 4, 14, 2);
+          ctx.stroke();
           
           ctx.fillStyle = '#cbd5e1';
-          ctx.font = '8px monospace';
+          ctx.font = '9px Consolas, monospace';
           ctx.fillText(hoverPrice < 0.1 ? hoverPrice.toFixed(5) : hoverPrice.toFixed(2), width - padRight + 6, crosshair.y + 3);
         }
       }
@@ -1637,20 +1702,6 @@
       renderUI();
     });
 
-    // Chart selector toggle actions
-    document.getElementById('chart-btn-birdeye').addEventListener('click', () => {
-      state.chartType = 'birdeye';
-      renderUI();
-    });
-    document.getElementById('chart-btn-dexscreener').addEventListener('click', () => {
-      state.chartType = 'dexscreener';
-      renderUI();
-    });
-    document.getElementById('chart-btn-histogram').addEventListener('click', () => {
-      state.chartType = 'histogram';
-      renderUI();
-    });
-
     // Add SPL token action submit
     document.getElementById('add-token-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1771,4 +1822,3 @@
   </script>
 </body>
 </html>
-
