@@ -2,136 +2,229 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚡ RSI EXTREME SCANNER</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#020617;color:#f8fafc;font-family:monospace;padding:16px;font-size:13px}
+body{background:#020617;color:#f1f5f9;font-family:'Courier New',monospace;padding:16px;min-height:100vh}
 h1{color:#06b6d4;font-size:13px;letter-spacing:3px;margin-bottom:10px}
-#top{display:flex;gap:8px;margin-bottom:8px}
-#inp{flex:1;background:#0f172a;border:1px solid #334155;color:#f8fafc;padding:8px;border-radius:4px;font-size:12px;font-family:monospace}
-button{background:#06b6d4;color:#020617;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px}
-#st{font-size:10px;color:#475569;margin-bottom:10px}
-.tok{background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:9px 12px;display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
-.tok.buy{border-color:#10b981;background:#011a12;animation:blink 1.2s infinite}
-.tok.sell{border-color:#ef4444;background:#1a0209;animation:blink 1.2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.6}}
-.sym{font-weight:bold;min-width:60px;color:#e2e8f0}
-.px{color:#94a3b8;min-width:90px}
-.rb{font-weight:bold;font-size:15px;min-width:80px}
-.rb.buy{color:#10b981}.rb.sell{color:#ef4444}.rb.n{color:#475569}
-.sig{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:bold;margin-left:auto}
+.bar{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+input{flex:1;min-width:220px;background:#0f172a;border:1px solid #334155;color:#f1f5f9;padding:8px;border-radius:4px;font:12px 'Courier New',monospace}
+.btn{background:#06b6d4;color:#020617;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px}
+.btn.mute{background:#0f172a;color:#06b6d4;border:1px solid #334155}
+.btn.danger{background:#0f172a;color:#ef4444;border:1px solid #334155}
+#status{font-size:10px;color:#475569;margin-bottom:10px;padding:6px 10px;background:#0a0f1a;border-radius:4px;border:1px solid #1e293b}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:10px 14px;display:grid;grid-template-columns:75px 120px 100px 1fr auto;align-items:center;gap:10px;margin-bottom:6px;transition:border-color .3s,background .3s}
+.card.buy{border-color:#10b981;background:#011a12;animation:pulse 1.2s ease-in-out infinite}
+.card.sell{border-color:#ef4444;background:#1a0209;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.sym{font-weight:bold;color:#e2e8f0;font-size:13px}
+.px{color:#94a3b8;font-size:12px}
+.rsi{font-weight:bold;font-size:15px}
+.rsi.buy{color:#10b981}.rsi.sell{color:#ef4444}.rsi.n{color:#475569}
+.sig{font-size:10px;padding:3px 10px;border-radius:3px;font-weight:bold;text-align:center}
 .sig.buy{background:#011a12;color:#10b981;border:1px solid #10b981}
 .sig.sell{background:#1a0209;color:#ef4444;border:1px solid #ef4444}
-.sig.n{color:#334155}
-.del{background:none;border:none;color:#334155;cursor:pointer;font-size:14px;margin-left:6px}
+.sig.n{color:#334155;font-size:10px}
+.del{background:none;border:none;color:#334155;cursor:pointer;font-size:16px;padding:0 4px}
 .del:hover{color:#ef4444}
+.empty{color:#334155;font-size:11px;padding:20px;text-align:center;border:1px dashed #1e293b;border-radius:6px}
 </style>
 </head>
 <body>
-<h1>⚡ SOLANA RSI EXTREME SCANNER</h1>
-<div id="top">
-  <input id="inp" placeholder="Pegar dirección SPL token..."/>
-  <button onclick="addTok()">+ ADD</button>
-  <button id="sb" onclick="toggleSound()" style="background:#0f172a;color:#06b6d4;border:1px solid #1e293b">🔔</button>
+<h1>⚡ SOLANA RSI EXTREME SCANNER — LIVE</h1>
+
+<div class="bar">
+  <input id="inp" placeholder="Dirección SPL mint address..."/>
+  <button class="btn" onclick="addToken()">+ ADD</button>
+  <button class="btn mute" id="snd" onclick="toggleSound()">🔔 ON</button>
+  <button class="btn danger" onclick="clearBuffers()">⟳ RESET RSI</button>
 </div>
-<div id="st">Iniciando...</div>
+<div id="status">Iniciando scanner...</div>
 <div id="list"></div>
 
 <script>
-const DEFS=[
-  {addr:'So11111111111111111111111111111111111111112',sym:'SOL'},
-  {addr:'JUPyiwrYJGtr5i9m9uYg8F6gfgZ29AdUGRKLDxSpzSj',sym:'JUP'},
-  {addr:'EKpQGSJtjMFqKZ9KQajSqgRSvGgndwe8YovB5st6ZKB',sym:'WIF'},
-  {addr:'DezXAZ8z7RnrH8pA5YnpxE7SjG3A1V1m75D1u4zo6V2',sym:'BONK'},
-  {addr:'4k3146Nz6ADve274Wkwks6T32C3A8HFR2425mU6jG15a',sym:'RAY'},
+// ─── CONFIG ───────────────────────────────────────────────
+const POLL_MS  = 5000;           // cada 5s (DexScreener lo permite)
+const RSI_BUY  = 20;             // umbral compra extrema
+const RSI_SELL = 80;             // umbral venta extrema
+const MAX_BUF  = 200;            // máximo precios en buffer
+const STORE_TOK = 'rsi_toks_v3';
+const STORE_BUF = 'rsi_bufs_v3';
+
+const DEFAULTS = [
+  'So11111111111111111111111111111111111111112',    // SOL
+  'JUPyiwrYJGtr5i9m9uYg8F6gfgZ29AdUGRKLDxSpzSj',  // JUP
+  'EKpQGSJtjMFqKZ9KQajSqgRSvGgndwe8YovB5st6ZKB',  // WIF
+  'DezXAZ8z7RnrH8pA5YnpxE7SjG3A1V1m75D1u4zo6V2',  // BONK
+  '4k3146Nz6ADve274Wkwks6T32C3A8HFR2425mU6jG15a',  // RAY
 ];
-let soundOn=true;
-let toks=DEFS.map(d=>({...d,price:0,rsi:null,buf:[],st:'n'}));
 
-function calcRSI(p){
-  if(p.length<15)return null;
-  let ch=p.slice(1).map((v,i)=>v-p[i]);
-  let g=0,l=0;
-  for(let i=0;i<14;i++){ch[i]>0?g+=ch[i]:l+=Math.abs(ch[i]);}
-  let ag=g/14,al=l/14;
-  for(let i=14;i<ch.length;i++){ag=(ag*13+Math.max(0,ch[i]))/14;al=(al*13+Math.max(0,-ch[i]))/14;}
-  if(al===0)return 100;
-  return Math.round((100-100/(1+ag/al))*10)/10;
+// ─── STATE ────────────────────────────────────────────────
+let soundOn = true;
+let scanning = false;
+
+let toks = JSON.parse(localStorage.getItem(STORE_TOK) || 'null')
+  || DEFAULTS.map(a => ({addr:a, sym:'...', price:0, rsi:null, st:'n'}));
+
+// buffers viven separados para no corromper tokens al recargar
+let bufs = (() => {
+  try { return JSON.parse(localStorage.getItem(STORE_BUF) || '{}'); }
+  catch(e) { return {}; }
+})();
+
+// ─── RSI WILDER ───────────────────────────────────────────
+function calcRSI(prices) {
+  if (prices.length < 15) return null;
+  const ch = prices.slice(1).map((p,i) => p - prices[i]);
+  let g = 0, l = 0;
+  for (let i = 0; i < 14; i++) { ch[i] > 0 ? g += ch[i] : l += Math.abs(ch[i]); }
+  let ag = g / 14, al = l / 14;
+  for (let i = 14; i < ch.length; i++) {
+    ag = (ag * 13 + Math.max(0,  ch[i])) / 14;
+    al = (al * 13 + Math.max(0, -ch[i])) / 14;
+  }
+  if (al === 0) return 100;
+  return Math.round((100 - 100 / (1 + ag / al)) * 10) / 10;
 }
 
-function beep(type){
-  if(!soundOn)return;
-  try{
-    let ac=new(window.AudioContext||window.webkitAudioContext)();
-    let o=ac.createOscillator(),g=ac.createGain();
-    o.connect(g);g.connect(ac.destination);
-    o.type=type==='buy'?'sine':'triangle';
-    o.frequency.setValueAtTime(type==='buy'?520:780,ac.currentTime);
-    o.frequency.exponentialRampToValueAtTime(type==='buy'?1040:390,ac.currentTime+0.35);
-    g.gain.setValueAtTime(0.12,ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01,ac.currentTime+0.35);
-    o.start();o.stop(ac.currentTime+0.37);
-  }catch(e){}
+// ─── AUDIO ────────────────────────────────────────────────
+function beep(type) {
+  if (!soundOn) return;
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = type === 'buy' ? 'sine' : 'triangle';
+    o.frequency.setValueAtTime(type === 'buy' ? 520 : 780, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(type === 'buy' ? 1040 : 390, ac.currentTime + 0.35);
+    g.gain.setValueAtTime(0.12, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.35);
+    o.start(); o.stop(ac.currentTime + 0.38);
+  } catch(e) {}
 }
 
-async function fetchTok(t){
-  try{
-    let r=await fetch(`https://api.dexscreener.com/latest/dex/tokens/${t.addr}`);
-    let d=await r.json();
-    let pairs=(d.pairs||[]).filter(p=>p.chainId==='solana');
-    if(!pairs.length)return t;
-    let pair=pairs.reduce((m,c)=>(c.liquidity?.usd||0)>(m.liquidity?.usd||0)?c:m,pairs[0]);
-    let price=parseFloat(pair.priceUsd||0);
-    let buf=[...(t.buf||[]),price];
-    if(buf.length>150)buf.shift();
-    let rsi=calcRSI(buf);
-    let prev=t.st;
-    let st=rsi===null?'n':rsi<=20?'buy':rsi>=80?'sell':'n';
-    if(st!==prev&&st!=='n')beep(st);
-    return{...t,sym:pair.baseToken?.symbol||t.sym,price,buf,rsi,st};
-  }catch(e){return t;}
+// ─── FETCH PRECIO (DexScreener — sin API key, confiable) ──
+async function fetchPrice(addr) {
+  const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  const pairs = (d.pairs || []).filter(p => p.chainId === 'solana');
+  if (!pairs.length) throw new Error('sin pares solana');
+  const pair = pairs.reduce((m,c) => (c.liquidity?.usd||0) > (m.liquidity?.usd||0) ? c : m, pairs[0]);
+  return {
+    sym:   pair.baseToken?.symbol || addr.slice(0,6),
+    price: parseFloat(pair.priceUsd || 0),
+  };
 }
 
-async function scan(){
-  document.getElementById('st').textContent=`🔄 Escaneando ${toks.length} tokens... ${new Date().toLocaleTimeString()}`;
-  toks=await Promise.all(toks.map(fetchTok));
+// ─── SCAN UN TOKEN ────────────────────────────────────────
+async function scanOne(tok) {
+  try {
+    const data = await fetchPrice(tok.addr);
+    if (!data.price) return tok;
+
+    const buf = bufs[tok.addr] || [];
+    buf.push(data.price);
+    if (buf.length > MAX_BUF) buf.shift();
+    bufs[tok.addr] = buf;
+
+    const rsi  = calcRSI(buf);
+    const prev = tok.st;
+    const st   = rsi === null ? 'n' : rsi <= RSI_BUY ? 'buy' : rsi >= RSI_SELL ? 'sell' : 'n';
+
+    if (st !== prev && st !== 'n') beep(st);   // alerta solo al cambiar estado
+    return { ...tok, sym: data.sym, price: data.price, rsi, st };
+  } catch(e) {
+    return { ...tok, st: tok.st };             // mantiene último estado si falla
+  }
+}
+
+// ─── SCAN TODOS ───────────────────────────────────────────
+async function scan() {
+  if (scanning) return;
+  scanning = true;
+  document.getElementById('status').textContent =
+    `🔄 Escaneando ${toks.length} tokens... ${new Date().toLocaleTimeString()}`;
+
+  toks = await Promise.all(toks.map(scanOne));
+
+  // persistir todo junto solo si scan completó
+  try {
+    localStorage.setItem(STORE_TOK, JSON.stringify(toks));
+    localStorage.setItem(STORE_BUF, JSON.stringify(bufs));
+  } catch(e) {}
+
   render();
-  document.getElementById('st').textContent=`✅ ${new Date().toLocaleTimeString()} | próximo en 12s`;
+  const activos = toks.filter(t => t.st !== 'n').length;
+  document.getElementById('status').textContent =
+    `✅ ${new Date().toLocaleTimeString()} · ${activos} señal(es) activa(s) · próximo en ${POLL_MS/1000}s`;
+  scanning = false;
 }
 
-function render(){
-  document.getElementById('list').innerHTML=toks.map((t,i)=>{
-    let px=t.price<0.01?t.price.toFixed(6):t.price.toFixed(3);
-    let rc=t.st==='buy'?'buy':t.st==='sell'?'sell':'n';
-    let sig=t.st==='buy'?'🟢 RSI EXTREMO COMPRA':t.st==='sell'?'🔴 RSI EXTREMO VENTA':'—';
-    return`<div class="tok ${t.st}">
+// ─── RENDER ───────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('list');
+  if (!toks.length) {
+    el.innerHTML = '<div class="empty">Sin tokens. Agrega una dirección SPL arriba.</div>';
+    return;
+  }
+  el.innerHTML = toks.map((t, i) => {
+    const buf    = bufs[t.addr] || [];
+    const px     = t.price < 0.001 ? t.price.toFixed(7)
+                 : t.price < 1    ? t.price.toFixed(5)
+                 :                   t.price.toFixed(3);
+    const rsiTxt = t.rsi !== null ? `RSI ${t.rsi}` : `RSI ...(${buf.length}/15)`;
+    const sigTxt = t.st === 'buy'  ? '🟢 COMPRA EXTREMA'
+                 : t.st === 'sell' ? '🔴 VENTA EXTREMA'
+                 :                   '— NEUTRAL';
+    return `<div class="card ${t.st}">
       <span class="sym">${t.sym}</span>
       <span class="px">$${px}</span>
-      <span class="rb ${rc}">RSI ${t.rsi!==null?t.rsi:'...'}</span>
-      <span class="sig ${rc}">${sig}</span>
-      <button class="del" onclick="del(${i})">✕</button>
+      <span class="rsi ${t.st}">${rsiTxt}</span>
+      <span class="sig ${t.st}">${sigTxt}</span>
+      <button class="del" onclick="removeTok(${i})" title="Eliminar">✕</button>
     </div>`;
   }).join('');
 }
 
-async function addTok(){
-  let addr=document.getElementById('inp').value.trim();
-  if(addr.length<32){alert('Dirección inválida');return;}
-  if(toks.some(t=>t.addr===addr)){alert('Ya existe');return;}
-  if(toks.length>=20){alert('Máximo 20');return;}
-  toks.push({addr,sym:'...',price:0,rsi:null,buf:[],st:'n'});
-  document.getElementById('inp').value='';
+// ─── CONTROLES ────────────────────────────────────────────
+async function addToken() {
+  const addr = document.getElementById('inp').value.trim();
+  if (addr.length < 32 || addr.length > 44) { alert('Dirección SPL inválida (32-44 chars)'); return; }
+  if (toks.some(t => t.addr === addr))       { alert('Ya está en el scanner'); return; }
+  if (toks.length >= 20)                     { alert('Máximo 20 tokens'); return; }
+  toks.push({ addr, sym:'...', price:0, rsi:null, st:'n' });
+  document.getElementById('inp').value = '';
   await scan();
 }
 
-function del(i){toks.splice(i,1);render();}
-
-function toggleSound(){
-  soundOn=!soundOn;
-  document.getElementById('sb').textContent=soundOn?'🔔':'🔕';
+function removeTok(i) {
+  delete bufs[toks[i].addr];
+  toks.splice(i, 1);
+  try {
+    localStorage.setItem(STORE_TOK, JSON.stringify(toks));
+    localStorage.setItem(STORE_BUF, JSON.stringify(bufs));
+  } catch(e) {}
+  render();
 }
 
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('snd').textContent = soundOn ? '🔔 ON' : '🔕 OFF';
+}
+
+function clearBuffers() {
+  bufs = {};
+  toks = toks.map(t => ({ ...t, rsi:null, st:'n' }));
+  localStorage.removeItem(STORE_BUF);
+  scan();
+}
+
+// ─── ARRANQUE ─────────────────────────────────────────────
+render();
 scan();
-setInterval(scan,12000);
+setInterval(scan, POLL_MS);
 </script>
 </body>
 </html>
