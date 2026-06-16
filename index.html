@@ -3,2812 +3,575 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solana Watchlist Indexer & Bubble Radar - Standalone Edition</title>
+  <title>Token Sniper Engine v5.2 - Standalone Simulator</title>
   
-  <!-- Tailwind CSS CDN -->
+  <!-- Tailwind CSS Play CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React and ReactDOM CDNs -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
+  <!-- Babel CDN to compile JSX in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Google Fonts (Inter, Space Grotesk, JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;750&display=swap" rel="stylesheet">
+
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            'navy-dark': '#030712',
-            'navy-card': '#0b0f19',
-            'navy-border': '#1e293b',
-            'navy-light': '#334155',
-            'gold-corp': '#d4af37',
-            'gold-bright': '#f4d068',
-            'gold-dim': 'rgba(212, 175, 55, 0.08)',
-            'cyber-green': '#00e676',
-            'cyber-red': '#ff3c5f',
-          },
           fontFamily: {
-            mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
             sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+            display: ['"Space Grotesk"', 'sans-serif'],
           }
         }
       }
     }
-  </script>
-
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;750;800&display=swap" rel="stylesheet">
-
-  <!-- React & ReactDOM - pinned to 18.2.0 -->
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-
-  <!-- Babel Standalone - pinned to 7.23.5 (stable, supports optional chaining) -->
-  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-
-  <!-- D3.js - pinned to 7.8.5 -->
-  <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
-
-  <!-- Lucide Icons - pinned to 0.263.1 -->
-  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
-
-  <!-- Error catcher: show visible message if scripts fail to load -->
-  <script>
-    window.onerror = function(msg, src, line, col, err) {
-      var el = document.getElementById('standalone-root');
-      if (el) {
-        el.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;padding:40px;';
-        el.innerHTML = '<div style="color:#f4d068;font-family:monospace;font-size:16px;font-weight:bold;">ERROR DE JAVASCRIPT</div>' +
-          '<div style="color:#94a3b8;font-family:monospace;font-size:12px;max-width:600px;text-align:center;">' + msg + '<br><br>' + src + ':' + line + '</div>';
-      }
-      return false;
-    };
   </script>
 
   <style>
-    /* Custom Tech Scrollbars */
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
+    body {
+      background-color: #020617; /* slate-950 */
+      color: #f8fafc; /* slate-50 */
     }
-    ::-webkit-scrollbar-track {
-      background: #030712;
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 4px;
     }
-    ::-webkit-scrollbar-thumb {
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
       background: #1e293b;
-      border-radius: 4px;
+      border-radius: 2px;
     }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #d4af37;
-    }
-
-    /* Custom CSS animations targeting modern look */
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1); opacity: 0.4; }
-      100% { transform: scale(1.05); opacity: 0; }
-    }
-    .pulse-ring {
-      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    
-    .glass {
-      background: rgba(11, 15, 25, 0.8);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    
-    .glow-green {
-      filter: drop-shadow(0 0 4px rgba(0, 230, 118, 0.45));
-    }
-    
-    .glow-red {
-      filter: drop-shadow(0 0 4px rgba(255, 60, 95, 0.45));
-    }
-
-    .glow-gold {
-      filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.35));
-    }
-
-    /* Spin loader for tech scan cycle */
-    @keyframes radar-sweep {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .radar-sweep {
-      animation: radar-sweep 5s linear infinite;
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+      background: #334155;
     }
   </style>
 </head>
-<body class="bg-[#02050c] text-slate-100 min-h-screen font-sans overflow-x-hidden selection:bg-gold-corp selection:text-navy-dark">
+<body class="h-screen w-screen overflow-hidden select-none">
+  
+  <div id="root"></div>
 
-  <!-- Root element React will target and render into -->
-  <div id="standalone-root" class="h-screen overflow-hidden">
-    <div id="loading-fallback" style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;">
-      <div style="color:#d4af37;font-family:monospace;font-size:13px;letter-spacing:0.1em;">INICIANDO SISTEMA...</div>
-      <div style="color:#334155;font-family:monospace;font-size:10px;">Compilando módulos JSX</div>
-    </div>
-  </div>
-
-  <!-- React code compiled live via Babel compiler -->
+  <!-- React code starts here -->
   <script type="text/babel">
-    const { useState, useEffect, useRef, useMemo } = React;
+    const { useState, useEffect, useMemo, useRef } = React;
 
-    // --- ALGORITHMIQUE & COMPUTATIONAL UTILS ---
-
-    // standard Welles Wilder RSI(14)
-    function calculateRSI(candles, period = 14) {
-      if (!candles || candles.length <= period) return 50.0;
-      
-      const sorted = [...candles].sort((a, b) => a.time - b.time);
-      const gains = [];
-      const losses = [];
-
-      for (let i = 1; i < sorted.length; i++) {
-        const diff = sorted[i].close - sorted[i - 1].close;
-        if (diff > 0) {
-          gains.push(diff);
-          losses.push(0);
-        } else {
-          gains.push(0);
-          losses.push(-diff);
+    // Web Audio Synthesizer helper
+    let audioCtx = null;
+    function playSound(type, audioOn) {
+      if (!audioOn) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const now = audioCtx.currentTime;
+
+        if (type === 'click') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } 
+        else if (type === 'select') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(880, now + 0.08);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        }
+        else if (type === 'alert') {
+          const osc1 = audioCtx.createOscillator();
+          const osc2 = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          
+          osc1.type = 'sawtooth';
+          osc1.frequency.setValueAtTime(950, now);
+          osc1.frequency.linearRampToValueAtTime(1200, now + 0.15);
+          osc1.frequency.linearRampToValueAtTime(800, now + 0.3);
+          
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(475, now);
+          osc2.frequency.linearRampToValueAtTime(600, now + 0.15);
+          
+          gain.gain.setValueAtTime(0.05, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(audioCtx.destination);
+          
+          osc1.start(now);
+          osc2.start(now);
+          
+          osc1.stop(now + 0.4);
+          osc2.stop(now + 0.4);
+        }
+        else if (type === 'success') {
+          const freqs = [523.25, 659.25, 783.99, 1046.50];
+          freqs.forEach((f, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(f, now + i * 0.05);
+            gain.gain.setValueAtTime(0.03, now + i * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.05);
+            osc.stop(now + i * 0.05 + 0.25);
+          });
+        }
+        else if (type === 'reconnect') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.linearRampToValueAtTime(0.04, now + 0.3);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch (e) {
+        console.warn('Audio Context error: ', e);
       }
-
-      let avgGain = 0;
-      let avgLoss = 0;
-
-      for (let i = 0; i < Math.min(period, gains.length); i++) {
-        avgGain += gains[i];
-        avgLoss += losses[i];
-      }
-
-      avgGain /= period;
-      avgLoss /= period;
-
-      for (let i = period; i < gains.length; i++) {
-        avgGain = (avgGain * (period - 1) + gains[i]) / period;
-        avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
-      }
-
-      if (avgLoss === 0) {
-        return avgGain === 0 ? 50.0 : 100.0;
-      }
-
-      const rs = avgGain / avgLoss;
-      const computed = 100 - (100 / (1 + rs));
-      return isNaN(computed) ? 50.0 : Math.round(computed * 10) / 10;
     }
 
-    // Identifies 5-bar structural fractals high/low points
-    function identifyFractals(candles) {
-      const highs = [];
-      const lows = [];
-      const n = 2; // Needs 2 bars left and 2 bars right
-      const sorted = [...candles].sort((a, b) => a.time - b.time);
+    // Default Seed Data
+    const INITIAL_TOKENS = [
+      { id: 'spcx', symbol: 'SPCX', name: 'SpaceX Token', price: 0.001758, decimals: 6, rsi: 33.5, volume24h: 3450000, momentum: -35, priority: 'ALTA', points: 20, priceChange24h: -3.31, buyPressure: 58, s1: 0.001700, s2: 0.001650, r1: 0.001850, r2: 0.001920 },
+      { id: 'cia', symbol: 'CIA', name: 'Intelligence Ledger', price: 0.0892, decimals: 4, rsi: 78.2, volume24h: 890300, momentum: 62, priority: 'ALTA', points: 35, priceChange24h: 12.45, buyPressure: 72, s1: 0.0820, s2: 0.0780, r1: 0.0910, r2: 0.0950 },
+      { id: 'boblax', symbol: 'BOBLAX', name: 'Bob-Lax Matrix', price: 1.425, decimals: 3, rsi: 21.8, volume24h: 12500000, momentum: -82, priority: 'CRÍTICA', points: 85, priceChange24h: -15.2, buyPressure: 38, s1: 1.380, s2: 1.250, r1: 1.550, r2: 1.680 },
+      { id: 'gym', symbol: 'GYM', name: 'Pump Gym Chain', price: 0.01245, decimals: 5, rsi: 59.1, volume24h: 2310000, momentum: 12, priority: 'BAJA', points: 15, priceChange24h: 0.85, buyPressure: 51, s1: 0.01180, s2: 0.01100, r1: 0.01310, r2: 0.01380 },
+      { id: 'guardian', symbol: 'GUARDIAN', name: 'Sentinel Network', price: 432.50, decimals: 2, rsi: 92.4, volume24h: 42100000, momentum: 94, priority: 'CRÍTICA', points: 95, priceChange24h: 28.4, buyPressure: 88, s1: 410.00, s2: 380.00, r1: 445.00, r2: 460.00 },
+      { id: 'folkcat', symbol: 'FOLKCAT', name: 'Folk Cat Meme', price: 0.000452, decimals: 6, rsi: 87.1, volume24h: 920000, momentum: 74, priority: 'ALTA', points: 50, priceChange24h: 18.9, buyPressure: 79, s1: 0.000410, s2: 0.000380, r1: 0.000465, r2: 0.000490 },
+      { id: 'kins', symbol: 'KINS', name: 'Kinsmen Protocol', price: 0.942, decimals: 3, rsi: 82.3, volume24h: 1820000, momentum: 55, priority: 'MEDIA', points: 40, priceChange24h: 5.61, buyPressure: 61, s1: 0.900, s2: 0.850, r1: 0.980, r2: 1.050 }
+    ];
 
-      for (let i = n; i < sorted.length - n; i++) {
-        let isHigh = true;
-        let isLow = true;
+    const STREAMING_ALERTS = [
+      { id: 'ev-1', tokenSymbol: 'SPCX', type: 'CONFIRMACION', message: 'Señal de entrada validada | Estructura de compra formada', minutesAgo: 4, intensity: 'high' },
+      { id: 'ev-2', tokenSymbol: 'SPCX', type: 'RSI_EXTREMO', message: 'RSI entra en sobreventa (<30) | RSI registrado en 29.5', minutesAgo: 7, intensity: 'critical' },
+      { id: 'ev-3', tokenSymbol: 'SPCX', type: 'CONFIRMACION', message: 'Incremento de compradores | Compradores superan el 60%', minutesAgo: 11, intensity: 'normal' },
+      { id: 'ev-4', tokenSymbol: 'GUARDIAN', type: 'RSI_EXTREMO', message: 'Sobrecompra extrema detectada | RSI superior a 92', minutesAgo: 2, intensity: 'critical' },
+      { id: 'ev-5', tokenSymbol: 'GUARDIAN', type: 'RES_RUPTURA', message: 'Ruptura de Resistencia R1 Principal superada', minutesAgo: 5, intensity: 'high' }
+    ];
 
-        for (let j = -n; j <= n; j++) {
-          if (j === 0) continue;
-          if (sorted[i].high < sorted[i + j].high) isHigh = false;
-          if (sorted[i].low > sorted[i + j].low) isLow = false;
-        }
-
-        if (isHigh) {
-          highs.push({ price: sorted[i].high, time: sorted[i].time });
-        }
-        if (isLow) {
-          lows.push({ price: sorted[i].low, time: sorted[i].time });
-        }
-      }
-
-      return { highs, lows };
-    }
-
-    // Determine trend based on support-resistance peak values
-    function determineTrend(highs, lows) {
-      if (highs.length < 2 || lows.length < 2) return 'LATERAL';
-
-      const lastH = highs[highs.length - 1].price;
-      const prevH = highs[highs.length - 2].price;
-      const lastL = lows[lows.length - 1].price;
-      const prevL = lows[lows.length - 2].price;
-
-      if (lastH > prevH && lastL > prevL) return 'BULLISH';
-      if (lastH < prevH && lastL < prevL) return 'BEARISH';
-      return 'LATERAL';
-    }
-
-    // Roll over and compile real candle series matched in real time
-    function updateCandleSeries(candles, newPrice, timeframeSecs) {
-      if (!candles || candles.length === 0) {
-        return [{ time: Math.floor(Date.now() / 1000), open: newPrice, high: newPrice, low: newPrice, close: newPrice }];
-      }
-      const series = [...candles];
-      const last = { ...series[series.length - 1] };
-      const now = Math.floor(Date.now() / 1000);
-
-      if (now - last.time >= timeframeSecs) {
-        series.push({
-          time: last.time + timeframeSecs,
-          open: last.close,
-          high: newPrice,
-          low: newPrice,
-          close: newPrice
-        });
-        if (series.length > 100) {
-          series.shift();
-        }
-      } else {
-        last.close = newPrice;
-        if (newPrice > last.high) last.high = newPrice;
-        if (newPrice < last.low) last.low = newPrice;
-        series[series.length - 1] = last;
-      }
-      return series;
-    }
-
-    // Back populate custom visual candles walk (timeframes)
-    function generateInitialCandles(basePrice, granularitySeconds, count = 100) {
+    function generateCandles(token, count = 40) {
+      let currentPrice = token.price * 0.95;
+      let currentRsi = token.rsi;
       const candles = [];
-      const nowEpoch = Math.floor(Date.now() / 1000);
-
-      for (let i = 0; i < count; i++) {
-        const time = nowEpoch - i * granularitySeconds;
-        candles.unshift({
-          time,
-          open: basePrice,
-          high: basePrice,
-          low: basePrice,
-          close: basePrice,
+      const now = new Date();
+      for (let i = count; i > 0; i--) {
+        const timeStr = new Date(now.getTime() - i * 5 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const changePercent = (Math.random() - 0.49) * 0.015;
+        const closePrice = currentPrice * (1 + changePercent);
+        const highPrice = Math.max(currentPrice, closePrice) * (1 + Math.random() * 0.008);
+        const lowPrice = Math.min(currentPrice, closePrice) * (1 - Math.random() * 0.008);
+        
+        currentRsi = Math.min(99, Math.max(1, currentRsi + (changePercent * 2000) + (Math.random() * 4 - 2)));
+        candles.push({
+          time: timeStr,
+          open: Number(currentPrice.toFixed(token.decimals + 2)),
+          high: Number(highPrice.toFixed(token.decimals + 2)),
+          low: Number(lowPrice.toFixed(token.decimals + 2)),
+          close: Number(closePrice.toFixed(token.decimals + 2)),
+          volume: Math.floor(token.volume24h / 288 * (0.5 + Math.random())),
+          rsi: Number(currentRsi.toFixed(1))
         });
+        currentPrice = closePrice;
       }
-
       return candles;
     }
 
-    // Extract Solana mint address tokens via regex filter
-    function parseAndExtractAddresses(text) {
-      const solregex = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
-      const matches = text.match(solregex) || [];
-      const unique = Array.from(new Set(matches));
-      return unique.filter(addr => {
-        const isHeaderField = /^(Type|List|Color|Address|Chain|Watchlist|Name|Id|solana)$/i.test(addr);
-        return !isHeaderField && addr.length >= 32;
-      });
-    }
-
-    // --- DEXSCREENER CLIENT CONNECTION ASSISTANT ---
-    async function fetchTokenFromDexscreener(query) {
-      const cleanQuery = query.trim();
-      if (!cleanQuery) return null;
-
-      const urlsToTry = [];
-      if (cleanQuery.length > 25) {
-        urlsToTry.push(`https://api.dexscreener.com/latest/dex/tokens/${cleanQuery}`);
-        urlsToTry.push(`https://api.dexscreener.com/latest/dex/search?q=${cleanQuery}`);
-        urlsToTry.push(`https://api.dexscreener.com/latest/dex/pairs/solana/${cleanQuery}`);
-      } else {
-        urlsToTry.push(`https://api.dexscreener.com/latest/dex/search?q=${cleanQuery}`);
-        urlsToTry.push(`https://api.dexscreener.com/latest/dex/tokens/${cleanQuery}`);
-      }
-
-      for (const url of urlsToTry) {
-        try {
-          const res = await fetch(url);
-          if (!res.ok) continue;
-
-          const data = await res.json();
-          const pairs = data.pairs || data.pair || (data.pair ? [data.pair] : null);
-
-          if (!pairs || (Array.isArray(pairs) && pairs.length === 0)) {
-            continue;
-          }
-
-          const rawPairs = Array.isArray(pairs) ? pairs : [pairs];
-
-          // Sort on highest liquidity to isolate best pair representation
-          const sortedPairs = [...rawPairs].sort((a, b) => {
-            const liqA = a.liquidity?.usd || 0;
-            const liqB = b.liquidity?.usd || 0;
-            return liqB - liqA;
-          });
-
-          const bestPair = sortedPairs[0];
-          if (bestPair && bestPair.baseToken) {
-            return {
-              address: bestPair.baseToken.address,
-              symbol: bestPair.baseToken.symbol,
-              name: bestPair.baseToken.name,
-              price: parseFloat(bestPair.priceUsd) || 0,
-              change24h: bestPair.priceChange?.h24 || 0,
-              volume24h: bestPair.volume?.h24 || 0,
-              liquidity: bestPair.liquidity?.usd || 0,
-            };
-          }
-        } catch (err) {
-          console.warn(`Endpoint connect failed: ${url}`, err);
-        }
-      }
-      return null;
-    }
-
-    // Preset list values to load immediately
-    const PRESET_TOKENS = [
-      {
-        address: 'So11111111111111111111111111111111111111112',
-        symbol: 'SOL',
-        name: 'Wrapped SOL',
-        price: 153.42,
-        change24h: 3.45,
-        volume24h: 3829440,
-        liquidity: 24700000,
-        custom: false,
-      },
-      {
-        address: 'EPjFW364G14ux29hkX7U62F1MwN6H86gE6pkbA6tVv',
-        symbol: 'USDC',
-        name: 'USD Coin',
-        price: 1.0001,
-        change24h: 0.01,
-        volume24h: 18239000,
-        liquidity: 150000000,
-        custom: false,
-      },
-      {
-        address: 'DezXAZ8z7PnrnRJjz3wX4mGCmzNgR6937JoxCwt6A85',
-        symbol: 'BONK',
-        name: 'Bonk',
-        price: 0.00002134,
-        change24h: -5.12,
-        volume24h: 894000,
-        liquidity: 4200000,
-        custom: false,
-      },
-    ];
-
-    // --- REUSABLE SUBCOMPONENTS ---
-
-    // Smart adaptive Lucide rendering icon
-    function Icon({ name, className = 'w-4 h-4' }) {
-      useEffect(() => {
-        if (window.lucide) {
-          window.lucide.createIcons();
-        }
-      });
-      return <i data-lucide={name} className={className + " inline-flex items-center justify-center leading-none"}></i>;
-    }
-
-    // Watchlist token card
-    function TokenCard({ token, isActive, onSelect, onDelete }) {
-      const isPriceUp = token.prevPrice ? token.price > token.prevPrice : token.change24h >= 0;
-
-      const formatPrice = (price) => {
-        if (price === 0) return '0.00';
-        if (price < 0.0001) return price.toFixed(8);
-        if (price < 0.1) return price.toFixed(6);
-        if (price < 10) return price.toFixed(4);
-        return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      };
-
-      const getStatusBadge = () => {
-        if (token.status === 'POSICIÓN ACTIVA') {
-          return (
-            <span className="px-2 py-0.5 rounded-full bg-cyber-green/10 border border-cyber-green/30 text-cyber-green text-[9px] font-bold animate-pulse font-mono">
-              POSICIÓN
-            </span>
-          );
-        }
-        if (token.score >= 80) {
-          return (
-            <span className="px-2 py-0.5 rounded-full bg-gold-corp/20 border border-gold-corp/40 text-gold-bright text-[9px] font-bold animate-pulse font-mono">
-              SNIPER GATILLO
-            </span>
-          );
-        }
-        if (token.status === 'ZONA CRÍTICA') {
-          return (
-            <span className="px-2 py-0.5 rounded-full bg-navy-light border border-gold-corp/20 text-blue-300 text-[9px] font-medium font-mono">
-              ZONA H1
-            </span>
-          );
-        }
-        return (
-          <span className="px-2 py-0.5 rounded-full bg-navy-dark border border-navy-light text-slate-400 text-[9px] font-mono">
-            ESCANEO
-          </span>
-        );
-      };
-
-      const getScoreBadgeClass = () => {
-        if (token.score >= 80) return "bg-gold-dim border border-gold-corp text-gold-bright";
-        if (token.score >= 60) return "bg-navy-dark border border-gold-corp/30 text-gold-corp";
-        return "bg-navy-dark border border-navy-light text-slate-400";
-      };
-
-      return (
-        <div
-          onClick={() => onSelect(token.address)}
-          className={`relative overflow-hidden cursor-pointer rounded-xl border p-4 transition-all duration-300 group ${
-            isActive
-              ? 'bg-navy-card/90 border-gold-corp glow-gold scale-[1.01]'
-              : 'bg-navy-card/40 border-[#1e293b]/50 hover:bg-navy-card/85 hover:border-gold-corp/30'
-          }`}
-        >
-          <div className="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-gold-corp/5 to-transparent rounded-full blur-xl group-hover:from-gold-corp/10 transition duration-300 pointer-events-none" />
-
-          <div className="flex justify-between items-start mb-2 relative z-10">
-            <div className="flex-1 min-w-0 pr-2">
-              <div className="flex items-center gap-1.5 flex-nowrap">
-                <span className="font-mono text-xs font-bold text-slate-200 uppercase truncate">
-                  {token.symbol}
-                </span>
-                {token.custom && (
-                  <span className="text-[8px] px-1.5 py-0.2 bg-gold-dim border border-gold-corp/20 text-gold-corp rounded uppercase font-mono">
-                    Manual
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] text-slate-500 block truncate leading-tight mt-0.5">
-                {token.name}
-              </span>
-              <div className={`font-mono text-base font-bold tracking-tight mt-1.5 transition-colors duration-200 ${
-                isPriceUp ? 'text-cyber-green' : 'text-cyber-red'
-              }`}>
-                ${formatPrice(token.price)}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <span className={`font-mono text-[10px] px-2 py-0.5 rounded font-medium ${getScoreBadgeClass()}`}>
-                {token.score} PTS
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(token.address);
-                }}
-                className="p-1 rounded bg-[#030712] border border-navy-light hover:bg-cyber-red/25 hover:border-cyber-red/40 hover:text-cyber-red text-slate-500 transition-colors cursor-pointer"
-                title="Eliminar Token"
-              >
-                <Icon name="trash" className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] mt-3 pt-2.5 border-t border-[#1e293b]/70 relative z-10 font-mono">
-            <span className={`font-semibold ${
-              token.trend === 'BULLISH' ? 'text-cyber-green' : token.trend === 'BEARISH' ? 'text-cyber-red' : 'text-slate-500'
-            }`}>
-              {token.trend === 'BULLISH' ? '▲ ALCISTA' : token.trend === 'BEARISH' ? '▼ BAJISTA' : '◆ RANGO'}
-            </span>
-            {getStatusBadge()}
-          </div>
-        </div>
-      );
-    }
-
-    // Unlimited Solana Contract Indexer
-    function StandaloneIndexer({ onAddToken, onAddMultipleTokens, tokenCount, onClearWatchlist }) {
-      const [activeTab, setActiveTab] = useState('single');
-      const [singleValue, setSingleValue] = useState('');
-      const [csvValue, setCsvValue] = useState('');
-      const [dragActive, setDragActive] = useState(false);
-      const [statusMsg, setStatusMsg] = useState('');
-      const [isLoading, setIsLoading] = useState(false);
-      const fileInputRef = useRef(null);
-
-      const quickSuggestions = [
-        { name: 'WIF', addr: 'EKpQGSJtjMFqKZ9m2E7ekMainMc2tsy676A9A87SuSUX' },
-        { name: 'POPCAT', addr: '7GCih69g7FfX9Y677AAVXg6CcWjuyaiU4Pg7yXARf3u3' },
-        { name: 'BONK', addr: 'DezXAZ8z7PnrnRJjz3wX4mGCmzNgR6937JoxCwt6A85' },
-        { name: 'SOL', addr: 'So11111111111111111111111111111111111111112' }
-      ];
-
-      const handleAddSingle = async (e) => {
-        if(e) e.preventDefault();
-        setStatusMsg('');
-        const trimmed = singleValue.trim();
-        if (!trimmed) return;
-
-        setIsLoading(true);
-        try {
-          const success = await onAddToken(trimmed);
-          setSingleValue('');
-          setIsLoading(false);
-          if (success) {
-            setStatusMsg('¡Módulo de indexación cargada con éxito!');
-          } else {
-            setStatusMsg('Error: El token no existe o no hay datos reales en DexScreener.');
-          }
-        } catch (err) {
-          setIsLoading(false);
-          setStatusMsg('Error: Fallo al comunicarse con el oráculo de datos.');
-        }
-      };
-
-      const handleBatchImport = () => {
-        setStatusMsg('');
-        const cleaned = csvValue.trim();
-        if (!cleaned) {
-          setStatusMsg('El campo CSV está vacío.');
-          return;
-        }
-
-        const parsedAddresses = parseAndExtractAddresses(cleaned);
-        if (parsedAddresses.length === 0) {
-          setStatusMsg('No se detectaron direcciones de contrato Solana.');
-          return;
-        }
-
-        setIsLoading(true);
-        setTimeout(() => {
-          onAddMultipleTokens(parsedAddresses);
-          setCsvValue('');
-          setIsLoading(false);
-          setStatusMsg(`¡Cargados con éxito ${parsedAddresses.length} tokens descritos!`);
-        }, 500);
-      };
-
-      const handleDrag = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.type === "dragenter" || e.type === "dragover") {
-          setDragActive(true);
-        } else if (e.type === "dragleave") {
-          setDragActive(false);
-        }
-      };
-
-      const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          readFile(e.dataTransfer.files[0]);
-        }
-      };
-
-      const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-          readFile(e.target.files[0]);
-        }
-      };
-
-      const readFile = (file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const text = e.target.result;
-          if (text) {
-            setCsvValue(text);
-            const count = parseAndExtractAddresses(text).length;
-            setStatusMsg(`Archivo "${file.name}" leído (${count} direcciones encontradas).`);
-          }
-        };
-        reader.readAsText(file);
-      };
-
-      return (
-        <div className="bg-navy-card rounded-xl border border-navy-border p-4 relative overflow-hidden flex flex-col gap-3">
-          <div className="flex items-center justify-between pb-1 select-none">
-            <h3 className="font-mono text-xs font-bold uppercase text-slate-200 flex items-center gap-1.5">
-              <Icon name="sparkles" className="w-4 h-4 text-gold-corp" />
-              Indexador Watchlist ilimitado
-            </h3>
-            <span className="font-mono text-[9px] bg-gold-dim text-gold-bright px-2 py-0.5 rounded border border-gold-corp/20 leading-none">
-              {tokenCount} Indexados
-            </span>
-          </div>
-
-          <div className="flex bg-navy-dark p-1 rounded-lg border border-[#1e293b]/70 select-none">
-            <button
-              onClick={() => { setActiveTab('single'); setStatusMsg(''); }}
-              className={`flex-1 py-1.5 text-[10px] font-mono rounded font-bold transition-all cursor-pointer ${
-                activeTab === 'single' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-250'
-              }`}
-            >
-              Individual (+)
-            </button>
-            <button
-              onClick={() => { setActiveTab('csv'); setStatusMsg(''); }}
-              className={`flex-1 py-1.5 text-[10px] font-mono rounded font-bold transition-all cursor-pointer ${
-                activeTab === 'csv' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-250'
-              }`}
-            >
-              Cargar CSV / TXT 📁
-            </button>
-          </div>
-
-          {activeTab === 'single' ? (
-            <div className="flex flex-col gap-3">
-            <div className="flex gap-2" onKeyDown={(e) => { if (e.key === 'Enter') handleAddSingle(e); }}>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={singleValue}
-                    onChange={(e) => setSingleValue(e.target.value)}
-                    placeholder="Escribe el CA / Dirección del token..."
-                    className="w-full bg-navy-dark border border-navy-border focus:border-gold-corp outline-none rounded-lg py-2 pl-8 pr-3 text-xs text-slate-200 placeholder-slate-500 font-mono"
-                  />
-                  <div className="absolute left-2.5 top-2.5 text-slate-500">
-                    <Icon name="search" className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddSingle}
-                  disabled={isLoading || !singleValue.trim()}
-                  className="px-3 bg-gold-corp hover:bg-gold-bright text-navy-dark font-mono text-xs font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 shrink-0"
-                >
-                  {isLoading ? <Icon name="loader-2" className="w-3.5 h-3.5 animate-spin" /> : 'Indexar'}
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1.5 select-none border-t border-navy-border/40 pt-2.5">
-                <span className="text-[9px] text-slate-500 font-mono font-bold">Rápidos:</span>
-                {quickSuggestions.map(s => (
-                  <button
-                    key={s.name}
-                    onClick={() => setSingleValue(s.addr)}
-                    className="text-[9px] font-mono px-2 py-0.5 rounded bg-navy-dark hover:bg-navy-light border border-[#1e293b]/60 text-slate-300 hover:text-[#f4d068] transition cursor-pointer"
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              <div
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current.click()}
-                className={`cursor-pointer border border-dashed rounded-lg p-3 text-center flex flex-col items-center justify-center transition bg-navy-dark/40 ${
-                  dragActive ? 'border-gold-corp bg-gold-dim' : 'border-[#1e293b] hover:border-gold-corp/50'
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.txt"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <div className="text-gold-corp mb-1">
-                  <Icon name="upload" className="w-6 h-6 mx-auto animate-bounce" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-300">Arrastra tu archivo CSV o haz click aquí</span>
-                <span className="text-[8px] text-slate-550 mt-1">Soporta cualquier lista de Solana Mints (CA)</span>
-              </div>
-
-              <textarea
-                rows={3}
-                value={csvValue}
-                onChange={(e) => setCsvValue(e.target.value)}
-                placeholder="Pega cualquier CSV con Direcciones de Solana...&#10;Address,Symbol,Name&#10;EKpQGSJtjMFqKZ9...,WIF,dogwifhat"
-                className="w-full bg-navy-dark border border-navy-border focus:border-gold-corp outline-none rounded-lg p-2 text-[9px] text-slate-300 placeholder-slate-650 font-mono resize-none h-[60px]"
-              />
-
-              <div className="flex items-center gap-2 select-none">
-                <button
-                  onClick={handleBatchImport}
-                  disabled={isLoading || !csvValue.trim()}
-                  className="flex-1 py-1.5 text-xs font-mono font-bold bg-gold-corp text-navy-dark hover:bg-gold-bright rounded-lg disabled:opacity-50 transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Icon name="file-text" className="w-3.5 h-3.5" />
-                  <span>Analizar & Cargar todo</span>
-                </button>
-
-                <button
-                  onClick={onClearWatchlist}
-                  className="py-1.5 px-3 border border-red-500/30 text-red-450 hover:bg-red-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
-                  title="Eliminar todos los tokens indexados"
-                >
-                  <Icon name="trash-2" className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {statusMsg && (
-            <div className={`text-[9.5px] font-mono text-center p-1 border rounded select-none ${
-              statusMsg.includes('éxito') || statusMsg.includes('leído')
-                ? 'text-cyber-green border-cyber-green/20 bg-cyber-green/5' 
-                : 'text-rose-400 border-rose-500/20 bg-rose-500/5'
-            }`}>
-              {statusMsg}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-      // Concentric Rsi Bubble Radar using D3 Force Engine simulation
-      function StandaloneRsiBubbleRadar({ tokens, activeAddress, onSelectToken, rsiTimeframe }) {
-        const containerRef = useRef(null);
-        const [dimensions, setDimensions] = useState({ width: 280, height: 260 });
-        const [tick, setTick] = useState(0);
-
-        const nodesRef = useRef([]);
-        const simRef = useRef(null);
-
-        // Mathematical deterministic scatter helper replacing Math.random()
-        const getDeterministicScatter = (symbol, seed) => {
-          let code = 0;
-          for (let i = 0; i < symbol.length; i++) {
-            code += symbol.charCodeAt(i);
-          }
-          return (((code * seed) % 100) / 100) - 0.5;
-        };
-
-      useEffect(() => {
-        if (!containerRef.current) return;
-        const observer = new ResizeObserver((entries) => {
-          if (!entries || entries.length === 0) return;
-          const { width, height } = entries[0].contentRect;
-          setDimensions({
-            width: width || 280,
-            height: height || 260,
-          });
-        });
-        observer.observe(containerRef.current);
-        return () => observer.disconnect();
-      }, []);
-
-      const sortedByRsiDev = useMemo(() => {
-        return [...tokens].sort((a, b) => {
-          const devA = Math.abs((a.rsi || 50) - 50);
-          const devB = Math.abs((b.rsi || 50) - 50);
-          return devB - devA;
-        });
-      }, [tokens]);
-
-      const top6Tokens = useMemo(() => sortedByRsiDev.slice(0, 6), [sortedByRsiDev]);
-      const activeTokenObj = useMemo(() => tokens.find((t) => t.address === activeAddress), [tokens, activeAddress]);
-      const isActiveIncluded = useMemo(() => top6Tokens.some((t) => t.address === activeAddress), [top6Tokens, activeAddress]);
-      
-      const radarTokens = useMemo(() => {
-        return isActiveIncluded || !activeTokenObj
-          ? top6Tokens
-          : [...top6Tokens, activeTokenObj];
-      }, [top6Tokens, isActiveIncluded, activeTokenObj]);
-
-      useEffect(() => {
-        const currentNodes = nodesRef.current;
-        const nodeMap = new Map(currentNodes.map((n) => [n.address, n]));
-        const { width, height } = dimensions;
-
-        let maxDev = 0;
-        let maxDevAddr = '';
-        radarTokens.forEach((t) => {
-          const dev = Math.abs((t.rsi || 50) - 50);
-          if (dev > maxDev) {
-            maxDev = dev;
-            maxDevAddr = t.address;
-          }
-        });
-
-        const nextNodes = radarTokens.map((t, idx) => {
-          const baseRsi = Math.max(1, Math.min(100, Math.round(t.rsi || 50)));
-          const dev = Math.abs(baseRsi - 50);
-
-          let r = 10;
-          if (dev > 4) {
-            r = 14 + (Math.min(50, dev) / 50) * 32;
-          }
-
-          const existing = nodeMap.get(t.address);
-          const isMostExtreme = t.address === maxDevAddr && dev > 4;
-
-          const node = {
-            address: t.address,
-            symbol: t.symbol,
-            rsi: baseRsi,
-            r,
-            score: t.score,
-            isActive: t.address === activeAddress,
-            isMostExtreme,
-            x: existing ? existing.x : width / 2 + getDeterministicScatter(t.symbol, 7) * 50,
-            y: existing ? existing.y : height / 2 + getDeterministicScatter(t.symbol, 13) * 50,
-            vx: existing ? existing.vx : 0,
-            vy: existing ? existing.vy : 0,
-          };
-
-          if (isMostExtreme) {
-            node.targetX = width / 2;
-            node.targetY = height / 2;
-          } else if (dev <= 5) {
-            node.targetX = width / 2 + getDeterministicScatter(t.symbol, 3) * 15;
-            node.targetY = height / 2 + getDeterministicScatter(t.symbol, 5) * 15;
-          } else {
-            const hash = t.symbol.charCodeAt(0) + (t.symbol.charCodeAt(1) || 0) + idx;
-            const angle = (hash % 12) * (Math.PI / 6);
-            const maxRadius = Math.min(width, height) * 0.43;
-            const distance = 30 + (dev / 50) * (maxRadius - 30);
-
-            node.targetX = width / 2 + Math.cos(angle) * distance;
-            node.targetY = width / 2 < height / 2 
-              ? (height / 2 + Math.sin(angle) * distance) 
-              : (height / 2 + Math.sin(angle) * distance * 0.85);
-          }
-
-          return node;
-        });
-
-        nodesRef.current = nextNodes;
-
-        if (!simRef.current) {
-          simRef.current = d3
-            .forceSimulation(nextNodes)
-            .force('x', d3.forceX((d) => d.targetX ?? width / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15))
-            .force('y', d3.forceY((d) => d.targetY ?? height / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15))
-            .force('collide', d3.forceCollide((d) => d.r + 6).strength(0.98))
-            .alphaTarget(0.015);
-
-          simRef.current.on('tick', () => {
-            setTick((prev) => prev + 1);
-          });
-        } else {
-          simRef.current.nodes(nextNodes);
-          simRef.current.force('x', d3.forceX((d) => d.targetX ?? width / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15));
-          simRef.current.force('y', d3.forceY((d) => d.targetY ?? height / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15));
-          simRef.current.force('collide', d3.forceCollide((d) => d.r + 6).strength(0.98));
-          simRef.current.alpha(0.35).restart();
-        }
-      }, [radarTokens, activeAddress, dimensions.width, dimensions.height]);
-
-      const handleNodeMouseDown = (e, node) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const initNodeX = node.x ?? dimensions.width / 2;
-        const initNodeY = node.y ?? dimensions.height / 2;
-
-        if (simRef.current) {
-          simRef.current.alphaTarget(0.25).restart();
-        }
-
-        node.fx = initNodeX;
-        node.fy = initNodeY;
-
-        const onMouseMove = (moveEvent) => {
-          const dx = moveEvent.clientX - startX;
-          const dy = moveEvent.clientY - startY;
-
-          const minX = node.r + 8;
-          const maxX = dimensions.width - node.r - 8;
-          const minY = node.r + 8;
-          const maxY = dimensions.height - node.r - 8;
-
-          node.fx = Math.max(minX, Math.min(maxX, initNodeX + dx));
-          node.fy = Math.max(minY, Math.min(maxY, initNodeY + dy));
-        };
-
-        const onMouseUp = () => {
-          node.fx = null;
-          node.fy = null;
-          if (simRef.current) {
-            simRef.current.alphaTarget(0.015);
-          }
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-      };
-
-      const currentNodes = nodesRef.current;
-      const extremeNode = currentNodes.find((n) => n.isMostExtreme);
-      const activeSelectedToken = tokens.find((t) => t.address === activeAddress) || null;
-
-      return (
-        <div className="flex flex-col h-full bg-navy-dark/70 rounded-xl border border-navy-border/80 overflow-hidden relative group">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(212,175,55,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(212,175,55,0.012)_1px,transparent_1px)] bg-[size:14px_14px] pointer-events-none" />
-
-          <div className="flex items-center justify-between px-4 py-2 border-b border-navy-light/40 bg-navy-dark/95 relative z-10 select-none">
-            <div className="flex items-center gap-1.5 font-bold">
-              <Icon name="radio" className="w-3.5 h-3.5 text-gold-corp animate-pulse" />
-              <span className="text-[10px] font-mono font-black tracking-widest text-slate-100 uppercase">
-                RSI BUBBLE RADAR
-              </span>
-            </div>
-            <span className="font-mono text-[8.5px] bg-gold-dim border border-gold-corp/35 text-gold-bright rounded px-2 py-0.5 uppercase tracking-wider animate-pulse font-bold">
-              TOP 6 EXTREMOS ({rsiTimeframe.toUpperCase()})
-            </span>
-          </div>
-
-          <div ref={containerRef} className="flex-1 w-full bg-navy-dark/30 relative overflow-hidden min-h-[220px]">
-            {tokens.length === 0 ? (
-              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 select-none animate-pulse">
-                <span className="text-[9px] font-mono tracking-widest text-slate-500 uppercase">
-                  ESPERANDO CONEXIÓN...
-                </span>
-              </div>
-            ) : (
-              <svg width={dimensions.width} height={dimensions.height} className="block select-none overflow-hidden">
-                <g opacity="0.3" pointerEvents="none">
-                  <circle
-                    cx={dimensions.width / 2}
-                    cy={dimensions.height / 2}
-                    r={15}
-                    fill="none"
-                    stroke="rgba(212, 175, 55, 0.25)"
-                    strokeWidth="1"
-                    strokeDasharray="2,3"
-                  />
-                  <circle
-                    cx={dimensions.width / 2}
-                    cy={dimensions.height / 2}
-                    r={55}
-                    fill="none"
-                    stroke="rgba(212, 175, 55, 0.15)"
-                    strokeWidth="1"
-                    strokeDasharray="4,4"
-                  />
-                  <circle
-                    cx={dimensions.width / 2}
-                    cy={dimensions.height / 2}
-                    r={105}
-                    fill="none"
-                    stroke="rgba(212, 175, 55, 0.12)"
-                    strokeWidth="1.2"
-                  />
-                  <line
-                    x1={dimensions.width / 2}
-                    y1={dimensions.height / 2 - 120}
-                    x2={dimensions.width / 2}
-                    y2={dimensions.height / 2 + 120}
-                    stroke="rgba(212, 175, 55, 0.08)"
-                    strokeWidth="1"
-                    strokeDasharray="2,4"
-                  />
-                  <line
-                    x1={dimensions.width / 2 - 120}
-                    y1={dimensions.height / 2}
-                    x2={dimensions.width / 2 + 120}
-                    y2={dimensions.height / 2}
-                    stroke="rgba(212, 175, 55, 0.08)"
-                    strokeWidth="1"
-                    strokeDasharray="2,4"
-                  />
-                </g>
-
-                {extremeNode && extremeNode.x !== undefined && extremeNode.y !== undefined && (
-                  <g 
-                    transform={`translate(${extremeNode.x}, ${extremeNode.y})`}
-                    className="transition-all duration-300 pointer-events-none"
-                  >
-                    <circle
-                      r={extremeNode.r + 14}
-                      fill="none"
-                      stroke="#d4af37"
-                      strokeWidth="1.2"
-                      strokeDasharray="5,6"
-                      className="animate-spin"
-                      style={{ transformOrigin: '0px 0px', animationDuration: '8s' }}
-                    />
-                    
-                    <path
-                      d={`M -${extremeNode.r + 9} -${extremeNode.r + 2} L -${extremeNode.r + 9} -${extremeNode.r + 9} L -${extremeNode.r + 2} -${extremeNode.r + 9}`}
-                      fill="none"
-                      stroke="#d4af37"
-                      strokeWidth="1.5"
-                    />
-                    <path
-                      d={`M ${extremeNode.r + 9} -${extremeNode.r + 2} L ${extremeNode.r + 9} -${extremeNode.r + 9} L ${extremeNode.r + 2} -${extremeNode.r + 9}`}
-                      fill="none"
-                      stroke="#d4af37"
-                      strokeWidth="1.5"
-                    />
-                    <path
-                      d={`M -${extremeNode.r + 9} ${extremeNode.r + 2} L -${extremeNode.r + 9} ${extremeNode.r + 9} L -${extremeNode.r + 2} ${extremeNode.r + 9}`}
-                      fill="none"
-                      stroke="#d4af37"
-                      strokeWidth="1.5"
-                    />
-                    <path
-                      d={`M ${extremeNode.r + 9} ${extremeNode.r + 2} L ${extremeNode.r + 9} ${extremeNode.r + 9} L ${extremeNode.r + 2} ${extremeNode.r + 9}`}
-                      fill="none"
-                      stroke="#d4af37"
-                      strokeWidth="1.5"
-                    />
-
-                    <g transform={`translate(0, -${extremeNode.r + 16})`}>
-                      <rect
-                        x="-42"
-                        y="-9"
-                        width="84"
-                        height="12"
-                        fill="rgba(5, 10, 24, 0.95)"
-                        stroke="#d4af37"
-                        strokeWidth="0.8"
-                        rx="2"
-                      />
-                      <text
-                        textAnchor="middle"
-                        y="0"
-                        fill="#f4d068"
-                        className="font-mono text-[6.5px] font-black tracking-widest uppercase animate-pulse"
-                      >
-                        MOMENTUM MAX
-                      </text>
-                    </g>
-                  </g>
-                )}
-
-                {currentNodes.map((node) => {
-                  if (node.x === undefined || node.y === undefined) return null;
-
-                  const rsiVal = node.rsi;
-                  const D = rsiVal - 50;
-                  const dev = Math.abs(D);
-
-                  let opacity = 1.0;
-                  if (dev <= 4) {
-                    opacity = 0.02;
-                  } else if (dev <= 9) {
-                    opacity = 0.02 + ((dev - 4) / 5) * 0.75;
-                  }
-
-                  let bubbleFill = 'rgba(15, 29, 54, 0.85)';
-                  let textColor = 'fill-slate-400';
-                  let rsiColor = 'fill-slate-500';
-
-                  if (dev > 4) {
-                    const intens = Math.min(1.0, (dev - 4) / 32);
-
-                    if (D < 0) {
-                      bubbleFill = `rgba(0, 230, 118, ${0.12 + intens * 0.48})`;
-                      textColor = 'fill-white';
-                      rsiColor = 'fill-cyber-green text-glow-green';
-                    } else {
-                      bubbleFill = `rgba(255, 60, 95, ${0.12 + intens * 0.48})`;
-                      textColor = 'fill-white';
-                      rsiColor = 'fill-cyber-red text-glow-red';
-                    }
-                  }
-
-                  let strokeColor = 'rgba(212, 175, 55, 0.15)';
-                  let strokeWidth = 0.5;
-
-                  if (dev > 4) {
-                    const strokeFactor = Math.min(1.0, (dev - 4) / 36);
-                    strokeWidth = 1.0 + strokeFactor * 6.5;
-
-                    if (D < 0) {
-                      strokeColor = `rgba(0, 230, 118, ${0.5 + strokeFactor * 0.5})`;
-                    } else {
-                      strokeColor = `rgba(255, 60, 95, ${0.5 + strokeFactor * 0.5})`;
-                    }
-                  }
-
-                  const symbolSize = Math.max(9, Math.round(node.r * 0.38));
-                  const rsiSize = Math.max(7.5, Math.round(node.r * 0.28));
-
-                  if (node.isActive) {
-                    strokeColor = '#d4af37';
-                    strokeWidth += 2.0;
-                  }
-
-                  return (
-                    <g
-                      key={node.address}
-                      transform={`translate(${node.x}, ${node.y})`}
-                      onMouseDown={(e) => handleNodeMouseDown(e, node)}
-                      onClick={() => onSelectToken(node.address)}
-                      className="cursor-pointer select-none"
-                      opacity={opacity}
-                      style={{ transition: 'opacity 0.4s ease-out' }}
-                    >
-                      {node.isActive && (
-                        <circle
-                          r={node.r + 5}
-                          fill="transparent"
-                          stroke="#d4af37"
-                          strokeWidth="1.2"
-                          className="pulse-ring"
-                        />
-                      )}
-
-                      <circle
-                        r={node.r}
-                        fill="rgba(15, 29, 54, 0.9)"
-                      />
-
-                      <circle
-                        r={node.r}
-                        fill={bubbleFill}
-                        stroke={strokeColor}
-                        strokeWidth={strokeWidth}
-                        className="transition-all duration-300 hover:brightness-135"
-                      />
-
-                      {node.r > 12 && (
-                        <text
-                          textAnchor="middle"
-                          y="-1"
-                          className={`font-mono font-black tracking-tight select-none pointer-events-none ${textColor}`}
-                          style={{ fontSize: `${symbolSize}px`, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                        >
-                          {node.symbol}
-                        </text>
-                      )}
-
-                      {node.r > 16 && (
-                        <text
-                          textAnchor="middle"
-                          y={symbolSize + 2}
-                          className={`font-mono font-bold select-none pointer-events-none ${rsiColor}`}
-                          style={{ fontSize: `${rsiSize}px`, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                        >
-                          {node.rsi}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-              </svg>
-            )}
-          </div>
-
-          {activeSelectedToken && (
-            <div className="mx-3 my-3 p-3 bg-navy-card/95 border border-gold-corp/30 rounded-lg shadow-xl relative z-10 select-none animate-fade-in flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <div className={`w-2 h-2 rounded-full ${activeSelectedToken.rsi <= 35 ? 'bg-cyber-green animate-pulse' : activeSelectedToken.rsi >= 65 ? 'bg-cyber-red animate-pulse' : 'bg-slate-400'}`} />
-                  <span className="font-mono text-xs font-black text-slate-100">{activeSelectedToken.symbol}</span>
-                  <span className="text-[9px] text-slate-400 truncate max-w-[120px] font-medium">({activeSelectedToken.name})</span>
-                </div>
-                <span className="font-mono text-[9px] tracking-wider text-slate-400">
-                  RSI: <span className={`font-black ${activeSelectedToken.rsi <= 35 ? 'text-cyber-green' : activeSelectedToken.rsi >= 65 ? 'text-cyber-red' : 'text-gold-bright'}`}>{activeSelectedToken.rsi.toFixed(1)}</span>
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] font-mono border-t border-navy-light/30 pt-2">
-                <div>
-                  <span className="text-slate-500 block text-[8px] uppercase">Precio actual</span>
-                  <span className="text-gold-bright font-black">${activeSelectedToken.price.toFixed(activeSelectedToken.price < 0.1 ? 6 : 2)}</span>
-                </div>
-                
-                <a
-                  href={`https://birdeye.so/token/${activeSelectedToken.address}?chain=solana`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-1 px-2.5 text-[9px] font-bold font-mono bg-gold-corp text-navy-dark hover:bg-gold-bright hover:shadow rounded transition duration-250 flex items-center gap-1 hover:scale-103 active:scale-97 cursor-pointer uppercase select-none"
-                  title="Abrir gráfico en Birdeye para análisis"
-                >
-                  <span>Birdeye ↗</span>
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Interactive high contrast candlestick chart
-    function SniperCanvas({ token, timeframe, onTimeframeChange, connectionStatus }) {
-      const canvasRef = useRef(null);
-      const containerRef = useRef(null);
-      const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
-      const [hoverPos, setHoverPos] = useState(null);
-
-      useEffect(() => {
-        if (!containerRef.current) return;
-        const resizeObserver = new ResizeObserver((entries) => {
-          for (let entry of entries) {
-            const { width, height } = entry.contentRect;
-            setDimensions({
-              width: Math.max(300, width),
-              height: Math.max(260, height),
-            });
-          }
-        });
-        resizeObserver.observe(containerRef.current);
-        return () => resizeObserver.disconnect();
-      }, []);
-
-      const formatPriceValue = (val) => {
-        if (val === 0) return '0.00';
-        if (val < 0.001) return val.toFixed(6);
-        if (val < 1) return val.toFixed(4);
-        if (val < 100) return val.toFixed(2);
-        return val.toLocaleString(undefined, { maximumFractionDigits: 1 });
-      };
-
-      const formatDate = (timeSecsOrMs) => {
-        const isSeconds = timeSecsOrMs < 5000000000;
-        const d = new Date(isSeconds ? timeSecsOrMs * 1000 : timeSecsOrMs);
-        const day = d.getDate().toString().padStart(2, '0');
-        const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const hours = d.getHours().toString().padStart(2, '0');
-        const minutes = d.getMinutes().toString().padStart(2, '0');
-        return `${day}/${month} ${hours}:${minutes}`;
-      };
-
-      const getClosestCandleIndex = (mouseX, candlesCount, chartWidth, paddingLeft) => {
-        if (candlesCount <= 1) return 0;
-        const relativeX = mouseX - paddingLeft;
-        const fraction = relativeX / chartWidth;
-        const calculatedIndex = Math.round(fraction * (candlesCount - 1));
-        return Math.min(candlesCount - 1, Math.max(0, calculatedIndex));
-      };
-
-      const candles = token 
-        ? (timeframe === 'm5' ? token.candlesM5 : timeframe === 'm15' ? token.candlesM15 : token.candlesH1)
-        : [];
-
-      const sortedcandles = useMemo(() => {
-        return [...(candles || [])].sort((a, b) => a.time - b.time);
-      }, [candles]);
-
-      const paddingRight = 70;
-      const paddingBottom = 24;
-      const paddingTop = 28;
-      const paddingLeft = 14;
-
-      const chartWidth = dimensions.width - paddingLeft - paddingRight;
-      const chartHeight = dimensions.height - paddingTop - paddingBottom;
-
-      const getX = (index) => {
-        if (sortedcandles.length <= 1) return paddingLeft;
-        return paddingLeft + (index / (sortedcandles.length - 1)) * chartWidth;
-      };
-
-      const hoveredIndex = hoverPos && hoverPos.active && sortedcandles.length > 0
-        ? getClosestCandleIndex(hoverPos.x, sortedcandles.length, chartWidth, paddingLeft)
-        : null;
-
-      const activeCandle = hoveredIndex !== null && sortedcandles[hoveredIndex]
-        ? sortedcandles[hoveredIndex]
-        : (sortedcandles.length > 0 ? sortedcandles[sortedcandles.length - 1] : null);
-
-      const candleVar = activeCandle ? ((activeCandle.close - activeCandle.open) / activeCandle.open) * 100 : 0;
-
-      useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas || !token) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        ctx.clearRect(0, 0, dimensions.width, dimensions.height);
-
-        if (connectionStatus === 'OFFLINE') {
-          ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 11px var(--font-mono)';
-          ctx.textAlign = 'center';
-          ctx.fillText('● RECONECTANDO CON SERVIDORES...', dimensions.width / 2, dimensions.height / 2 - 10);
-          ctx.fillStyle = '#64748b';
-          ctx.font = '8.5px var(--font-mono)';
-          ctx.fillText('FUENTES DE DATOS INTERRUMPIDAS', dimensions.width / 2, dimensions.height / 2 + 10);
-          return;
-        }
-
-        if (sortedcandles.length === 0) {
-          ctx.fillStyle = '#64748b';
-          ctx.font = '11px var(--font-mono)';
-          ctx.textAlign = 'center';
-          ctx.fillText('CARGANDO COMPORTAMIENTO VELAS...', dimensions.width / 2, dimensions.height / 2);
-          return;
-        }
-
-        let minPrice = Infinity;
-        let maxPrice = -Infinity;
-
-        const emaPeriod = 9;
-        const k = 2 / (emaPeriod + 1);
-        const emaValues = [];
-        
-        if (sortedcandles.length > 0) {
-          let currentEma = sortedcandles[0].close;
-          emaValues.push(currentEma);
-          for (let i = 1; i < sortedcandles.length; i++) {
-            currentEma = sortedcandles[i].close * k + currentEma * (1 - k);
-            emaValues.push(currentEma);
-          }
-        }
-
-        sortedcandles.forEach((c, idx) => {
-          if (c.high > maxPrice) maxPrice = c.high;
-          if (c.low < minPrice) minPrice = c.low;
-          if (emaValues[idx] > maxPrice) maxPrice = emaValues[idx];
-          if (emaValues[idx] < minPrice) minPrice = emaValues[idx];
-        });
-
-        const levels = [];
-        if (token.analysis) {
-          levels.push(...token.analysis.h1Support, ...token.analysis.h1Resistance);
-        }
-        levels.forEach((lvl) => {
-          if (lvl > maxPrice) maxPrice = lvl;
-          if (lvl < minPrice) minPrice = lvl;
-        });
-
-        const range = maxPrice - minPrice;
-        minPrice -= range * 0.08 || minPrice * 0.01;
-        maxPrice += range * 0.08 || maxPrice * 0.01;
-
-        const getY = (price) => {
-          if (maxPrice === minPrice) return paddingTop + chartHeight / 2;
-          return paddingTop + (1 - (price - minPrice) / (maxPrice - minPrice)) * chartHeight;
-        };
-
-        // Drawprice and horizontal gridlines (8 divisions)
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.04)';
-        ctx.lineWidth = 1;
-        const horizontalDivs = 8;
-        for (let i = 0; i <= horizontalDivs; i++) {
-          const y = paddingTop + (i / horizontalDivs) * chartHeight;
-          ctx.beginPath();
-          ctx.moveTo(paddingLeft, y);
-          ctx.lineTo(dimensions.width - paddingRight, y);
-          ctx.stroke();
-
-          const priceVal = maxPrice - (i / horizontalDivs) * (maxPrice - minPrice);
-          ctx.fillStyle = '#64748b';
-          ctx.font = '9px var(--font-mono)';
-          ctx.textAlign = 'left';
-          ctx.fillText(formatPriceValue(priceVal), dimensions.width - paddingRight + 8, y + 3.5);
-        }
-
-        // Draw vertical division guide lines
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.03)';
-        ctx.lineWidth = 1;
-        const verticalDivs = 8;
-        for (let j = 1; j < verticalDivs; j++) {
-          const x = paddingLeft + (j / verticalDivs) * chartWidth;
-          ctx.beginPath();
-          ctx.moveTo(x, paddingTop);
-          ctx.lineTo(x, dimensions.height - paddingBottom);
-          ctx.stroke();
-        }
-
-        // Soportes y Resistencias H1 lines integration
-        if (token.analysis) {
-          const currentPrice = token.price;
-          const supports = [...token.analysis.h1Support].filter(s => s <= currentPrice).sort((a, b) => b - a);
-          const resistances = [...token.analysis.h1Resistance].filter(r => r >= currentPrice).sort((a, b) => a - b);
-
-          const cleanSupports = supports.length > 0 ? supports : [...token.analysis.h1Support].sort((a, b) => b - a);
-          const cleanResistances = resistances.length > 0 ? resistances : [...token.analysis.h1Resistance].sort((a, b) => a - b);
-
-          const s1 = cleanSupports[0];
-          const r1 = cleanResistances[0];
-
-          if (s1 !== undefined) {
-            const y = getY(s1);
-            ctx.save();
-            ctx.strokeStyle = 'rgba(0, 230, 118, 0.45)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 4]);
-            ctx.beginPath();
-            ctx.moveTo(paddingLeft, y);
-            ctx.lineTo(dimensions.width - paddingRight, y);
-            ctx.stroke();
-            ctx.restore();
-
-            ctx.fillStyle = '#00e676';
-            ctx.font = 'bold 8px var(--font-mono)';
-            ctx.textAlign = 'right';
-            ctx.fillText('S1 SOPORTE', dimensions.width - paddingRight - 8, y - 4);
-          }
-
-          if (r1 !== undefined) {
-            const y = getY(r1);
-            ctx.save();
-            ctx.strokeStyle = 'rgba(255, 60, 95, 0.45)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 4]);
-            ctx.beginPath();
-            ctx.moveTo(paddingLeft, y);
-            ctx.lineTo(dimensions.width - paddingRight, y);
-            ctx.stroke();
-            ctx.restore();
-
-            ctx.fillStyle = '#ff3c5f';
-            ctx.font = 'bold 8px var(--font-mono)';
-            ctx.textAlign = 'right';
-            ctx.fillText('R1 RESISTENCIA', dimensions.width - paddingRight - 8, y - 4);
-          }
-        }
-
-        // Draw Candle wicks and solids
-        const candleWidth = Math.max(1.5, (chartWidth / sortedcandles.length) * 0.55);
-        sortedcandles.forEach((c, idx) => {
-          const x = getX(idx);
-          const yOpen = getY(c.open);
-          const yClose = getY(c.close);
-          const yHigh = getY(c.high);
-          const yLow = getY(c.low);
-
-          const isBullish = c.close >= c.open;
-          ctx.strokeStyle = isBullish ? '#00e676' : '#ff3c5f';
-          ctx.fillStyle = isBullish ? '#00e676' : '#ff3c5f';
-          ctx.lineWidth = 1.2;
-
-          ctx.beginPath();
-          ctx.moveTo(x, yHigh);
-          ctx.lineTo(x, yLow);
-          ctx.stroke();
-
-          const bodyHeight = Math.max(1, Math.abs(yClose - yOpen));
-          ctx.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, bodyHeight);
-        });
-
-        // 9 EMA Trend curves
-        if (emaValues.length > 0) {
-          let trendColor = '#d4af37';
-          if (token.analysis) {
-            if (token.analysis.h1Trend === 'BULLISH') trendColor = '#00e676';
-            else if (token.analysis.h1Trend === 'BEARISH') trendColor = '#ff3c5f';
-          }
-
-          ctx.save();
-          ctx.strokeStyle = trendColor;
-          ctx.lineWidth = 2.2;
-          ctx.shadowColor = trendColor;
-          ctx.shadowBlur = 5;
-
-          ctx.beginPath();
-          for (let i = 0; i < emaValues.length; i++) {
-            const x = getX(i);
-            const y = getY(emaValues[i]);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        // Latest focus price tag floating node
-        if (sortedcandles.length > 0) {
-          const latestCandle = sortedcandles[sortedcandles.length - 1];
-          const currentY = getY(latestCandle.close);
-          const isUp = latestCandle.close >= latestCandle.open;
-          const priceColor = isUp ? '#00e676' : '#ff3c5f';
-
-          ctx.save();
-          ctx.strokeStyle = priceColor;
-          ctx.lineWidth = 1;
-          ctx.setLineDash([2, 3]);
-          ctx.beginPath();
-          ctx.moveTo(getX(sortedcandles.length - 1), currentY);
-          ctx.lineTo(dimensions.width - paddingRight, currentY);
-          ctx.stroke();
-          ctx.restore();
-
-          if (currentY >= paddingTop && currentY <= dimensions.height - paddingBottom) {
-            ctx.save();
-            ctx.fillStyle = priceColor;
-            ctx.shadowColor = priceColor;
-            ctx.shadowBlur = 4;
-
-            const tagWidth = 65;
-            const tagHeight = 16;
-            const tagX = dimensions.width - paddingRight + 2;
-            const tagY = currentY - tagHeight / 2;
-
-            ctx.beginPath();
-            ctx.rect(tagX, tagY, tagWidth, tagHeight);
-            ctx.fill();
-
-            ctx.fillStyle = '#030712';
-            ctx.font = 'bold 9px var(--font-mono)';
-            ctx.textAlign = 'center';
-            ctx.shadowBlur = 0;
-            ctx.fillText(formatPriceValue(latestCandle.close), tagX + tagWidth / 2, tagY + tagHeight / 2 + 3);
-            ctx.restore();
-          }
-        }
-
-        // Cursor guide grids
-        if (hoverPos && hoverPos.active && hoveredIndex !== null && hoveredIndex >= 0 && hoveredIndex < sortedcandles.length) {
-          const snappedX = getX(hoveredIndex);
-          const crosshairY = hoverPos.y;
-
-          ctx.save();
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([3, 3]);
-
-          ctx.beginPath();
-          ctx.moveTo(snappedX, paddingTop);
-          ctx.lineTo(snappedX, dimensions.height - paddingBottom);
-          ctx.stroke();
-
-          if (crosshairY >= paddingTop && crosshairY <= dimensions.height - paddingBottom) {
-            ctx.beginPath();
-            ctx.moveTo(paddingLeft, crosshairY);
-            ctx.lineTo(dimensions.width - paddingRight, crosshairY);
-            ctx.stroke();
-          }
-          ctx.restore();
-
-          // Price bubble tag
-          if (crosshairY >= paddingTop && crosshairY <= dimensions.height - paddingBottom) {
-            const hoverPrice = maxPrice - ((crosshairY - paddingTop) / chartHeight) * (maxPrice - minPrice);
-            const formattedHoverPrice = formatPriceValue(hoverPrice);
-
-            ctx.fillStyle = '#1e293b';
-            ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
-            ctx.lineWidth = 1;
-
-            const badgeWidth = 65;
-            const badgeHeight = 16;
-            const badgeX = dimensions.width - paddingRight + 2;
-            const badgeY = crosshairY - badgeHeight / 2;
-
-            ctx.beginPath();
-            ctx.rect(badgeX, badgeY, badgeWidth, badgeHeight);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = '#f8fafc';
-            ctx.font = 'bold 9px var(--font-mono)';
-            ctx.textAlign = 'center';
-            ctx.fillText(formattedHoverPrice, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2 + 3);
-          }
-
-          // Date bubble tag
-          const hoveredCandle = sortedcandles[hoveredIndex];
-          const stampStr = formatDate(hoveredCandle.time);
-
-          ctx.fillStyle = '#1e293b';
-          ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
-          ctx.lineWidth = 1;
-
-          const timeBadgeWidth = 84;
-          const timeBadgeHeight = 15;
-          const timeBadgeX = snappedX - timeBadgeWidth / 2;
-          const timeBadgeY = dimensions.height - paddingBottom + 2;
-
-          ctx.beginPath();
-          ctx.rect(timeBadgeX, timeBadgeY, timeBadgeWidth, timeBadgeHeight);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = 'bold 8.5px var(--font-mono)';
-          ctx.textAlign = 'center';
-          ctx.fillText(stampStr, timeBadgeX + timeBadgeWidth / 2, timeBadgeY + timeBadgeHeight / 2 + 3);
-        }
-
-      }, [dimensions, token, timeframe, hoverPos, sortedcandles, chartWidth, chartHeight]);
-
-      const handleMouseMove = (e) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        setHoverPos({ x, y, active: true });
-      };
-
-      const handleMouseLeave = () => {
-        setHoverPos(null);
-      };
-
-      const handleTouchMove = (e) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const touch = e.touches[0];
-        if (!touch) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        setHoverPos({ x, y, active: true });
-      };
-
-      if (!token) {
-        return (
-          <div className="glass flex-1 rounded-xl border border-navy-border flex flex-col justify-center items-center p-6 text-center text-slate-400 gap-3">
-            <Icon name="loader-2" className="w-8 h-8 animate-spin text-gold-corp" />
-            <span className="font-mono text-xs tracking-wider">SELECCIONA O INDEXA UN COMPONENTE EN TU WATCHLIST</span>
-          </div>
-        );
-      }
-
-      return (
-        <div className="glass p-4 rounded-xl border border-[#1e293b]/70 flex-1 flex flex-col overflow-hidden relative">
-          
-          <div className="flex justify-between items-center mb-4 shrink-0 flex-wrap gap-2 select-none">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xs font-mono font-bold text-gold-bright bg-gold-dim px-2.5 py-1 rounded border border-gold-corp/30">
-                {token.symbol}
-              </span>
-              <div className="text-sm font-bold tracking-tight text-slate-100">{token.name}</div>
-            </div>
-
-            <div className="flex gap-1 bg-navy-dark p-1 rounded-lg border border-navy-light text-[9.5px] font-mono">
-              {['m5', 'm15', 'h1'].map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => onTimeframeChange(tf)}
-                  className={`px-3 py-1 rounded transition-all duration-200 capitalize font-bold cursor-pointer ${
-                    timeframe === tf ? 'bg-gold-corp text-navy-dark' : 'text-slate-400 hover:text-gold-bright'
-                  }`}
-                >
-                  {tf === 'm5' ? 'M5 (Nativo)' : tf === 'm15' ? 'M15' : 'H1 (Macro)'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div ref={containerRef} className="flex-1 rounded-lg overflow-hidden border border-navy-light/35 relative bg-[#030712] min-h-[220px]">
-            {connectionStatus === 'OFFLINE' && (
-              <div className="absolute inset-0 z-30 bg-[#030712]/85 backdrop-blur-[4px] flex flex-col items-center justify-center gap-3 select-none">
-                <div className="w-10 h-10 rounded-full border border-rose-500/20 bg-rose-500/5 flex items-center justify-center">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                </div>
-                <div className="font-mono text-xs tracking-widest text-rose-500 font-black animate-pulse">
-                  ● RECONECTANDO...
-                </div>
-                <p className="text-[9px] text-slate-400 font-mono tracking-widest max-w-[280px] text-center uppercase leading-relaxed">
-                  Buscando feeds reales en Birdeye / DexScreener...
-                </p>
-              </div>
-            )}
-
-            {activeCandle && connectionStatus !== 'OFFLINE' && (
-              <div className="absolute top-2 left-3 z-10 font-mono text-[8.5px] text-slate-450 bg-navy-dark/95 px-2.5 py-1 rounded border border-[#1e293b]/60 flex flex-wrap items-center gap-3 select-none pointer-events-none text-slate-300">
-                <span className="text-gold-corp font-black uppercase tracking-wider flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-bright shrink-0" />
-                  {timeframe.toUpperCase()}
-                </span>
-                <span>O: <span className={activeCandle.close >= activeCandle.open ? 'text-cyber-green' : 'text-cyber-red'}>{formatPriceValue(activeCandle.open)}</span></span>
-                <span>H: <span className="text-cyber-green">{formatPriceValue(activeCandle.high)}</span></span>
-                <span>L: <span className="text-cyber-red">{formatPriceValue(activeCandle.low)}</span></span>
-                <span>C: <span className={activeCandle.close >= activeCandle.open ? 'text-cyber-green' : 'text-cyber-red'}>{formatPriceValue(activeCandle.close)}</span></span>
-                <span>Var: <span className={candleVar >= 0 ? 'text-cyber-green font-bold' : 'text-cyber-red font-bold'}>{candleVar >= 0 ? '+' : ''}{candleVar.toFixed(2)}%</span></span>
-              </div>
-            )}
-
-            <canvas
-              ref={canvasRef}
-              width={dimensions.width}
-              height={dimensions.height}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleMouseLeave}
-              className="w-full h-full block cursor-crosshair select-none touch-none"
-            />
-          </div>
-
-          <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500 font-mono select-none">
-            <span>INTERFAZ GRÁFICA MULTI-TIME-FRAME NATIVA</span>
-            <span className="text-gold-corp uppercase font-bold text-[9px] tracking-wide">9 EMA Y SOPORTE H1 DIRECTO</span>
-          </div>
-        </div>
-      );
-    }
-
-    // Live buy sellers pressure duel & spinning quantum pulse core
-    function LiveBuyersSellers({ activeToken }) {
-      const [buyRatio, setBuyRatio] = useState(55);
-      const [buyersCount, setBuyersCount] = useState(1482);
-      const [sellersCount, setSellersCount] = useState(1210);
-      const [pulseValue, setPulseValue] = useState(65);
-
-      useEffect(() => {
-        if (!activeToken) return;
-
-        const initialRatio = activeToken.buyRatio !== undefined ? activeToken.buyRatio : 50;
-        const initialBuy = activeToken.buyCount !== undefined ? activeToken.buyCount : 1500;
-        const initialSell = activeToken.sellCount !== undefined ? activeToken.sellCount : 1500;
-
-        setBuyRatio(initialRatio);
-        setBuyersCount(initialBuy);
-        setSellersCount(initialSell);
-      }, [activeToken]);
-
-      useEffect(() => {
-        const rsiVal = activeToken ? activeToken.rsi : 50;
-        const target = Math.round(buyRatio * 0.45 + rsiVal * 0.55);
-
-        const interval = setInterval(() => {
-          setPulseValue((prev) => {
-            if (prev < target) return Math.min(100, prev + 1);
-            if (prev > target) return Math.max(0, prev - 1);
-            return prev;
-          });
-        }, 1200);
-
-        return () => clearInterval(interval);
-      }, [activeToken, buyRatio]);
-
-      const sellRatio = 100 - buyRatio;
-
-      let statusText = 'ESTABLE';
-      let statusColor = 'text-cyan-400';
-      let glowColor = 'rgba(34, 211, 238, 0.15)';
-      
-      if (pulseValue <= 30) {
-        statusText = 'FRÍO';
-        statusColor = 'text-slate-550 text-slate-500 font-bold';
-        glowColor = 'rgba(100, 116, 139, 0.1)';
-      } else if (pulseValue <= 60) {
-        statusText = 'NORMAL';
-        statusColor = 'text-cyan-400 font-semibold';
-        glowColor = 'rgba(34, 211, 238, 0.15)';
-      } else if (pulseValue <= 80) {
-        statusText = 'ACTIVO';
-        statusColor = 'text-amber-400 font-extrabold';
-        glowColor = 'rgba(245, 158, 11, 0.2)';
-      } else {
-        statusText = 'EXTREMO';
-        statusColor = 'text-rose-500 font-black animate-pulse';
-        glowColor = 'rgba(239, 68, 68, 0.3)';
-      }
-
-      return (
-        <div className="bg-[#030712]/50 border border-navy-light/35 p-3.5 rounded-xl flex flex-col gap-4 relative overflow-hidden">
-          <div 
-            className="absolute -right-12 -bottom-12 w-40 h-40 rounded-full pointer-events-none transition-all duration-1000 ease-in-out border border-dashed border-gold-corp/5"
-            style={{ boxShadow: `inset 0 0 30px ${glowColor}` }}
-          />
-
-          <div className="flex justify-between items-center select-none">
-            <div className="flex items-center gap-1.5 font-bold">
-              <Icon name="activity" className="w-3.5 h-3.5 text-cyber-green animate-pulse" />
-              <span className="text-[9px] font-mono tracking-widest text-slate-300 uppercase">
-                PRESIÓN DE COMPRAS (EN VIVO)
-              </span>
-            </div>
-            <span className="font-mono text-[8px] text-cyber-green bg-cyber-green/5 border border-cyber-green/20 px-1.5 py-0.2 rounded animate-pulse uppercase leading-none">
-              Match Live
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-end font-mono text-[9px] font-black leading-none">
-              <div className="flex items-center gap-1 text-cyber-green">
-                <Icon name="trending-up" className="w-3 h-3" />
-                <span>COMPRADORES {buyRatio}%</span>
-              </div>
-              <div className="flex items-center gap-1 text-cyber-red">
-                <span>VENDEDORES {sellRatio}%</span>
-                <Icon name="trending-down" className="w-3 h-3" />
-              </div>
-            </div>
-
-            <div className="w-full h-2 bg-navy-dark border border-[#1e293b]/50 rounded-full overflow-hidden flex">
-              <div
-                style={{ width: `${buyRatio}%` }}
-                className="h-full bg-gradient-to-r from-emerald-600 to-cyber-green transition-all duration-700 ease-out"
-              />
-              <div
-                style={{ width: `${sellRatio}%` }}
-                className="h-full bg-gradient-to-r from-cyber-red to-rose-600 transition-all duration-700 ease-out"
-              />
-            </div>
-
-            <div className="flex justify-between text-[7px] font-mono text-slate-500 leading-none">
-              <span>{buyersCount.toLocaleString()} buy orders</span>
-              <span>{sellersCount.toLocaleString()} sell orders</span>
-            </div>
-          </div>
-
-          <div className="border-t border-[#1e293b]/40 pt-3 flex flex-col items-center justify-center select-none">
-            <div className="relative w-24 h-24 flex items-center justify-center">
-              
-              <div className="absolute inset-x-0 w-full h-full animate-[spin_24s_linear_infinite_reverse]">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="46"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    strokeDasharray="4 8 16 8"
-                    className="text-navy-light/15"
-                  />
-                </svg>
-              </div>
-
-              <div className="absolute inset-x-0 w-full h-full animate-[spin_14s_linear_infinite]">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="41"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="0.75"
-                    strokeDasharray="1 4"
-                    className="text-gold-corp/30"
-                  />
-                </svg>
-              </div>
-
-              <div className="absolute inset-x-1.5 w-[90%] h-[90%] animate-[spin_40s_linear_infinite]">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle
-                    cx="46"
-                    cy="46"
-                    r="34"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="0.5"
-                    strokeDasharray="12 28 8 28"
-                    className="text-gold-corp/40 opacity-30"
-                  />
-                </svg>
-              </div>
-
-              <div 
-                className="absolute w-[50px] h-[50px] rounded-full bg-navy-card border border-gold-corp/30 flex flex-col items-center justify-center transition-all duration-500"
-                style={{ boxShadow: `0 0 15px ${glowColor}` }}
-              >
-                <span className="text-[9px] text-gold-corp leading-none mb-0.5">⚡</span>
-                <span className="text-base font-mono font-black tracking-tighter text-slate-100 leading-none">
-                  {pulseValue}
-                </span>
-                <span className={`text-[6px] font-mono uppercase font-black tracking-wider mt-0.5 ${statusColor}`}>
-                  {statusText}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-center mt-2">
-              <span className="text-[8.5px] font-mono font-black tracking-widest text-[#d4af37] opacity-90">QUANTUM PULSE</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Dynamic signal event timeline tracking
-    function SignalTimeline({ events, tokenSymbol, onClear }) {
-      const containerRef = useRef(null);
-
-      useEffect(() => {
-        if (containerRef.current) {
-          containerRef.current.scrollTop = 0;
-        }
-      }, [events]);
-
-      const getImportanceStyle = (importance, type) => {
-        const isRed = type.includes('overbought') || type.includes('sellers') || type.includes('exit');
-        if (importance === 'high') {
-          return isRed 
-            ? 'border-l border-cyber-red bg-cyber-red/5 text-[#ff3c5f] font-bold glow-red' 
-            : 'border-l border-cyber-green bg-cyber-green/5 text-emerald-400 font-bold glow-green';
-        } else if (importance === 'medium') {
-          return 'border-l border-gold-corp bg-gold-dim text-yellow-300 font-semibold';
-        } else {
-          return 'border-l border-[#1e293b] bg-navy-dark/40 text-slate-400';
-        }
-      };
-
-      const getEventIcon = (type) => {
-        switch (type) {
-          case 'entry_valid':
-            return <Icon name="check-square" className="w-3.5 h-3.5 text-cyber-green shrink-0" />;
-          case 'exit_valid':
-            return <Icon name="alert-triangle" className="w-3.5 h-3.5 text-cyber-red shrink-0" />;
-          case 'rsi_oversold':
-            return <Icon name="zap" className="w-3.5 h-3.5 text-cyber-green shrink-0 animate-pulse" />;
-          case 'rsi_overbought':
-            return <Icon name="zap" className="w-3.5 h-3.5 text-cyber-red shrink-0 animate-pulse" />;
-          case 'trend_confirm':
-            return <Icon name="trending-up" className="w-3.5 h-3.5 text-gold-corp shrink-0" />;
-          case 'volume_spike':
-            return <Icon name="activity" className="w-3.5 h-3.5 text-sky-400 shrink-0" />;
-          default:
-            return <Icon name="award" className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
-        }
-      };
-
-      const confirmationEvent = events.find(e => e.type === 'entry_valid' || e.type === 'exit_valid' || e.importance === 'high');
-      let signalMaturity = null;
-      let maturityMinutes = 0;
-
-      if (confirmationEvent) {
-        const msElapsed = Date.now() - confirmationEvent.createdAt;
-        maturityMinutes = Math.max(0, Math.floor(msElapsed / 60000));
-        if (maturityMinutes <= 5) signalMaturity = 'joven';
-        else if (maturityMinutes <= 15) signalMaturity = 'madura';
-        else signalMaturity = 'tardía';
-      }
-
-      const getMaturityBadgeStyle = (maturity) => {
-        switch (maturity) {
-          case 'joven':
-            return 'bg-emerald-500/10 border border-emerald-500/30 text-cyber-green';
-          case 'madura':
-            return 'bg-gold-dim border border-gold-corp/30 text-[#f4d068]';
-          case 'tardía':
-            return 'bg-rose-500/10 border border-rose-500/30 text-cyber-red';
-        }
-      };
-
-      return (
-        <div className="h-1/5 min-h-[140px] max-h-[175px] bg-navy-card/95 p-4 rounded-xl border border-navy-border flex flex-col overflow-hidden shrink-0 relative group">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(212,175,55,0.005)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
-
-          <div className="flex items-center justify-between mb-2.5 shrink-0 relative z-10 select-none">
-            <span className="text-xs font-mono tracking-widest uppercase text-slate-300 flex items-center gap-1.5 font-bold">
-              <Icon name="clock" className="w-3.5 h-3.5 text-gold-corp" />
-              TIMELINE DE CONSTRUCCIÓN DE SEÑAL <span className="text-[10px] text-slate-500 font-light">[{tokenSymbol}]</span>
-            </span>
-
-            <div className="flex items-center gap-2">
-              {signalMaturity && (
-                <span className={`text-[9.5px] font-mono font-black uppercase px-2 py-0.5 rounded tracking-wider flex items-center gap-1.5 ${getMaturityBadgeStyle(signalMaturity)}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${signalMaturity === 'joven' ? 'bg-cyber-green' : signalMaturity === 'madura' ? 'bg-gold-corp' : 'bg-cyber-red'} animate-pulse`} />
-                  Señal {signalMaturity} ({maturityMinutes}m)
-                </span>
-              )}
-              <button
-                onClick={onClear}
-                className="text-[9px] text-slate-400 hover:text-gold-bright transition border border-navy-light/60 px-2.5 py-0.5 rounded bg-[#030712] font-mono font-bold flex items-center gap-1 cursor-pointer"
-                title="Reiniciar eventos"
-              >
-                REINICIAR
-              </button>
-            </div>
-          </div>
-          
-          <div
-            ref={containerRef}
-            className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[11px] pr-1.5 scrollbar-thin select-none relative z-10"
-          >
-            {events.length === 0 ? (
-              <div className="text-slate-650 text-slate-500 italic text-[9.5px] uppercase font-bold tracking-wider py-4 text-center">
-                ESPERANDO GATILLO CRÍTICO DE MERCADO...
-              </div>
-            ) : (
-              events.map((event) => {
-                const ms = Date.now() - event.createdAt;
-                const minutes = Math.max(0, Math.floor(ms / 60000));
-                return (
-                  <div 
-                    key={event.id} 
-                    className={`py-1 px-1.5 rounded flex items-center justify-between text-[9.5px] font-mono leading-relaxed ${getImportanceStyle(event.importance, event.type)}`}
-                  >
-                    <div className="flex items-center gap-2 max-w-[85%] truncate">
-                      {getEventIcon(event.type)}
-                      <span className="truncate"><strong>{event.title}</strong></span>
-                      {event.description && (
-                        <span className="text-[9px] opacity-60 font-sans truncate">| {event.description}</span>
-                      )}
-                    </div>
-                    <span className="text-[8.5px] opacity-70 font-mono shrink-0 font-extrabold">
-                      [{minutes}m]
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="mt-1.5 pt-1.5 border-t border-navy-light/20 flex items-center justify-between text-[8px] text-slate-600 font-mono shrink-0 relative z-10 select-none">
-            <span className="uppercase">CRITERIO OPERATIVO: MONITOREO DE EVOLUCIÓN DETALLADO</span>
-            <span className="text-gold-corp/80 font-bold">FRACTAL MATCH SUCCESS</span>
-          </div>
-        </div>
-      );
-    }
-
-    // --- ERROR BOUNDARY ---
-    class ErrorBoundary extends React.Component {
-      constructor(props) {
-        super(props);
-        this.state = { hasError: false, error: null };
-      }
-      static getDerivedStateFromError(error) {
-        return { hasError: true, error };
-      }
-      componentDidCatch(error, info) {
-        console.error('[SNIPER ERROR BOUNDARY]', error, info);
-      }
-      render() {
-        if (this.state.hasError) {
-          return (
-            <div style={{ background: '#02050c', color: '#f4d068', fontFamily: 'monospace', padding: '40px', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-              <div style={{ fontSize: '24px' }}>ERROR DE RENDERIZADO</div>
-              <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '600px', textAlign: 'center' }}>
-                {this.state.error && this.state.error.toString()}
-              </div>
-              <button onClick={() => this.setState({ hasError: false, error: null })} style={{ padding: '8px 16px', background: '#d4af37', color: '#030712', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                REINTENTAR
-              </button>
-            </div>
-          );
-        }
-        return this.props.children;
-      }
-    }
-
-    // --- MAIN PORTABLE ROOT DASHBOARD ---
-    function StandaloneDashboard() {
-      const [tokens, setTokens] = useState([]);
-      const [activeAddress, setActiveAddress] = useState('');
-      const [filter, setFilter] = useState('all');
-      const [timeframe, setTimeframe] = useState('m5');
-      const [rsiTimeframe, setRsiTimeframe] = useState('m5');
-      const [connectionStatus, setConnectionStatus] = useState('BIRDEYE');
-      const [soundEnabled, setSoundEnabled] = useState(false);
-      const [utcTime, setUtcTime] = useState('00:00:00 UTC');
+    function App() {
+      const [tokens, setTokens] = useState(INITIAL_TOKENS);
+      const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[0]);
+      const [audioOn, setAudioOn] = useState(true);
+      const [connectionStatus, setConnectionStatus] = useState('BIRDEYE LIVE');
+      const [events, setEvents] = useState(STREAMING_ALERTS);
+      const [timeframe, setTimeframe] = useState('M5');
+      const [currentTime, setCurrentTime] = useState('');
+      const [candles, setCandles] = useState([]);
       const [searchQuery, setSearchQuery] = useState('');
-      const [timelineEvents, setTimelineEvents] = useState({});
 
-      const tokensRef = useRef([]);
+      // Manual add state parameters
+      const [newSymbol, setNewSymbol] = useState('');
+      const [newName, setNewName] = useState('');
+      const [newPrice, setNewPrice] = useState('1.0');
+      const [newRsi, setNewRsi] = useState('50');
+      const [showAddForm, setShowAddForm] = useState(false);
+
       useEffect(() => {
-        tokensRef.current = tokens;
-      }, [tokens]);
-
-      // Real-time diagnostics ref & status
-      const socketRef = useRef(null);
-      const reconnectTimeoutRef = useRef(null);
-      const connectionErrorCountRef = useRef(0);
-      const lastTickTimeRef = useRef(Date.now());
-      const globalEventCounterRef = useRef(0);
-
-      // Diagnostic parameters (Usage internal only, but logged cleanly for verification)
-      const [latencyMs, setLatencyMs] = useState(null);
-      const [diagnosticPanelOpen, setDiagnosticPanelOpen] = useState(false);
-
-      // Actual WebSocket Connection
-      const connectWebSocket = () => {
-        if (socketRef.current) {
-          try { socketRef.current.close(); } catch(e) {}
-        }
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-        }
-
-        console.log('[SNIPER DATA ENGINE] Opening authentic WebSocket pipe...');
-        const startTime = Date.now();
-
-        try {
-          // Public DexScreener streaming endpoint
-          const ws = new WebSocket('wss://io.dexscreener.com/dex/websocket');
-          socketRef.current = ws;
-
-          ws.onopen = () => {
-            const lat = Date.now() - startTime;
-            setLatencyMs(lat);
-            setConnectionStatus('DEXSCREENER');
-            connectionErrorCountRef.current = 0;
-            lastTickTimeRef.current = Date.now();
-            console.log(`%c[SNIPER ENGINE CLOUD] Socket OPEN. Est. latency: ${lat}ms. Mode: EVENT-DRIVEN TICK FEED`, 'color: #00e676; font-weight: bold;');
-          };
-
-          ws.onmessage = (event) => {
-            lastTickTimeRef.current = Date.now();
-            setConnectionStatus('DEXSCREENER');
-            
-            // Log incoming real-time network ticks if meaningful
-            try {
-              const parsed = JSON.parse(event.data);
-              if (parsed && parsed.data) {
-                console.log('[SNIPER ENGINE TICK]', parsed.data);
-              }
-            } catch(e) {}
-          };
-
-          ws.onerror = (err) => {
-            console.warn('[SNIPER ENGINE WARN] Connection failure, switching traffic flows to high-frequency REST failover.', err);
-            setConnectionStatus('FAILOVER');
-          };
-
-          ws.onclose = () => {
-            console.log('[SNIPER ENGINE CLOSE] Peer disconnected socket.');
-            setConnectionStatus('FAILOVER');
-
-            // Robust backoff automatic reconnection
-            connectionErrorCountRef.current += 1;
-            const waitTime = Math.min(30000, 2000 * Math.pow(2, connectionErrorCountRef.current));
-            reconnectTimeoutRef.current = setTimeout(() => {
-              connectWebSocket();
-            }, waitTime);
-          };
-
-        } catch (e) {
-          console.error('[SNIPER ENGINE ERROR] Failed to initialize socket handle:', e);
-          setConnectionStatus('FAILOVER');
-        }
-      };
-
-      // Lifecycle integration
-      useEffect(() => {
-        connectWebSocket();
-        return () => {
-          if (socketRef.current) {
-            try { socketRef.current.close(); } catch(e) {}
-          }
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
-        };
-      }, []);
-
-      // Initialize defaults on component loading
-      useEffect(() => {
-        // Hydrate default starting coins list
-        const initialList = PRESET_TOKENS.map((t, idx) => {
-          const startingPrice = t.price;
-          return {
-            ...t,
-            candlesM5: generateInitialCandles(startingPrice, 300, 60),
-            candlesM15: generateInitialCandles(startingPrice, 900, 60),
-            candlesH1: generateInitialCandles(startingPrice, 3600, 60),
-            rsi: 50.0, // Neutral non-randomized start
-            trend: 'LATERAL',
-            score: 50,
-            status: 'BUSCANDO ENTRADA',
-            analysis: null,
-          };
-        });
-
-        // Seed clean starting history timelines without randomized keys
-        const initialTimelines = {};
-        initialList.forEach((t, idx) => {
-          const rsiVal = t.rsi;
-          initialTimelines[t.address] = [
-            {
-              id: `init-1-${t.symbol}-${idx}`,
-              createdAt: Date.now() - 2 * 60000,
-              symbol: t.symbol,
-              type: 'trend_confirm',
-              title: 'Escáner fractal inicializado',
-              description: 'Vigilando flujos de liquidez real en DEX.',
-              importance: 'medium',
-            },
-            {
-              id: `init-2-${t.symbol}-${idx}`,
-              createdAt: Date.now() - 5 * 60000,
-              symbol: t.symbol,
-              type: 'rsi_cross',
-              title: 'Módulo de oráculo indexado',
-              description: `Esperando primera transmisión de ticks reales. CA: ${t.address}`,
-              importance: 'medium',
-            }
-          ];
-        });
-
-        setTokens(initialList);
-        setTimelineEvents(initialTimelines);
-        if (initialList[0]) {
-          setActiveAddress(initialList[0].address);
-        }
-      }, []);
-
-      // UTC Clock loop
-      useEffect(() => {
-        const updateUTC = () => {
-          const d = new Date();
-          const hr = d.getUTCHours().toString().padStart(2, '0');
-          const min = d.getUTCMinutes().toString().padStart(2, '0');
-          const sec = d.getUTCSeconds().toString().padStart(2, '0');
-          setUtcTime(`${hr}:${min}:${sec} UTC`);
-        };
-        updateUTC();
-        const clockTimer = setInterval(updateUTC, 1000);
+        const clockTimer = setInterval(() => {
+          const now = new Date();
+          const yyyy = now.getUTCFullYear();
+          const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+          const dd = String(now.getUTCDate()).padStart(2, '0');
+          const hh = String(now.getUTCHours()).padStart(2, '0');
+          const min = String(now.getUTCMinutes()).padStart(2, '0');
+          const ss = String(now.getUTCSeconds()).padStart(2, '0');
+          setCurrentTime(`${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} UTC`);
+        }, 1000);
         return () => clearInterval(clockTimer);
       }, []);
 
-      const addTimelineEvent = (address, symbol, type, title, description, importance = 'low') => {
-        globalEventCounterRef.current += 1;
-        const newEvent = {
-          id: `evt-${Date.now()}-${globalEventCounterRef.current}`,
-          createdAt: Date.now(),
-          symbol,
-          type,
-          title,
-          description,
-          importance,
-        };
-        setTimelineEvents(prev => {
-          const currentList = prev[address] || [];
-          return {
-            ...prev,
-            [address]: [newEvent, ...currentList].slice(0, 15),
-          };
-        });
-
-        if (soundEnabled && (importance === 'high' || type === 'entry_valid' || type === 'exit_valid')) {
-          try {
-            // High fidelity synthesized oscillator alert sound
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            osc.type = type.includes('buy') || type.includes('oversold') ? 'sine' : 'triangle';
-            osc.frequency.setValueAtTime(type.includes('buy') || type.includes('oversold') ? 880 : 330, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-            
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.4);
-          } catch(e) {}
-        }
-      };
-
-      // Math analytics evaluator
-      const evaluateToken = (tok) => {
-        const candlesMatch = tok.candlesM5;
-        const rsiVal = calculateRSI(candlesMatch, 14);
-
-        const fractals = identifyFractals(candlesMatch);
-        const derivedTrend = determineTrend(fractals.highs, fractals.lows);
-
-        const currentPrice = tok.price;
-        const resistances = fractals.highs.map(h => h.price).filter(p => p > currentPrice);
-        const supports = fractals.lows.map(l => l.price).filter(p => p < currentPrice);
-
-        const h1Resistance = resistances.length > 0 ? resistances : [currentPrice * 1.05];
-        const h1Support = supports.length > 0 ? supports : [currentPrice * 0.95];
-
-        let score = 25;
-        let status = 'BUSCANDO ENTRADA';
-
-        if (rsiVal <= 35) {
-          status = 'ZONA CRÍTICA';
-          score = Math.floor(65 + (35 - rsiVal) * 1.6);
-        } else if (rsiVal >= 65) {
-          status = 'GATILLANDO';
-          score = Math.floor(65 + (rsiVal - 65) * 1.3);
-        }
-
-        const analysis = {
-          h1Trend: derivedTrend,
-          m15Trend: derivedTrend,
-          trendAligned: derivedTrend !== 'LATERAL',
-          h1Support,
-          h1Resistance,
-          nearSupport: currentPrice <= h1Support[0] * 1.015,
-          nearResistance: currentPrice >= h1Resistance[0] * 0.985,
-          targetZone: h1Support[0],
-          m5Trigger: rsiVal <= 30,
-          triggerPattern: rsiVal <= 30 ? 'Estructura de sobreventa extrema detectada' : 'Consolidación lateral',
-          scores: {
-            scoreH1: Math.floor(score * 0.9),
-            scoreM15: score,
-            scoreZone: 80,
-            scoreM5: 75,
-            impulseScore: 70,
-            totalScore: Math.min(99, score),
-          }
-        };
-
-        return {
-          ...tok,
-          rsi: rsiVal,
-          trend: derivedTrend,
-          score: Math.min(99, Math.max(10, score)),
-          status,
-          analysis,
-        };
-      };
-
-      // High frequency core polling scheduler (updates prices, tx counts, buy metrics and recalculates signals)
-      const requestRealTimeTicks = async () => {
-        const currentAddrs = tokensRef.current.map(t => t.address);
-        if (currentAddrs.length === 0) return;
-
-        try {
-          const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${currentAddrs.slice(0, 30).join(',')}`);
-          if (!res.ok) throw new Error('Market API endpoint disconnected or rate limited');
-          
-          const data = await res.json();
-          const pairs = data.pairs || [];
-          
-          // Map returned pairs to base token address mapping
-          const pairsMap = new Map();
-          pairs.forEach((p) => {
-            if (p && p.baseToken?.address) {
-              const addr = p.baseToken.address.toLowerCase();
-              const currentBest = pairsMap.get(addr);
-              const liqNew = p.liquidity?.usd || 0;
-              const liqOld = currentBest?.liquidity?.usd || 0;
-              if (!currentBest || liqNew > liqOld) {
-                pairsMap.set(addr, p);
-              }
-            }
-          });
-
-          // Set stable updater list
-          setTokens((prevList) => {
-            return prevList.map((tok) => {
-              const pair = pairsMap.get(tok.address.toLowerCase());
-              if (!pair) return tok; // Fallback to keeping old state safely
-
-              const newPrice = parseFloat(pair.priceUsd) || tok.price;
-              const prevPrice = tok.price;
-              const volume24h = parseFloat(pair.volume?.h24) || tok.volume24h;
-              const liquidity = parseFloat(pair.liquidity?.usd) || tok.liquidity;
-              const change24h = parseFloat(pair.priceChange?.h24) || tok.change24h;
-
-              // Roll over and compile real candle series matched in real time
-              const updatedM5 = updateCandleSeries(tok.candlesM5, newPrice, 300);
-              const updatedM15 = updateCandleSeries(tok.candlesM15, newPrice, 900);
-              const updatedH1 = updateCandleSeries(tok.candlesH1, newPrice, 3600);
-
-              // Fetch live trades counts from DexScreener transaction payloads
-              const tx = pair.txns?.h1 || pair.txns?.m5 || pair.txns?.h24 || { buys: 100, sells: 100 };
-              const buyCount = tx.buys || 0;
-              const sellCount = tx.sells || 0;
-              const totalCount = buyCount + sellCount;
-              const buyRatio = totalCount > 0 ? Math.round((buyCount / totalCount) * 100) : 55;
-
-              const rawToken = {
-                ...tok,
-                price: newPrice,
-                prevPrice,
-                volume24h,
-                liquidity,
-                change24h,
-                buyRatio, // Feed buyers ratio directly from actual transactions
-                buyCount,
-                sellCount,
-                candlesM5: updatedM5,
-                candlesM15: updatedM15,
-                candlesH1: updatedH1,
-              };
-
-              const evaluated = evaluateToken(rawToken);
-
-              // Check events and alerts triggers
-              if (tok.rsi >= 30 && evaluated.rsi < 30) {
-                setTimeout(() => addTimelineEvent(tok.address, tok.symbol, 'rsi_oversold', 'RSI entra en sobreventa (<30)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
-              } else if (tok.rsi <= 70 && evaluated.rsi > 70) {
-                setTimeout(() => addTimelineEvent(tok.address, tok.symbol, 'rsi_overbought', 'RSI entra en sobrecompra (>70)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
-              }
-
-              if (tok.trend !== evaluated.trend && evaluated.trend !== 'LATERAL') {
-                const isBullish = evaluated.trend === 'BULLISH';
-                setTimeout(() => addTimelineEvent(tok.address, tok.symbol, 'trend_confirm', `Tendencia confirmada: ${isBullish ? 'ALCISTA' : 'BAJISTA'}`, `EMA cambia a ${isBullish ? 'compras' : 'ventas'}`, 'medium'), 0);
-              }
-
-              return evaluated;
-            });
-          });
-
-          // Clear offline state if resolved
-          setConnectionStatus((curr) => {
-            if (curr === 'OFFLINE') {
-              return 'DEXSCREENER';
-            }
-            return curr;
-          });
-
-        } catch (err) {
-          console.warn('Real-time synchronization interval failure:', err);
-          setConnectionStatus('OFFLINE');
-        }
-      };
-
-      // Realtime polling trigger loop
+      // Set initial candles
       useEffect(() => {
-        requestRealTimeTicks();
-        const tickInterval = setInterval(requestRealTimeTicks, 4500);
-        return () => clearInterval(tickInterval);
-      }, [soundEnabled]);
-
-      // Actions: Add Single core dynamic Token from User Query
-      const handleAddNewToken = async (query) => {
-        const trimmedQuery = query.trim();
-        if (trimmedQuery.length < 32) {
-          console.warn('[SNIPER ENGINE] Invalid address length.');
-          return false;
+        if (selectedToken) {
+          setCandles(generateCandles(selectedToken, 40));
         }
+      }, [selectedToken?.id]);
 
-        const hasExist = tokens.some(t => t.address.toLowerCase() === trimmedQuery.toLowerCase());
-        if (hasExist) {
-          console.log('[SNIPER ENGINE] Token already exists in watchlist.');
-          return true;
-        }
+      // Simulation Loop
+      useEffect(() => {
+        let tick = 0;
+        const simTimer = setInterval(() => {
+          tick++;
+          
+          // Move status around
+          if (tick % 15 === 0) {
+            setConnectionStatus('RECONECTANDO');
+            playSound('reconnect', audioOn);
+            setTimeout(() => setConnectionStatus('FAILOVER ACTIVO'), 2000);
+          } else if (tick % 25 === 0) {
+            setConnectionStatus('BIRDEYE LIVE');
+            playSound('success', audioOn);
+          }
 
-        // Fetch live from DexScreener real market data
-        const dData = await fetchTokenFromDexscreener(trimmedQuery);
-        if (!dData) {
-          console.warn('[SNIPER ENGINE] Failed to fetch real data from DexScreener for address:', trimmedQuery);
-          return false;
-        }
+          // Random updates
+          setTokens(prev => prev.map(t => {
+            const change = (Math.random() - 0.495) * 0.016;
+            const nextPrice = Math.max(0.00001, t.price * (1 + change));
+            let nextRsi = Math.min(98, Math.max(2, t.rsi + (change * 700) + (Math.random() * 2 - 1)));
+            const points = Math.round(Math.abs(nextRsi - 50) * (nextRsi < 30 || nextRsi > 70 ? 2 : 1.2));
+            
+            return {
+              ...t,
+              price: nextPrice,
+              rsi: nextRsi,
+              points,
+              priceChange24h: Number((t.priceChange24h + change * 100).toFixed(2))
+            };
+          }));
+        }, 3000);
 
-        const basePrice = dData.price;
+        return () => clearInterval(simTimer);
+      }, [audioOn]);
 
-        const freshTok = {
-          address: dData.address,
-          symbol: dData.symbol,
-          name: dData.name,
-          price: basePrice,
-          change24h: dData.change24h,
-          volume24h: dData.volume24h,
-          liquidity: dData.liquidity,
-          candlesM5: generateInitialCandles(basePrice, 300, 60),
-          candlesM15: generateInitialCandles(basePrice, 900, 60),
-          candlesH1: generateInitialCandles(basePrice, 3600, 60),
-          rsi: 50.0, // Neutral start
-          trend: 'LATERAL',
-          score: 50,
-          status: 'BUSCANDO ENTRADA',
-          analysis: null,
-          custom: true,
-        };
-
-        const evaluated = evaluateToken(freshTok);
-        setTokens(prev => [evaluated, ...prev]);
-        setActiveAddress(evaluated.address);
-
-        globalEventCounterRef.current += 1;
-        const initEventId = `init-added-${evaluated.symbol}-${globalEventCounterRef.current}`;
-        setTimelineEvents(prev => ({
-          ...prev,
-          [evaluated.address]: [
-            {
-              id: initEventId,
-              createdAt: Date.now(),
-              symbol: evaluated.symbol,
-              type: 'trend_confirm',
-              title: 'Token Solana indexado con éxito',
-              description: 'Iniciando escaneo fractal continuo',
-              importance: 'medium',
-            }
-          ]
-        }));
-        
-        return true;
-      };
-
-      // Action: Import entire CSV bulk load list
-      const handleImportBatchTokens = (addresses) => {
-        const uniqueOnes = addresses.filter(addr => !tokens.some(t => t.address.toLowerCase() === addr.toLowerCase()));
-        if (uniqueOnes.length === 0) return;
-
-        const timelinesToBulk = {};
-        const bulkItems = uniqueOnes.map((addr, index) => {
-          const shortAddr = addr.substring(0, 4).toUpperCase();
-          const freshTok = {
-            address: addr,
-            symbol: `TOK_${shortAddr}`,
-            name: `Contrato ${addr.substring(0, 6)}`,
-            price: 1.0,
-            change24h: 0.0,
-            volume24h: 100000,
-            liquidity: 50000,
-            candlesM5: generateInitialCandles(1.0, 300, 60),
-            candlesM15: generateInitialCandles(1.0, 900, 60),
-            candlesH1: generateInitialCandles(1.0, 3600, 60),
-            rsi: 50.0,
-            trend: 'LATERAL',
-            score: 50,
-            status: 'BUSCANDO ENTRADA',
-            analysis: null,
-            custom: true,
-          };
-
-          const evaluated = evaluateToken(freshTok);
-
-          globalEventCounterRef.current += 1;
-          timelinesToBulk[addr] = [
-            {
-              id: `init-bulk-${evaluated.symbol}-${globalEventCounterRef.current}`,
-              createdAt: Date.now(),
-              symbol: evaluated.symbol,
-              type: 'trend_confirm',
-              title: 'Carga masiva completada',
-              description: 'Vigilando flujos de liquidez real en DEX.',
-              importance: 'medium',
-            }
-          ];
-
-          return evaluated;
-        });
-
-        setTokens(prev => [...prev, ...bulkItems]);
-        setTimelineEvents(prev => ({ ...prev, ...timelinesToBulk }));
-        if (bulkItems[0]) {
-          setActiveAddress(bulkItems[0].address);
-        }
-      };
-
-      // Action: Delete manual watchlist token
-      const deleteTokenItem = (addr) => {
-        setTokens(prev => prev.filter(t => t.address !== addr));
-        if (activeAddress === addr) {
-          const leftItems = tokens.filter(t => t.address !== addr);
-          if (leftItems.length > 0) {
-            setActiveAddress(leftItems[0].address);
+      // Connect updated variables to active chart
+      useEffect(() => {
+        if (selectedToken) {
+          const updated = tokens.find(t => t.id === selectedToken.id);
+          if (updated) {
+            setSelectedToken(updated);
+            setCandles(prev => {
+              if (prev.length === 0) return prev;
+              const next = [...prev];
+              next[next.length - 1] = {
+                ...next[next.length - 1],
+                close: updated.price,
+                high: Math.max(next[next.length - 1].high, updated.price),
+                low: Math.min(next[next.length - 1].low, updated.price),
+                rsi: Number(updated.rsi.toFixed(1))
+              }
+              return next;
+            });
           }
         }
+      }, [tokens]);
+
+      const handleAddToken = (e) => {
+        e.preventDefault();
+        if (!newSymbol) return;
+        const sym = newSymbol.toUpperCase();
+        const priceVal = parseFloat(newPrice) || 1.1;
+        const rsiVal = parseFloat(newRsi) || 50;
+
+        const brandNew = {
+          id: sym.toLowerCase(),
+          symbol: sym,
+          name: newName || `${sym} Token`,
+          price: priceVal,
+          rsi: rsiVal,
+          decimals: priceVal > 100 ? 2 : 4,
+          volume24h: 3500000,
+          momentum: Math.round((rsiVal - 50) * 2),
+          priority: rsiVal < 30 || rsiVal > 70 ? 'CRÍTICA' : 'ALTA',
+          points: 40,
+          priceChange24h: 2.50,
+          buyPressure: Math.round(rsiVal * 0.8 + 10),
+          s1: priceVal * 0.94,
+          s2: priceVal * 0.88,
+          r1: priceVal * 1.06,
+          r2: priceVal * 1.12
+        };
+
+        setTokens(prev => [brandNew, ...prev]);
+        setSelectedToken(brandNew);
+        playSound('success', audioOn);
+
+        setNewSymbol('');
+        setNewName('');
+        setShowAddForm(false);
       };
 
-      const handleClear = () => {
-        setTokens([]);
-      };
-
-      // Search and Filter computation lists
-      const filteredTokens = tokens.filter(t => {
-        const matchesQuery = t.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             t.address.toLowerCase().includes(searchQuery.toLowerCase());
-        if (!matchesQuery) return false;
-
-        if (filter === 'buy') return t.rsi <= 35;
-        if (filter === 'sell') return t.rsi >= 65;
-        return true;
-      });
-
-      const activeToken = tokens.find(t => t.address === activeAddress) || tokens[0] || null;
+      const filteredList = tokens.filter(t => t.symbol.toLowerCase().includes(searchQuery.toLowerCase()));
 
       return (
-        <div className="min-h-screen flex flex-col bg-[#02050c]">
+        <div className="h-screen w-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
           
-          {/* Header Bar Layout */}
-          <header className="bg-navy-card/95 border-b border-[#1e293b]/60 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-20 select-none">
-            <div className="flex items-center gap-4">
-              <div className="bg-gold-dim border border-gold-corp px-3 py-2.5 rounded-xl flex items-center justify-center glow-gold">
-                <Icon name="crosshair" className="w-5.5 h-5.5 text-gold-corp animate-pulse" />
-              </div>
+          {/* HEADER BAR */}
+          <header className="flex items-center justify-between px-5 py-3 border-b border-blue-900/45 bg-slate-950">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded bg-yellow-500/10 border border-yellow-500/50 flex items-center justify-center text-yellow-500 font-bold">🎯</div>
               <div>
-                <h1 className="text-lg font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-gold-bright to-gold-corp uppercase flex items-center gap-2">
-                  SOLANA WATCHLIST INDEXER
-                  <span className="text-[10px] bg-gold-dim border border-[#d4af37]/45 text-gold-bright px-2 py-0.5 rounded tracking-widest leading-none">PORTABLE</span>
-                </h1>
-                <p className="text-[10px] font-mono text-slate-450 uppercase mt-0.5 text-slate-550">ESCANEO, RADAR DE BUBBLES RSI GRAVITACIONAL E INDEXACIÓN MASIVA COMPLETA</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-base font-black text-yellow-500">TOKEN SNIPER DISPARADOR</span>
+                  <span className="text-[9px] bg-yellow-500 text-slate-950 font-bold px-1 rounded">V5.2</span>
+                </div>
+                <span className="block text-[9px] tracking-wider text-slate-400 font-mono">STANDALONE WEB ENGINE</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-5 text-sm self-end md:self-auto">
-              
-              {/* Telemetry Indicator */}
-              <div className="flex items-center gap-2 bg-navy-dark px-3 py-2 rounded-lg border border-navy-border shadow-inner">
-                <span className={`w-2 h-2 rounded-full shadow-inner ${
-                  connectionStatus === 'BIRDEYE' ? 'bg-cyber-green animate-pulse glow-green' :
-                  connectionStatus === 'DEXSCREENER' ? 'bg-indigo-400 animate-pulse' :
-                  'bg-amber-400 animate-pulse'
-                }`} />
-                <span className="font-mono text-[9px] text-slate-350 font-extrabold uppercase leading-none">
-                  ● CONNECTOR {connectionStatus} LIVE
-                </span>
-              </div>
-
-              {/* Sound audio module toggler */}
-              <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className="px-3 py-2 rounded-lg bg-navy-dark border border-navy-border hover:bg-navy-light hover:text-gold-bright transition-all flex items-center gap-2 text-xs font-mono cursor-pointer"
+            <div className="flex items-center gap-3 font-mono text-xs">
+              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-1 border border-emerald-500/20 rounded font-bold">
+                {connectionStatus}
+              </span>
+              <button 
+                onClick={() => setAudioOn(!audioOn)}
+                className={`px-2 py-1 border rounded transition-colors ${audioOn ? 'border-yellow-500/40 text-yellow-400 bg-yellow-500/5' : 'border-slate-800 text-slate-500'}`}
               >
-                {soundEnabled ? (
-                  <>
-                    <Icon name="volume-2" className="w-4 h-4 text-gold-corp" />
-                    <span className="text-slate-300">AUDIO ON</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon name="volume-x" className="w-4 h-4 text-slate-550" />
-                    <span className="text-slate-500">MUTE</span>
-                  </>
-                )}
+                {audioOn ? '🔈 AUDIO ON' : '🔇 AUDIO OFF'}
               </button>
-
-              <div className="text-right hidden md:block border-l border-[#1e293b] pl-5">
-                <div className="font-mono text-xs text-slate-200 flex items-center gap-1.5 font-bold">
-                  <Icon name="clock" className="w-3.5 h-3.5 text-gold-corp" />
-                  <span>{utcTime}</span>
-                </div>
+              <div className="text-right">
+                <span className="text-slate-300 font-bold block">{currentTime || 'UTC LOADING...'}</span>
+                <span className="text-[8px] text-emerald-400 block tracking-widest">SISTEMA SIMULADOR ACTIVO</span>
               </div>
-
             </div>
           </header>
 
-          {/* Three Panels Core Stage */}
-          <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden h-[calc(100vh-80px)]">
+          {/* GRID PANETS MATCHING 100% SCREEN */}
+          <main className="flex-1 min-h-0 grid grid-cols-12 gap-3 p-3 bg-slate-950">
             
-            {/* Left Sidebar (Columns: 4) */}
-            <div className="lg:col-span-4 flex flex-col gap-4 overflow-y-auto pr-0.5">
-              
-              <StandaloneIndexer 
-                onAddToken={handleAddNewToken}
-                onAddMultipleTokens={handleImportBatchTokens}
-                tokenCount={tokens.length}
-                onClearWatchlist={handleClear}
-              />
-
-              <div className="bg-navy-card rounded-xl border border-navy-border p-4 flex flex-col gap-3 flex-1 min-h-[300px]">
-                <div className="flex items-center justify-between border-b border-[#1e293b]/70 pb-2 select-none">
-                  <span className="text-xs font-mono font-bold uppercase text-slate-300">Monitores del Sistema ({filteredTokens.length})</span>
-                  
-                  <div className="flex bg-navy-dark border border-navy-border p-0.5 rounded text-[9.5px] font-mono">
-                    <button onClick={() => setFilter('all')} className={`px-2 py-0.5 rounded cursor-pointer ${filter==='all' ? 'bg-gold-corp text-navy-dark font-extrabold' : 'text-slate-400 hover:text-slate-250'}`}>Todos</button>
-                    <button onClick={() => setFilter('buy')} className={`px-2 py-0.5 rounded cursor-pointer ${filter==='buy' ? 'bg-emerald-500 text-white font-extrabold' : 'text-slate-400 hover:text-slate-250'}`}>Buy (≤35)</button>
-                    <button onClick={() => setFilter('sell')} className={`px-2 py-0.5 rounded cursor-pointer ${filter==='sell' ? 'bg-rose-500 text-white font-extrabold' : 'text-slate-400 hover:text-slate-250'}`}>Sell (≥65)</button>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e)=>setSearchQuery(e.target.value)}
-                    placeholder="Filtrar por Símbolo o CA..."
-                    className="w-full bg-navy-dark border border-navy-border/60 focus:border-gold-corp/60 outline-none rounded py-2 pl-7 pr-3 text-[10px] text-slate-300 placeholder-slate-650 font-mono"
-                  />
-                  <div className="absolute left-2.5 top-2.5 text-slate-600">
-                    <Icon name="search" className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto max-h-[380px] flex flex-col gap-2 pr-1">
-                  {filteredTokens.length === 0 ? (
-                    <div className="text-center py-10 text-slate-650 font-mono text-[10px] select-none uppercase tracking-widest animate-pulse">
-                      Ningún activo coincide con la búsqueda
-                    </div>
-                  ) : (
-                    filteredTokens.map(t => (
-                      <TokenCard
-                        key={t.address}
-                        token={t}
-                        isActive={t.address === activeAddress}
-                        onSelect={setActiveAddress}
-                        onDelete={deleteTokenItem}
-                      />
-                    ))
-                  )}
-                </div>
+            {/* LEFT ROW: Watchlist */}
+            <div className="col-span-3 flex flex-col gap-3 min-h-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="text-xs font-mono font-black text-slate-300">INDEXADOR SOLANA</span>
+                <button 
+                  onClick={() => { playSound('click', audioOn); setShowAddForm(!showAddForm); }}
+                  className="px-1.5 py-0.5 text-[10px] bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold rounded"
+                >
+                  Agregar Token (+)
+                </button>
               </div>
 
-              {/* Status Energy Pressure Indicator */}
-              <div className="glass p-4 rounded-xl border border-navy-border flex flex-col justify-between shrink-0 bg-navy-card/95 gap-3">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between select-none">
-                    <div className="flex items-center gap-1.5">
-                      <Icon name="activity" className="w-4 h-4 text-gold-corp animate-pulse" />
-                      <span className="text-[10px] font-mono tracking-widest text-slate-300 uppercase font-black">
-                        MÉTRICA DE ENERGÍA
-                      </span>
-                    </div>
-                    
-                    <select
-                      value={rsiTimeframe}
-                      onChange={(e) => setRsiTimeframe(e.target.value)}
-                      className="bg-navy-dark border border-navy-light text-[9px] font-mono text-gold-bright rounded px-1.5 py-0.5 outline-none cursor-pointer focus:border-gold-corp"
+              {showAddForm && (
+                <form onSubmit={handleAddToken} className="p-2 border border-yellow-500/20 bg-slate-900 rounded-lg space-y-1.5">
+                  <input type="text" required placeholder="SYMBOL" value={newSymbol} onChange={e=>setNewSymbol(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
+                  <input type="text" placeholder="NAME" value={newName} onChange={e=>setNewName(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input type="number" placeholder="PRICE" step="any" value={newPrice} onChange={e=>setNewPrice(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
+                    <input type="number" placeholder="RSI" value={newRsi} onChange={e=>setNewRsi(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
+                  </div>
+                  <button type="submit" className="w-full py-1 text-xs font-bold bg-yellow-500 text-slate-950 rounded">INDEXAR</button>
+                </form>
+              )}
+
+              <input 
+                type="text" 
+                placeholder="Filtro rápido..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 p-1.5 text-xs rounded font-mono text-slate-200 focus:outline-none" 
+              />
+
+              <div className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin">
+                {filteredList.map(t => {
+                  const isS = t.id === selectedToken?.id;
+                  return (
+                    <div 
+                      key={t.id}
+                      onClick={() => { playSound('select', audioOn); setSelectedToken(t); }} 
+                      className={`p-2 border rounded-lg cursor-pointer flex items-center justify-between hover:bg-slate-900/60 ${isS ? 'border-yellow-500 bg-blue-950/20' : 'border-slate-800 bg-slate-950/50'}`}
                     >
-                      <option value="m5">M5 (Nativo)</option>
-                      <option value="m15">M15</option>
-                      <option value="h1">H1 (Macro)</option>
-                    </select>
-                  </div>
-
-                  <LiveBuyersSellers activeToken={activeToken} />
-                </div>
-              </div>
-
-            </div>
-
-            {/* Middle Section: Chart Canvas and Timelines (Columns: 5) */}
-            <div className="lg:col-span-5 flex flex-col gap-4 overflow-y-auto">
-              <SniperCanvas 
-                token={activeToken}
-                timeframe={timeframe}
-                onTimeframeChange={setTimeframe}
-                connectionStatus={connectionStatus}
-              />
-
-              <SignalTimeline 
-                events={timelineEvents[activeAddress] || []}
-                tokenSymbol={activeToken ? activeToken.symbol : '---'}
-                onClear={() => setTimelineEvents(prev => ({ ...prev, [activeAddress]: [] }))}
-              />
-            </div>
-
-            {/* Right Section: Momentum Radar Dashboard (Columns: 3) */}
-            <div className="lg:col-span-3 flex flex-col gap-4 overflow-y-auto p-0.5">
-              <StandaloneRsiBubbleRadar
-                tokens={tokens}
-                activeAddress={activeAddress}
-                onSelectToken={setActiveAddress}
-                rsiTimeframe={rsiTimeframe}
-              />
-              
-              {/* Strategy alert card panel */}
-              {activeToken && (
-                <div className="bg-navy-card rounded-xl border border-[#d4af37]/35 p-4 flex flex-col gap-3 relative overflow-hidden">
-                  <div className="absolute -right-6 -top-6 w-20 h-20 bg-gold-dim rounded-full pointer-events-none blur-xl" />
-                  
-                  <div className="flex items-center justify-between border-b border-[#1e293b]/70 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 bg-gold-corp rounded-full animate-pulse" />
                       <div>
-                        <h4 className="font-mono text-xs font-extrabold text-white leading-tight uppercase flex items-center gap-1.5">
-                          {activeToken.symbol}
-                          <span className="text-[8px] border border-gold-corp/30 text-gold-bright bg-gold-dim px-1.5 py-0.5 rounded leading-none">{activeToken.name}</span>
-                        </h4>
+                        <span className="font-mono text-xs font-bold block text-slate-200">{t.symbol}</span>
+                        <span className="text-[9px] text-slate-500">{t.name}</span>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 divide-x divide-[#1e293b]">
-                    <div>
-                      <span className="text-[9px] font-mono text-slate-550 text-slate-500 uppercase block">Precio actual</span>
-                      <strong className="font-mono text-sm font-black text-gold-bright mt-1 block">${activeToken.price.toFixed(activeToken.price < 0.01 ? 6 : 4)}</strong>
-                    </div>
-                    <div className="pl-3">
-                      <span className="text-[9px] font-mono text-slate-550 text-slate-500 uppercase block">RSI actual</span>
-                      <strong className={`font-mono text-sm font-black mt-1 block ${activeToken.rsi <= 35 ? 'text-cyber-green' : activeToken.rsi >= 65 ? 'text-cyber-red' : 'text-slate-300'}`}>{activeToken.rsi.toFixed(1)}</strong>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 pt-1 select-none">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase font-black uppercase tracking-wider block">ANÁLISIS DE SCORE & CALIBRACIÓN (MEME)</span>
-                    <div className="bg-navy-dark p-2 rounded-lg border border-navy-border flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between text-[8px] font-mono text-slate-400 mb-0.5">
-                        <span>SCORE DE MOMENTUM</span>
-                        <span className="font-extrabold text-gold-bright">{activeToken.score}/99</span>
-                      </div>
-                      <div className="w-full bg-[#1e293b]/50 h-1.5 rounded-sm overflow-hidden border border-slate-800">
-                        <div className="bg-gradient-to-r from-gold-corp to-gold-bright h-full transition-all duration-500" style={{ width: `${activeToken.score}%` }} />
-                      </div>
-
-                      <div className="flex items-center justify-between text-[9px] font-mono pt-1 text-slate-300 leading-none mt-1">
-                        <span>Recomendación:</span>
-                        <span className={`font-black uppercase px-2 py-0.5 rounded text-[8.5px] ${
-                          activeToken.rsi <= 35 
-                            ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' 
-                            : activeToken.rsi >= 65 
-                              ? 'bg-cyber-red/10 text-cyber-red border border-cyber-red/20' 
-                              : 'bg-slate-800 text-slate-400 border border-slate-705'
-                        }`}>
-                          {activeToken.rsi <= 35 ? 'COMPRE OVERSOLD' : activeToken.rsi >= 65 ? 'VENTA OVERBOUGHT' : 'MANTENER / LATERAL'}
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-bold block">${t.price.toLocaleString(undefined, {maximumFractionDigits: t.decimals})}</span>
+                        <span className={`text-[10px] font-mono font-bold px-1 rounded ${t.rsi <= 30 ? 'bg-emerald-500/10 text-emerald-400' : t.rsi >= 70 ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-800'}`}>
+                          RSI: {t.rsi.toFixed(0)}
                         </span>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* MIDDLE ROW: Candle chart & logs */}
+            <div className="col-span-6 flex flex-col gap-3 min-h-0">
+              
+              {/* Dynamic chart canvas */}
+              <div className="flex-1 min-h-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <span className="text-xs font-mono font-black text-yellow-500">{selectedToken?.symbol} chart</span>
+                  <div className="flex gap-1">
+                    {['M5', 'M15', 'H1'].map(tf => (
+                      <button key={tf} onClick={() => { playSound('click', audioOn); setTimeframe(tf); }} className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded ${timeframe === tf ? 'bg-yellow-500 text-slate-950' : 'text-slate-400 bg-slate-900'}`}>{tf}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* SVG candle elements */}
+                <div className="flex-1 mt-2 relative min-h-0">
+                  <svg className="w-full h-full min-h-[180px]">
+                    {/* Render random candle models lines */}
+                    {candles.map((c, idx) => {
+                      const spacing = 12;
+                      const x = 30 + idx * spacing;
+                      const min = Math.min(...candles.map(c => c.low));
+                      const max = Math.max(...candles.map(c => c.high));
+                      const range = max - min || 1;
+                      
+                      const getY = (val) => 180 - ((val - min) / range) * 140;
+                      
+                      const yOpen = getY(c.open);
+                      const yClose = getY(c.close);
+                      const yHigh = getY(c.high);
+                      const yLow = getY(c.low);
+                      const isUp = c.close >= c.open;
+
+                      return (
+                        <g key={idx}>
+                          <line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={isUp ? '#10b981' : '#f43f5e'} strokeWidth={1} />
+                          <rect x={x - 3} y={Math.min(yOpen, yClose)} width={6} height={Math.max(2, Math.abs(yOpen - yClose))} fill={isUp ? '#064e3b' : '#4c0519'} stroke={isUp ? '#10b981' : '#f43f5e'} strokeWidth={1} />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Chronological signals events logger */}
+              <div className="h-[140px] shrink-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col">
+                <span className="text-xs font-mono font-black text-slate-400 border-b border-slate-800 pb-1 flex items-center justify-between">
+                  <span>TIMELINE EVENTOS</span>
+                  <span className="text-[10px] text-yellow-500 animate-pulse">● EN VIVO</span>
+                </span>
+                <div className="flex-1 overflow-y-auto space-y-1.5 mt-2 scrollbar-thin">
+                  {events.map((e, idx) => (
+                    <div key={idx} className="p-1.5 border border-slate-800 bg-slate-950/60 rounded text-[10px] font-mono flex items-center justify-between">
+                      <span className="text-slate-200"><span className="text-yellow-500 font-bold">[{e.tokenSymbol}]</span> {e.message}</span>
+                      <span className="text-slate-500 text-[8px]">{e.minutesAgo}M atras</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT ROW: Bubble Radar & Target Card */}
+            <div className="col-span-3 flex flex-col gap-3 min-h-0">
+              
+              {/* Concentric Bubble Radar widget */}
+              <div className="flex-1 min-h-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-xs font-mono font-black text-slate-300 border-b border-slate-800 pb-1 block">RSI BUBBLE RADAR</span>
+                
+                <div className="flex-1 flex items-center justify-center relative my-2">
+                  {/* Circular orbits indicators */}
+                  <div className="absolute w-[160px] h-[160px] border border-blue-900/40 rounded-full flex items-center justify-center">
+                    <div className="absolute w-[100px] h-[100px] border border-dashed border-yellow-500/25 rounded-full animate-spin"></div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase font-black tracking-wider flex items-center gap-1">
-                      <Icon name="shield-alert" className="w-3 h-3 text-red-400" />
-                      Planificar entrada / Sniper alert
-                    </span>
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400">
-                      <div className="bg-navy-dark p-2 rounded border border-navy-border/60">
-                        <span className="text-[7.5px] text-slate-500 block uppercase leading-none">Trigger Entrada</span>
-                        <strong className="text-slate-200 mt-1 block">${(activeToken.price * 0.95).toFixed(activeToken.price < 0.01 ? 6 : 3)}</strong>
-                      </div>
-                      <div className="bg-navy-dark p-2 rounded border border-navy-border/60">
-                        <span className="text-[7.5px] text-slate-500 block uppercase leading-none">Frenado Stop loss</span>
-                        <strong className="text-[#ff3c5f] mt-1 block">${(activeToken.price * 0.90).toFixed(activeToken.price < 0.01 ? 6 : 3)}</strong>
-                      </div>
+                  {/* Bubbles representation */}
+                  <div className="relative w-full h-[180px] overflow-hidden flex items-center justify-center">
+                    {tokens.map((t, index) => {
+                      const angle = (index * (360 / tokens.length)) * Math.PI / 180;
+                      const rad = 65;
+                      const x = 75 + Math.cos(angle) * rad;
+                      const y = 80 + Math.sin(angle) * rad;
+                      const isS = t.id === selectedToken?.id;
+
+                      return (
+                        <div 
+                          key={t.id}
+                          onClick={() => { playSound('select', audioOn); setSelectedToken(t); }}
+                          style={{ left: `${x}px`, top: `${y}px` }}
+                          className={`absolute w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[9px] font-black cursor-pointer transition-transform duration-200 hover:scale-110 ${isS ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-slate-700 bg-slate-950 text-slate-300'}`}
+                        >
+                          {t.symbol.substring(0, 3)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <span className="text-[9px] font-mono text-center text-slate-500 uppercase block">CLIC EN BURBUJA PARA DISPARAR OBJETIVO 🎯</span>
+              </div>
+
+              {/* Highlight active card */}
+              <div className="h-[140px] shrink-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-xs font-mono font-black text-rose-500">SNIPER OBJETIVO</span>
+                {selectedToken ? (
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-lg font-mono font-black text-slate-200">{selectedToken.symbol}</span>
+                      <span className="text-xs text-yellow-500 font-mono font-bold">${selectedToken.price.toLocaleString(undefined, {maximumFractionDigits: selectedToken.decimals})}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-400">RSI: {selectedToken.rsi.toFixed(1)}</span>
+                      <span className={selectedToken.priceChange24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{selectedToken.priceChange24h >= 0 ? '+' : ''}{selectedToken.priceChange24h}% (24H)</span>
                     </div>
                   </div>
-
-                </div>
-              )}
+                ) : (
+                  <span className="text-slate-500 text-xs font-mono block">Selecciones un activo</span>
+                )}
+                
+                <a 
+                  href={selectedToken ? `https://birdeye.so/token/${selectedToken.symbol}` : '#'} 
+                  target="_blank" 
+                  className="w-full text-center py-1 bg-yellow-500 text-slate-950 font-bold font-mono text-[11px] rounded"
+                >
+                  VER EN BIRDEYE
+                </a>
+              </div>
 
             </div>
 
           </main>
-
-          {/* Standalone copy notification status indicator footer */}
-          <footer className="bg-navy-card/80 border-t border-[#1e293b]/60 px-5 py-4 text-center text-slate-500 font-mono text-[9px] uppercase select-none mt-auto">
-            <span>Para utilizar localmente, guarda este archivo como <strong className="text-slate-400 font-bold">standalone-radar.html</strong> e introduce cualquier Watchlist de Solana sin límites.</span>
-          </footer>
-
         </div>
       );
     }
 
-    // Mount and inject inside root container node
-    const container = document.getElementById('standalone-root');
+    const container = document.getElementById('root');
     const root = ReactDOM.createRoot(container);
-    root.render(
-      <ErrorBoundary>
-        <StandaloneDashboard />
-      </ErrorBoundary>
-    );
+    root.render(<App />);
   </script>
 </body>
 </html>
