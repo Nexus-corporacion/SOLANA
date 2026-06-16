@@ -3,575 +3,809 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Token Sniper Engine v5.2 - Standalone Simulator</title>
-  
-  <!-- Tailwind CSS Play CDN -->
+  <title>Token Sniper Engine v5.2 - Terminal Sniper</title>
+  <!-- Tailwind CSS V4 CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- React and ReactDOM CDNs -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  
-  <!-- Babel CDN to compile JSX in browser -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- Google Fonts (Inter, Space Grotesk, JetBrains Mono) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;750&display=swap" rel="stylesheet">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
-            display: ['"Space Grotesk"', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
-
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {
-      background-color: #020617; /* slate-950 */
-      color: #f8fafc; /* slate-50 */
+      background-color: #03070c;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
     }
-    .scrollbar-thin::-webkit-scrollbar {
-      width: 4px;
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
     }
-    .scrollbar-thin::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
     }
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-      background: #1e293b;
-      border-radius: 2px;
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
     }
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-      background: #334155;
+    ::-webkit-scrollbar-track {
+      background: #070e17;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #22c55e44;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #22c55eaa;
     }
   </style>
 </head>
-<body class="h-screen w-screen overflow-hidden select-none">
-  
-  <div id="root"></div>
+<body class="p-3 md:p-4 min-h-screen flex flex-col gap-4 select-none">
 
-  <!-- React code starts here -->
-  <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
+  <!-- TOP HEADER BAR -->
+  <header class="flex flex-col md:flex-row items-start md:items-center justify-between border border-slate-800 bg-[#070e17] rounded-xl p-4 gap-3">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center w-11 h-11 bg-yellow-400 rounded-lg text-slate-950 font-black text-xl shadow-md shadow-yellow-500/10">
+        ⚡
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg md:text-xl font-extrabold font-display uppercase tracking-wider text-white">
+            Token Sniper Engine
+          </h1>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full border border-yellow-500/20 text-yellow-400 bg-yellow-500/10 font-bold">
+            V5.2
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 font-display uppercase tracking-widest mt-0.5">
+          Estructura de mercado e indexador multi-token en tiempo real
+        </p>
+      </div>
+    </div>
 
-    // Web Audio Synthesizer helper
-    let audioCtx = null;
-    function playSound(type, audioOn) {
-      if (!audioOn) return;
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        const now = audioCtx.currentTime;
+    <div class="flex flex-wrap items-center gap-3 self-end md:self-center">
+      <!-- Connection Indicator -->
+      <div class="flex items-center gap-2 bg-[#0c1420] border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">BIRDEYE LIVE</span>
+      </div>
 
-        if (type === 'click') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(800, now);
-          osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-          gain.gain.setValueAtTime(0.04, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.05);
-        } 
-        else if (type === 'select') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(440, now);
-          osc.frequency.setValueAtTime(880, now + 0.08);
-          gain.gain.setValueAtTime(0.06, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.25);
-        }
-        else if (type === 'alert') {
-          const osc1 = audioCtx.createOscillator();
-          const osc2 = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          
-          osc1.type = 'sawtooth';
-          osc1.frequency.setValueAtTime(950, now);
-          osc1.frequency.linearRampToValueAtTime(1200, now + 0.15);
-          osc1.frequency.linearRampToValueAtTime(800, now + 0.3);
-          
-          osc2.type = 'sine';
-          osc2.frequency.setValueAtTime(475, now);
-          osc2.frequency.linearRampToValueAtTime(600, now + 0.15);
-          
-          gain.gain.setValueAtTime(0.05, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          
-          osc1.connect(gain);
-          osc2.connect(gain);
-          gain.connect(audioCtx.destination);
-          
-          osc1.start(now);
-          osc2.start(now);
-          
-          osc1.stop(now + 0.4);
-          osc2.stop(now + 0.4);
-        }
-        else if (type === 'success') {
-          const freqs = [523.25, 659.25, 783.99, 1046.50];
-          freqs.forEach((f, i) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(f, now + i * 0.05);
-            gain.gain.setValueAtTime(0.03, now + i * 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.25);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now + i * 0.05);
-            osc.stop(now + i * 0.05 + 0.25);
-          });
-        }
-        else if (type === 'reconnect') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
-          gain.gain.setValueAtTime(0.04, now);
-          gain.gain.linearRampToValueAtTime(0.04, now + 0.3);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.4);
-        }
-      } catch (e) {
-        console.warn('Audio Context error: ', e);
-      }
-    }
+      <!-- Live UTC Clock -->
+      <div class="flex flex-col items-end border-l border-slate-800 pl-4">
+        <div id="utc-clock" class="text-xs font-mono font-bold text-yellow-400 tracking-wider">
+          ---
+        </div>
+        <div class="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold">
+          Escaner Cuántico Activo
+        </div>
+      </div>
+    </div>
+  </header>
 
-    // Default Seed Data
-    const INITIAL_TOKENS = [
-      { id: 'spcx', symbol: 'SPCX', name: 'SpaceX Token', price: 0.001758, decimals: 6, rsi: 33.5, volume24h: 3450000, momentum: -35, priority: 'ALTA', points: 20, priceChange24h: -3.31, buyPressure: 58, s1: 0.001700, s2: 0.001650, r1: 0.001850, r2: 0.001920 },
-      { id: 'cia', symbol: 'CIA', name: 'Intelligence Ledger', price: 0.0892, decimals: 4, rsi: 78.2, volume24h: 890300, momentum: 62, priority: 'ALTA', points: 35, priceChange24h: 12.45, buyPressure: 72, s1: 0.0820, s2: 0.0780, r1: 0.0910, r2: 0.0950 },
-      { id: 'boblax', symbol: 'BOBLAX', name: 'Bob-Lax Matrix', price: 1.425, decimals: 3, rsi: 21.8, volume24h: 12500000, momentum: -82, priority: 'CRÍTICA', points: 85, priceChange24h: -15.2, buyPressure: 38, s1: 1.380, s2: 1.250, r1: 1.550, r2: 1.680 },
-      { id: 'gym', symbol: 'GYM', name: 'Pump Gym Chain', price: 0.01245, decimals: 5, rsi: 59.1, volume24h: 2310000, momentum: 12, priority: 'BAJA', points: 15, priceChange24h: 0.85, buyPressure: 51, s1: 0.01180, s2: 0.01100, r1: 0.01310, r2: 0.01380 },
-      { id: 'guardian', symbol: 'GUARDIAN', name: 'Sentinel Network', price: 432.50, decimals: 2, rsi: 92.4, volume24h: 42100000, momentum: 94, priority: 'CRÍTICA', points: 95, priceChange24h: 28.4, buyPressure: 88, s1: 410.00, s2: 380.00, r1: 445.00, r2: 460.00 },
-      { id: 'folkcat', symbol: 'FOLKCAT', name: 'Folk Cat Meme', price: 0.000452, decimals: 6, rsi: 87.1, volume24h: 920000, momentum: 74, priority: 'ALTA', points: 50, priceChange24h: 18.9, buyPressure: 79, s1: 0.000410, s2: 0.000380, r1: 0.000465, r2: 0.000490 },
-      { id: 'kins', symbol: 'KINS', name: 'Kinsmen Protocol', price: 0.942, decimals: 3, rsi: 82.3, volume24h: 1820000, momentum: 55, priority: 'MEDIA', points: 40, priceChange24h: 5.61, buyPressure: 61, s1: 0.900, s2: 0.850, r1: 0.980, r2: 1.050 }
-    ];
+  <!-- MAIN WORKSPACE GRID -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4">
+    
+    <!-- LEFT SIDEBAR: Watchlist & Quantum Pulse -->
+    <div class="lg:col-span-3 flex flex-col gap-4">
+      
+      <!-- WATCHLIST CARD -->
+      <div class="flex flex-col bg-[#0c1420] border border-emerald-950/40 rounded-xl p-4 font-display">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+          <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+            <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            Indexador de Watchlist Solana
+          </h2>
+          <span id="token-count" class="text-[10px] bg-slate-800 text-yellow-400 font-mono px-2 py-0.5 rounded-full">
+            6 Indexados
+          </span>
+        </div>
 
-    const STREAMING_ALERTS = [
-      { id: 'ev-1', tokenSymbol: 'SPCX', type: 'CONFIRMACION', message: 'Señal de entrada validada | Estructura de compra formada', minutesAgo: 4, intensity: 'high' },
-      { id: 'ev-2', tokenSymbol: 'SPCX', type: 'RSI_EXTREMO', message: 'RSI entra en sobreventa (<30) | RSI registrado en 29.5', minutesAgo: 7, intensity: 'critical' },
-      { id: 'ev-3', tokenSymbol: 'SPCX', type: 'CONFIRMACION', message: 'Incremento de compradores | Compradores superan el 60%', minutesAgo: 11, intensity: 'normal' },
-      { id: 'ev-4', tokenSymbol: 'GUARDIAN', type: 'RSI_EXTREMO', message: 'Sobrecompra extrema detectada | RSI superior a 92', minutesAgo: 2, intensity: 'critical' },
-      { id: 'ev-5', tokenSymbol: 'GUARDIAN', type: 'RES_RUPTURA', message: 'Ruptura de Resistencia R1 Principal superada', minutesAgo: 5, intensity: 'high' }
-    ];
+        <!-- Action Inputs -->
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <button onclick="openAddModal()" class="py-1.5 px-3 text-xs font-semibold rounded bg-[#eab308] hover:bg-yellow-500 text-slate-950 transition-all cursor-pointer">
+            + Individual
+          </button>
+          <label class="flex items-center justify-center py-1.5 px-3 text-xs font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all border border-slate-700 cursor-pointer">
+            📁 Importar CSV
+            <input type="file" id="csv-file-input" class="hidden" accept=".csv,.txt" onchange="handleCSV(event)">
+          </label>
+        </div>
 
-    function generateCandles(token, count = 40) {
-      let currentPrice = token.price * 0.95;
-      let currentRsi = token.rsi;
-      const candles = [];
-      const now = new Date();
-      for (let i = count; i > 0; i--) {
-        const timeStr = new Date(now.getTime() - i * 5 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const changePercent = (Math.random() - 0.49) * 0.015;
-        const closePrice = currentPrice * (1 + changePercent);
-        const highPrice = Math.max(currentPrice, closePrice) * (1 + Math.random() * 0.008);
-        const lowPrice = Math.min(currentPrice, closePrice) * (1 - Math.random() * 0.008);
+        <!-- Global Clear button -->
+        <div class="flex justify-between items-center bg-[#070e17] border border-rose-950/30 rounded p-2 mb-3">
+          <span class="text-[10px] text-slate-400">Control de Vigilancia</span>
+          <button onclick="confirmClearAll()" class="text-[10px] text-rose-400 hover:text-rose-200 px-2 py-1 bg-rose-950/30 rounded border border-rose-900/30 transition-all cursor-pointer">
+            Limpiar Todo
+          </button>
+        </div>
+
+        <!-- Watchlist elements -->
+        <div id="watchlist-container" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+          <!-- Dynamic nodes loaded via JS -->
+        </div>
+      </div>
+
+      <!-- QUANTUM PULSE -->
+      <div class="flex flex-col bg-[#0c1420] border border-emerald-950/40 rounded-xl p-4 font-display">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            💡 Estado Energético del Sistema
+          </h2>
+          <span class="text-[9px] text-yellow-400 font-mono">M5 (Nativo)</span>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <!-- Buyer/Seller volume distribution -->
+          <div>
+            <div class="flex justify-between text-[10px] uppercase font-mono mb-1 text-slate-400">
+              <span>Presión de compras (En Vivo)</span>
+              <span class="text-emerald-400">MATCH LIVE</span>
+            </div>
+            <div class="h-2 w-full rounded-full overflow-hidden flex bg-slate-800">
+              <div id="buy-progress-bar" class="bg-emerald-500 h-full transition-all duration-500" style="width: 58%"></div>
+              <div id="sell-progress-bar" class="bg-rose-500 h-full transition-all duration-500" style="width: 42%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-mono mt-1 font-bold">
+              <span id="buy-ratio" class="text-emerald-400">COMPRADORES 58%</span>
+              <span id="sell-ratio" class="text-rose-400">VENDEDORES 42%</span>
+            </div>
+          </div>
+
+          <!-- Circular Gauge graphic representation -->
+          <div class="flex flex-col items-center justify-center py-2">
+            <div class="relative w-28 h-28 flex items-center justify-center">
+              <svg class="absolute inset-0 w-full h-full -rotate-90">
+                <circle cx="56" cy="56" r="48" stroke="#1e293b" stroke-width="3" fill="none" class="opacity-30"></circle>
+                <circle id="pulse-gauge-circle" cx="56" cy="56" r="48" stroke="#22c55e" stroke-width="3" stroke-dasharray="301" stroke-dashoffset="130" fill="none" class="transition-all duration-500"></circle>
+              </svg>
+              <div class="text-center z-10">
+                <div id="pulse-energy-index" class="text-2xl font-black font-mono">44</div>
+                <div id="pulse-energy-label" class="text-[8px] font-bold text-cyan-400 tracking-wider">NORMAL</div>
+              </div>
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono mt-2 uppercase tracking-wider">
+              QUANTUM PULSE
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- CENTER AREA: Technical Chart & Build Signal Timeline -->
+    <div class="lg:col-span-6 flex flex-col gap-4">
+      
+      <!-- TECHNICAL CHART -->
+      <div class="flex flex-col bg-[#0c1420] border border-emerald-950/40 rounded-xl p-4 font-display h-full min-h-[350px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-2">
+          <div class="flex items-center gap-2">
+            <span id="active-token-logo" class="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded font-black tracking-widest uppercase">
+              SPCX
+            </span>
+            <span id="active-token-name" class="text-xs font-bold text-slate-300">
+              SpaceX
+            </span>
+          </div>
+          <!-- Timeframes -->
+          <div class="flex bg-slate-900 border border-slate-800 rounded p-0.5 text-[10px] font-mono">
+            <button class="px-2.5 py-1 rounded font-bold bg-yellow-500 text-slate-950">M5 (Nativo)</button>
+            <button class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">M15</button>
+            <button class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">H1</button>
+          </div>
+        </div>
+
+        <!-- OHLC Row Display -->
+        <div id="ohlc-header" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono mb-2 text-slate-400 uppercase">
+          <span class="text-yellow-400 font-bold">● M5</span>
+          <span>O: <strong class="text-white">0.0018</strong></span>
+          <span>H: <strong class="text-emerald-400">0.0019</strong></span>
+          <span>L: <strong class="text-rose-400">0.0017</strong></span>
+          <span>C: <strong class="text-white">0.0018</strong></span>
+          <span class="text-rose-400 font-bold">Var -3.31%</span>
+        </div>
+
+        <!-- Main SVGs Render Canvas -->
+        <div class="flex-1 bg-[#03070c] border border-slate-900 rounded-lg relative overflow-hidden min-h-[220px]">
+          <svg id="chart-svg" class="w-full h-full cursor-crosshair">
+            <!-- Simulated candles render in js -->
+          </svg>
+        </div>
         
-        currentRsi = Math.min(99, Math.max(1, currentRsi + (changePercent * 2000) + (Math.random() * 4 - 2)));
-        candles.push({
-          time: timeStr,
-          open: Number(currentPrice.toFixed(token.decimals + 2)),
-          high: Number(highPrice.toFixed(token.decimals + 2)),
-          low: Number(lowPrice.toFixed(token.decimals + 2)),
-          close: Number(closePrice.toFixed(token.decimals + 2)),
-          volume: Math.floor(token.volume24h / 288 * (0.5 + Math.random())),
-          rsi: Number(currentRsi.toFixed(1))
-        });
-        currentPrice = closePrice;
+        <div class="flex justify-between items-center text-[9px] text-slate-500 font-mono mt-2 uppercase tracking-widest">
+          <span>Interfaz Gráfica Multi-Time-Frame Nativa</span>
+          <span class="text-yellow-600 font-bold">9 EMA y Estructura H1 Activos</span>
+        </div>
+      </div>
+
+      <!-- TIMELINE DE CONSTRUCCIÓN DE SEÑAL -->
+      <div class="flex flex-col bg-[#0c1420] border border-emerald-950/40 rounded-xl p-4 font-display h-[200px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-2">
+          <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            ⏰ Timeline de Construcción de Señal
+          </h2>
+          <span class="text-[9px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/60 px-2 py-0.5 rounded font-bold">
+            SEÑAL JOVEN (4M)
+          </span>
+        </div>
+
+        <div id="timeline-container" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+          <!-- Timelines node loaded via JS -->
+        </div>
+
+        <div class="flex justify-between items-center text-[9px] text-slate-500 font-mono mt-2 pt-1 border-t border-slate-800/50">
+          <span>Criterio de Evolución Detallado</span>
+          <span class="text-yellow-400 font-bold">Fractal Indexing Success</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR: RSI Bubble Radar -->
+    <div class="lg:col-span-3 flex flex-col">
+      <div class="flex flex-col bg-[#0c1420] border border-emerald-950/40 rounded-xl p-4 font-display h-full">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            📡 RSI Bubble Radar
+          </h2>
+          <span class="text-[9px] text-yellow-500 bg-yellow-950/40 border border-yellow-900/60 px-2 py-0.5 rounded font-mono">
+            TOP 6 EXTREMO
+          </span>
+        </div>
+
+        <!-- Radar Board -->
+        <div class="flex-1 min-h-[300px] bg-[#070e17] rounded-lg border border-slate-900 relative overflow-hidden" id="radar-container">
+          <svg class="absolute inset-0 w-full h-full">
+            <circle cx="150" cy="150" r="45" stroke="#1e293b" stroke-width="1" stroke-dasharray="2,4" fill="none"></circle>
+            <circle cx="150" cy="150" r="90" stroke="#1e293b" stroke-width="1" stroke-dasharray="2,4" fill="none"></circle>
+            <circle cx="150" cy="150" r="125" stroke="#1e293b" stroke-width="1" stroke-dasharray="2,4" fill="none"></circle>
+          </svg>
+          <div id="bubbles-layer" class="absolute inset-0">
+            <!-- Render dynamic bubble radar layers in js -->
+          </div>
+        </div>
+
+        <!-- Active quick bar info -->
+        <div class="mt-3 bg-[#070e17] border border-slate-800 rounded-lg p-2.5 flex items-center justify-between font-mono">
+          <div>
+            <div id="radar-footer-symbol" class="text-xs font-bold text-slate-200">SPCX</div>
+            <div id="radar-footer-price" class="text-[10px] text-yellow-400 mt-0.5">$0.001758</div>
+          </div>
+          <div id="radar-footer-rsi" class="text-xs text-rose-400 font-bold">RSI: 33.5</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ADD MANUAL INDIVIDUAL ASSET MODAL -->
+  <div id="add-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs hidden">
+    <div class="bg-[#0c1420] border border-slate-800 rounded-xl p-5 w-full max-w-sm">
+      <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-2 font-display">Agregar Token</h3>
+      <p class="text-[11px] text-slate-400 mb-4 uppercase">Ingresa los datos para su inicialización.</p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[10px] text-slate-400 uppercase font-mono mb-1">Símbolo (ej. JUP, WIF)</label>
+          <input type="text" id="add-symbol" placeholder="POPCAT" class="w-full bg-[#070e17] border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500 font-mono uppercase">
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-400 uppercase font-mono mb-1">Nombre Completo</label>
+          <input type="text" id="add-name" placeholder="Popcat" class="w-full bg-[#070e17] border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 text-xs font-semibold">
+          <button onclick="closeAddModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer">Cancelar</button>
+          <button onclick="submitAddIndividual()" class="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 rounded cursor-pointer">Indexar Token</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM ABSOLUTE SYSTEM CLEAR -->
+  <div id="clear-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs hidden">
+    <div class="bg-[#0c1420] border border-slate-800 rounded-xl p-5 w-full max-w-sm text-center">
+      <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-2 font-display">¿Confirmar Acción Crítica?</h3>
+      <p class="text-[11px] text-slate-300 mb-6 uppercase">
+        ¿Desea eliminar todos los tokens monitorizados de la terminal?
+      </p>
+      <div class="flex justify-center gap-3 text-xs font-semibold">
+        <button onclick="closeClearModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer">Cancelar</button>
+        <button onclick="executeClearAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded cursor-pointer font-bold">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT SYSTEM ENGINE OPERATIVO -->
+  <script>
+    // Initial stable Token List
+    let tokens = [
+      { symbol: 'SPCX', name: 'SpaceX', rsi: 34, score: 0, priority: 'LOW', price: 0.001758, change: -3.31, state: 'MANUAL', volume: '189K', buyPressure: 58, energy: 44 },
+      { symbol: 'CIA', name: 'CIA Network', rsi: 78, score: 30, priority: 'MEDIUM', price: 0.000342, change: 8.42, state: 'MANUAL', volume: '430K', buyPressure: 61, energy: 65 },
+      { symbol: 'BOBLAX', name: 'BobLax', rsi: 21, score: 35, priority: 'HIGH', price: 0.001090, change: -12.18, state: 'MANUAL', volume: '110K', buyPressure: 24, energy: 78 },
+      { symbol: 'GYM', name: 'Gym Fitness', rsi: 59, score: 25, priority: 'MEDIUM', price: 0.002241, change: 1.55, state: 'MANUAL', volume: '95K', buyPressure: 51, energy: 30 },
+      { symbol: 'GUARDIAN', name: 'Guardian Secure', rsi: 92, score: 45, priority: 'HIGH', price: 0.000851, change: 24.11, state: 'MANUAL', volume: '880K', buyPressure: 82, energy: 91 },
+      { symbol: 'FOLKCAT', name: 'Folkcat Meme', rsi: 87, score: 40, priority: 'HIGH', price: 0.01521, change: 18.50, state: 'MANUAL', volume: '1.2M', buyPressure: 74, energy: 85 }
+    ];
+
+    let activeToken = tokens[0];
+
+    // Real-time Clock loop helper
+    setInterval(() => {
+      const d = new Date();
+      const yr = d.getUTCFullYear();
+      const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const dy = String(d.getUTCDate()).padStart(2, '0');
+      const hr = String(d.getUTCHours()).padStart(2, '0');
+      const mn = String(d.getUTCMinutes()).padStart(2, '0');
+      const sc = String(d.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('utc-clock').innerText = `${yr}-${mo}-${dy} ${hr}:${mn}:${sc} UTC`;
+    }, 1000);
+
+    // Watchlist Loader
+    function renderWatchlist() {
+      const container = document.getElementById('watchlist-container');
+      const tokenCount = document.getElementById('token-count');
+      
+      if (tokens.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center text-center py-10 px-4 bg-[#070e17] rounded-lg border border-slate-800 border-dashed h-[200px]">
+            <h3 class="text-xs font-bold text-slate-300 uppercase">WATCHLIST VACÍA</h3>
+            <p class="text-[10px] text-slate-500 mt-1 uppercase max-w-[150px]">
+              IMPORTE UN ARCHIVO CSV PARA COMENZAR
+            </p>
+          </div>
+        `;
+        tokenCount.innerText = '0 Indexados';
+        return;
       }
-      return candles;
+
+      tokenCount.innerText = `${tokens.length} Indexados`;
+      container.innerHTML = '';
+      
+      tokens.forEach(token => {
+        const isActive = activeToken?.symbol === token.symbol;
+        const activeClass = isActive 
+          ? 'bg-[#1e293b]/70 border-[#eab308]' 
+          : 'bg-[#070e17] border-[#1b2735]/40 hover:border-slate-700';
+
+        const priorityClass = token.priority === 'HIGH' 
+          ? 'bg-rose-500/15 text-rose-400' 
+          : token.priority === 'MEDIUM' 
+            ? 'bg-yellow-500/15 text-yellow-400' 
+            : 'bg-slate-500/15 text-slate-400';
+
+        const changeClass = token.change >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+        container.innerHTML += `
+          <div onclick="selectToken('${token.symbol}')" class="relative flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${activeClass}">
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-white">${token.symbol}</span>
+                <span class="text-[9px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-1 rounded font-semibold uppercase">
+                  ${token.state}
+                </span>
+              </div>
+              <span class="text-[10px] text-slate-400 mt-0.5">${token.name}</span>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <div class="flex flex-col items-end">
+                <div class="text-[11px] font-bold text-cyan-400 font-mono">${token.score} PTS</div>
+                <div class="flex items-center gap-1 mt-0.5">
+                  <span class="text-[10px] font-mono font-bold ${changeClass}">${token.change >= 0 ? '+' : ''}${token.change}%</span>
+                  <span class="text-[8px] px-1 rounded font-bold ${priorityClass}">${token.priority}</span>
+                </div>
+              </div>
+              <button onclick="event.stopPropagation(); deleteToken('${token.symbol}')" class="p-1 rounded hover:bg-rose-950/40 text-slate-500 hover:text-rose-400 transition-all">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      });
     }
 
-    function App() {
-      const [tokens, setTokens] = useState(INITIAL_TOKENS);
-      const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[0]);
-      const [audioOn, setAudioOn] = useState(true);
-      const [connectionStatus, setConnectionStatus] = useState('BIRDEYE LIVE');
-      const [events, setEvents] = useState(STREAMING_ALERTS);
-      const [timeframe, setTimeframe] = useState('M5');
-      const [currentTime, setCurrentTime] = useState('');
-      const [candles, setCandles] = useState([]);
-      const [searchQuery, setSearchQuery] = useState('');
+    // Select Token sniper mode
+    function selectToken(symbol) {
+      const match = tokens.find(t => t.symbol === symbol);
+      if (match) {
+        activeToken = match;
+        renderWatchlist();
+        renderActiveTokenStats();
+        renderRadar();
+      }
+    }
 
-      // Manual add state parameters
-      const [newSymbol, setNewSymbol] = useState('');
-      const [newName, setNewName] = useState('');
-      const [newPrice, setNewPrice] = useState('1.0');
-      const [newRsi, setNewRsi] = useState('50');
-      const [showAddForm, setShowAddForm] = useState(false);
+    // Dynamic Stats loader
+    function renderActiveTokenStats() {
+      if (!activeToken) {
+        document.getElementById('buy-progress-bar').style.width = '50%';
+        document.getElementById('sell-progress-bar').style.width = '50%';
+        document.getElementById('buy-ratio').innerText = 'COMPRADORES 50%';
+        document.getElementById('sell-ratio').innerText = 'VENDEDORES 50%';
+        document.getElementById('pulse-energy-index').innerText = '--';
+        document.getElementById('pulse-energy-label').innerText = 'INACTIVO';
+        
+        document.getElementById('active-token-logo').innerText = '---';
+        document.getElementById('active-token-name').innerText = 'Ningún Token Seleccionado';
+        
+        document.getElementById('ohlc-header').innerHTML = `<span>Ningún token activo en el sniper</span>`;
+        document.getElementById('timeline-container').innerHTML = `<div class="text-slate-500 font-mono italic text-center py-6 py-4">SELECCIONE ACTIVO DEL INDEXADOR</div>`;
+        
+        drawChart([]);
+        return;
+      }
 
-      useEffect(() => {
-        const clockTimer = setInterval(() => {
-          const now = new Date();
-          const yyyy = now.getUTCFullYear();
-          const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-          const dd = String(now.getUTCDate()).padStart(2, '0');
-          const hh = String(now.getUTCHours()).padStart(2, '0');
-          const min = String(now.getUTCMinutes()).padStart(2, '0');
-          const ss = String(now.getUTCSeconds()).padStart(2, '0');
-          setCurrentTime(`${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} UTC`);
-        }, 1000);
-        return () => clearInterval(clockTimer);
-      }, []);
+      // Update Quantum Energy Pulse
+      const buyRate = activeToken.buyPressure;
+      const sellRate = 100 - buyRate;
+      document.getElementById('buy-progress-bar').style.width = `${buyRate}%`;
+      document.getElementById('sell-progress-bar').style.width = `${sellRate}%`;
+      document.getElementById('buy-ratio').innerText = `COMPRADORES ${buyRate}%`;
+      document.getElementById('sell-ratio').innerText = `VENDEDORES ${sellRate}%`;
+      document.getElementById('pulse-energy-index').innerText = activeToken.energy;
+      
+      const el = document.getElementById('pulse-energy-label');
+      const gauge = document.getElementById('pulse-gauge-circle');
+      gauge.style.strokeDashoffset = 301 - (301 * activeToken.energy) / 100;
 
-      // Set initial candles
-      useEffect(() => {
-        if (selectedToken) {
-          setCandles(generateCandles(selectedToken, 40));
+      if (activeToken.energy < 40) {
+        el.innerText = 'DÉBIL';
+        el.className = "text-slate-400 text-[8px] font-bold";
+        gauge.setAttribute('stroke', '#64748b');
+      } else if (activeToken.energy >= 75) {
+        el.innerText = 'CRÍTICO';
+        el.className = "text-rose-400 text-[8px] font-bold";
+        gauge.setAttribute('stroke', '#f43f5e');
+      } else {
+        el.innerText = 'NORMAL';
+        el.className = "text-cyan-400 text-[8px] font-bold";
+        gauge.setAttribute('stroke', '#06b6d4');
+      }
+
+      // Update Chart labels
+      document.getElementById('active-token-logo').innerText = activeToken.symbol;
+      document.getElementById('active-token-name').innerText = activeToken.name;
+      
+      const changeClass = activeToken.change >= 0 ? 'text-emerald-400' : 'text-rose-400';
+      document.getElementById('ohlc-header').innerHTML = `
+        <span class="text-yellow-400 font-bold">● M5</span>
+        <span>O: <strong class="text-white">${(activeToken.price * 0.98).toFixed(6)}</strong></span>
+        <span>H: <strong class="text-emerald-400">${(activeToken.price * 1.02).toFixed(6)}</strong></span>
+        <span>L: <strong class="text-rose-400">${(activeToken.price * 0.97).toFixed(6)}</strong></span>
+        <span>C: <strong class="text-white">${activeToken.price.toFixed(6)}</strong></span>
+        <span class="${changeClass} font-bold">Var. ${activeToken.change >= 0 ? '+' : ''}${activeToken.change}%</span>
+      `;
+
+      // Update Radar Bottom Quick Bar
+      document.getElementById('radar-footer-symbol').innerText = activeToken.symbol;
+      document.getElementById('radar-footer-price').innerText = `$${activeToken.price.toFixed(6)}`;
+      
+      const rsiEl = document.getElementById('radar-footer-rsi');
+      rsiEl.innerText = `RSI: ${activeToken.rsi}`;
+      if (activeToken.rsi >= 70) rsiEl.className = "text-rose-400 font-bold text-xs";
+      else if (activeToken.rsi <= 35) rsiEl.className = "text-emerald-400 font-bold text-xs";
+      else rsiEl.className = "text-yellow-500 font-bold text-xs";
+
+      // Render signals timeline list
+      const timeC = document.getElementById('timeline-container');
+      timeC.innerHTML = '';
+      
+      const signals = [
+        { title: `RSI ingresa en extremo (${activeToken.rsi})`, desc: 'Alerta del oscilador cuántico para trades especulativos.', type: activeToken.rsi >= 70 ? 'danger' : activeToken.rsi <= 35 ? 'success' : 'info', time: '1m' },
+        { title: 'EMA 9 Adaptativa calculada', desc: `Zona de pivote técnico local establecida en $${(activeToken.price * 0.99).toFixed(6)}.`, type: 'warning', time: '4m' },
+        { title: 'Volumen y presión de compras', desc: `Nivel actual de demanda spot registrado en un ${activeToken.buyPressure}%.`, type: 'info', time: '7m' }
+      ];
+
+      signals.forEach(sig => {
+        let borderCls = 'border-blue-900/40 bg-blue-950/20 text-slate-200';
+        let bullet = '🔵';
+        if (sig.type === 'danger') { borderCls = 'border-rose-900/40 bg-rose-950/20 text-rose-200'; bullet = '🔴'; }
+        else if (sig.type === 'success') { borderCls = 'border-emerald-900/40 bg-emerald-950/20 text-emerald-200'; bullet = '🟢'; }
+        else if (sig.type === 'warning') { borderCls = 'border-yellow-900/40 bg-yellow-950/20 text-yellow-200'; bullet = '🟡'; }
+
+        timeC.innerHTML += `
+          <div class="flex items-center justify-between p-2 rounded border ${borderCls}">
+            <div class="flex items-center gap-2">
+              <span>${bullet}</span>
+              <div class="flex flex-col">
+                <span class="font-bold">${sig.title}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5">${sig.desc}</span>
+              </div>
+            </div>
+            <span class="text-[9px] font-mono text-slate-500">(${sig.time})</span>
+          </div>
+        `;
+      });
+
+      // Generated Mock history for Technical Chart SVG
+      const candleHistory = [];
+      let base = activeToken.price * 0.95;
+      for (let i = 0; i < 40; i++) {
+        const change = (Math.random() * 0.04 - 0.02) * base;
+        const open = base;
+        const close = base + change;
+        const high = Math.max(open, close) + Math.random() * 0.01 * base;
+        const low = Math.min(open, close) - Math.random() * 0.01 * base;
+        
+        candleHistory.push({ open, high, low, close });
+        base = close;
+      }
+      
+      drawChart(candleHistory);
+    }
+
+    // Chart SVG Draw logic 
+    function drawChart(candles) {
+      const svg = document.getElementById('chart-svg');
+      svg.innerHTML = '';
+      if (candles.length === 0) return;
+
+      const width = svg.clientWidth || 600;
+      const height = svg.clientHeight || 230;
+      const margin = { top: 20, right: 60, bottom: 20, left: 20 };
+
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
+
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+      const maxPrice = Math.max(...highs);
+      const minPrice = Math.min(...lows);
+      const priceRange = maxPrice - minPrice || 0.0001;
+
+      // Draw horizontal grid guide lines
+      for (let i = 0; i < 4; i++) {
+        const yCoord = margin.top + (chartHeight * i) / 3;
+        const gridPrice = maxPrice - (priceRange * i) / 3;
+        
+        svg.innerHTML += `
+          <line x1="${margin.left}" y1="${yCoord}" x2="${width - margin.right}" y2="${yCoord}" stroke="#1e293b" stroke-width="0.5" stroke-dasharray="3,5" class="opacity-50"></line>
+          <text x="${width - 5}" y="${yCoord + 3}" fill="#64748b" font-size="8" font-family="monospace" text-anchor="end">${gridPrice.toFixed(6)}</text>
+        `;
+      }
+
+      // Draw Support & Resistance zones in dotted color lines
+      const supportPrice = minPrice + priceRange * 0.15;
+      const resistancePrice = maxPrice - priceRange * 0.15;
+
+      const ySup = margin.top + chartHeight - ((supportPrice - minPrice) / priceRange) * chartHeight;
+      const yRes = margin.top + chartHeight - ((resistancePrice - minPrice) / priceRange) * chartHeight;
+
+      svg.innerHTML += `
+        <line x1="${margin.left}" y1="${yRes}" x2="${width - margin.right}" y2="${yRes}" stroke="#f43f5e" stroke-width="0.8" stroke-dasharray="2,4" class="opacity-80"></line>
+        <text x="${margin.left + 5}" y="${yRes - 4}" fill="#f43f5e" font-size="7" font-family="monospace">R1 PRINCIPAL : ${resistancePrice.toFixed(6)}</text>
+        
+        <line x1="${margin.left}" y1="${ySup}" x2="${width - margin.right}" y2="${ySup}" stroke="#10b981" stroke-width="0.8" stroke-dasharray="2,4" class="opacity-80"></line>
+        <text x="${margin.left + 5}" y="${ySup - 4}" fill="#10b981" font-size="7" font-family="monospace">S1 PRINCIPAL : ${supportPrice.toFixed(6)}</text>
+      `;
+
+      // Render Candlesticks
+      const candleWidth = chartWidth / candles.length;
+      
+      const emaPoints = [];
+
+      candles.forEach((candle, idx) => {
+        const x = margin.left + idx * candleWidth + candleWidth / 2;
+        const yOpen = margin.top + chartHeight - ((candle.open - minPrice) / priceRange) * chartHeight;
+        const yClose = margin.top + chartHeight - ((candle.close - minPrice) / priceRange) * chartHeight;
+        const yHigh = margin.top + chartHeight - ((candle.high - minPrice) / priceRange) * chartHeight;
+        const yLow = margin.top + chartHeight - ((candle.low - minPrice) / priceRange) * chartHeight;
+
+        const isGreen = candle.close >= candle.open;
+        const strokeColor = isGreen ? '#10b981' : '#f43f5e';
+        const rectHeight = Math.max(2, Math.abs(yClose - yOpen));
+        const rectY = Math.min(yOpen, yClose);
+
+        svg.innerHTML += `
+          <line x1="${x}" y1="${yHigh}" x2="${x}" y2="${yLow}" stroke="${strokeColor}" stroke-width="1"></line>
+          <rect x="${x - candleWidth * 0.3}" y="${rectY}" width="${Math.max(1, candleWidth * 0.6)}" height="${rectHeight}" fill="${strokeColor}" stroke="${strokeColor}" rx="1"></rect>
+        `;
+
+        // Calculate a 9-period EMA points on close values
+        if (idx >= 4) {
+          const slice = candles.slice(idx - 4, idx + 1);
+          const emaVal = slice.reduce((sum, c) => sum + c.close, 0) / slice.length;
+          const yEma = margin.top + chartHeight - ((emaVal - minPrice) / priceRange) * chartHeight;
+          emaPoints.push({ x, y: yEma });
         }
-      }, [selectedToken?.id]);
+      });
 
-      // Simulation Loop
-      useEffect(() => {
-        let tick = 0;
-        const simTimer = setInterval(() => {
-          tick++;
-          
-          // Move status around
-          if (tick % 15 === 0) {
-            setConnectionStatus('RECONECTANDO');
-            playSound('reconnect', audioOn);
-            setTimeout(() => setConnectionStatus('FAILOVER ACTIVO'), 2000);
-          } else if (tick % 25 === 0) {
-            setConnectionStatus('BIRDEYE LIVE');
-            playSound('success', audioOn);
-          }
-
-          // Random updates
-          setTokens(prev => prev.map(t => {
-            const change = (Math.random() - 0.495) * 0.016;
-            const nextPrice = Math.max(0.00001, t.price * (1 + change));
-            let nextRsi = Math.min(98, Math.max(2, t.rsi + (change * 700) + (Math.random() * 2 - 1)));
-            const points = Math.round(Math.abs(nextRsi - 50) * (nextRsi < 30 || nextRsi > 70 ? 2 : 1.2));
-            
-            return {
-              ...t,
-              price: nextPrice,
-              rsi: nextRsi,
-              points,
-              priceChange24h: Number((t.priceChange24h + change * 100).toFixed(2))
-            };
-          }));
-        }, 3000);
-
-        return () => clearInterval(simTimer);
-      }, [audioOn]);
-
-      // Connect updated variables to active chart
-      useEffect(() => {
-        if (selectedToken) {
-          const updated = tokens.find(t => t.id === selectedToken.id);
-          if (updated) {
-            setSelectedToken(updated);
-            setCandles(prev => {
-              if (prev.length === 0) return prev;
-              const next = [...prev];
-              next[next.length - 1] = {
-                ...next[next.length - 1],
-                close: updated.price,
-                high: Math.max(next[next.length - 1].high, updated.price),
-                low: Math.min(next[next.length - 1].low, updated.price),
-                rsi: Number(updated.rsi.toFixed(1))
-              }
-              return next;
-            });
-          }
+      // Draw EMA adaptative line path
+      if (emaPoints.length > 0) {
+        let pathD = `M ${emaPoints[0].x} ${emaPoints[0].y}`;
+        for (let i = 1; i < emaPoints.length; i++) {
+          pathD += ` L ${emaPoints[i].x} ${emaPoints[i].y}`;
         }
-      }, [tokens]);
+        svg.innerHTML += `
+          <path d="${pathD}" fill="none" stroke="#eab308" stroke-width="1.5" stroke-linecap="round" class="opacity-90"></path>
+        `;
+      }
+    }
 
-      const handleAddToken = (e) => {
-        e.preventDefault();
-        if (!newSymbol) return;
-        const sym = newSymbol.toUpperCase();
-        const priceVal = parseFloat(newPrice) || 1.1;
-        const rsiVal = parseFloat(newRsi) || 50;
+    // Radar Bubbles Plotter
+    function renderRadar() {
+      const parent = document.getElementById('bubbles-layer');
+      parent.innerHTML = '';
+      if (tokens.length === 0) return;
 
-        const brandNew = {
-          id: sym.toLowerCase(),
-          symbol: sym,
-          name: newName || `${sym} Token`,
-          price: priceVal,
-          rsi: rsiVal,
-          decimals: priceVal > 100 ? 2 : 4,
-          volume24h: 3500000,
-          momentum: Math.round((rsiVal - 50) * 2),
-          priority: rsiVal < 30 || rsiVal > 70 ? 'CRÍTICA' : 'ALTA',
-          points: 40,
-          priceChange24h: 2.50,
-          buyPressure: Math.round(rsiVal * 0.8 + 10),
-          s1: priceVal * 0.94,
-          s2: priceVal * 0.88,
-          r1: priceVal * 1.06,
-          r2: priceVal * 1.12
-        };
+      const containerWidth = 280;
+      const containerHeight = 280;
+      const cx = containerWidth / 2;
+      const cy = containerHeight / 2;
 
-        setTokens(prev => [brandNew, ...prev]);
-        setSelectedToken(brandNew);
-        playSound('success', audioOn);
+      // Find token with highest RSI as absolute target focus
+      const maxToken = tokens.reduce((max, t) => (t.rsi > (max?.rsi || 0) ? t : max), tokens[0]);
 
-        setNewSymbol('');
-        setNewName('');
-        setShowAddForm(false);
+      tokens.forEach((token, index) => {
+        let isMax = token.symbol === maxToken.symbol;
+        
+        let tx = cx;
+        let ty = cy;
+
+        if (!isMax) {
+          // Put on orbital planes distributed symmetrically
+          const rsiDist = Math.abs(50 - token.rsi);
+          let r = 85;
+          if (rsiDist > 25) r = 115;
+          else if (rsiDist < 10) r = 45;
+
+          const angle = ((index * 360) / (tokens.length - 1) + 20) * (Math.PI / 180);
+          tx = cx + r * Math.cos(angle);
+          ty = cy + r * Math.sin(angle);
+        }
+
+        const isSelected = activeToken?.symbol === token.symbol;
+        const themeColor = token.rsi >= 70 ? 'border-rose-500 bg-rose-950/40 text-rose-400' : token.rsi <= 35 ? 'border-emerald-500 bg-emerald-950/40 text-emerald-400' : 'border-orange-500 bg-orange-950/20 text-orange-400';
+        const ringPlus = isSelected ? 'ring-2 ring-yellow-400 z-30 scale-105' : 'z-20';
+
+        if (isMax) {
+          parent.innerHTML += `
+            <div onclick="selectToken('${token.symbol}')" style="left: ${cx}px; top: ${cy}px; transform: translate(-50%, -50%)" class="absolute p-2.5 rounded-full border border-yellow-500/80 bg-rose-950/70 cursor-pointer select-none text-center hover:scale-105 ${ringPlus}">
+              <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-[7px] bg-slate-900 border border-yellow-500/30 text-yellow-400 px-1 rounded uppercase whitespace-nowrap font-mono tracking-widest">momentum max</span>
+              <span class="text-[9px] font-black text-white block">${token.symbol}</span>
+              <span class="text-xs font-mono font-black text-rose-400">${token.rsi}</span>
+            </div>
+          `;
+        } else {
+          parent.innerHTML += `
+            <div onclick="selectToken('${token.symbol}')" style="left: ${tx}px; top: ${ty}px; transform: translate(-50%, -50%)" class="absolute flex flex-col items-center justify-center rounded-full w-11 h-11 border ${themeColor} cursor-pointer transition-transform hover:scale-110 select-none ${ringPlus}">
+              <span class="text-[8px] font-bold text-white uppercase">${token.symbol}</span>
+              <span class="text-[9px] font-mono font-bold leading-tight">${Math.round(token.rsi)}</span>
+            </div>
+          `;
+        }
+      });
+    }
+
+    // Trash bin individual deletion capability
+    function deleteToken(symbol) {
+      tokens = tokens.filter(t => t.symbol !== symbol);
+      if (activeToken?.symbol === symbol) {
+        activeToken = tokens.length > 0 ? tokens[0] : null;
+      }
+      renderWatchlist();
+      renderActiveTokenStats();
+      renderRadar();
+    }
+
+    // Empty global clear dialog triggers
+    function confirmClearAll() {
+      document.getElementById('clear-modal').classList.remove('hidden');
+    }
+    function closeClearModal() {
+      document.getElementById('clear-modal').classList.add('hidden');
+    }
+    function executeClearAll() {
+      tokens = [];
+      activeToken = null;
+      closeClearModal();
+      renderWatchlist();
+      renderActiveTokenStats();
+      renderRadar();
+    }
+
+    // Modal custom addition functions
+    function openAddModal() {
+      document.getElementById('add-modal').classList.remove('hidden');
+    }
+    function closeAddModal() {
+      document.getElementById('add-modal').classList.add('hidden');
+    }
+    function submitAddIndividual() {
+      const sym = document.getElementById('add-symbol').value.trim().toUpperCase();
+      const nm = document.getElementById('add-name').value.trim();
+
+      if (!sym) return;
+
+      if (tokens.some(t => t.symbol === sym)) {
+        alert("El activo ya está indexado.");
+        return;
+      }
+
+      const randomRsi = Math.floor(Math.random() * 70) + 20;
+      const newToken = {
+        symbol: sym,
+        name: nm || sym,
+        rsi: randomRsi,
+        score: Math.round(Math.abs(50 - randomRsi) * 1.5),
+        priority: randomRsi > 70 || randomRsi < 30 ? 'HIGH' : 'MEDIUM',
+        price: 0.0012 + Math.random() * 0.005,
+        change: Number((Math.random() * 14 - 7).toFixed(2)),
+        state: 'MANUAL',
+        volume: '230K',
+        buyPressure: Math.floor(Math.random() * 40) + 30,
+        energy: Math.round(Math.abs(50 - randomRsi) * 1.8)
       };
 
-      const filteredList = tokens.filter(t => t.symbol.toLowerCase().includes(searchQuery.toLowerCase()));
+      tokens.unshift(newToken);
+      activeToken = newToken;
 
-      return (
-        <div className="h-screen w-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-          
-          {/* HEADER BAR */}
-          <header className="flex items-center justify-between px-5 py-3 border-b border-blue-900/45 bg-slate-950">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded bg-yellow-500/10 border border-yellow-500/50 flex items-center justify-center text-yellow-500 font-bold">🎯</div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-base font-black text-yellow-500">TOKEN SNIPER DISPARADOR</span>
-                  <span className="text-[9px] bg-yellow-500 text-slate-950 font-bold px-1 rounded">V5.2</span>
-                </div>
-                <span className="block text-[9px] tracking-wider text-slate-400 font-mono">STANDALONE WEB ENGINE</span>
-              </div>
-            </div>
+      closeAddModal();
+      
+      // Clean up fields
+      document.getElementById('add-symbol').value = '';
+      document.getElementById('add-name').value = '';
 
-            <div className="flex items-center gap-3 font-mono text-xs">
-              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-1 border border-emerald-500/20 rounded font-bold">
-                {connectionStatus}
-              </span>
-              <button 
-                onClick={() => setAudioOn(!audioOn)}
-                className={`px-2 py-1 border rounded transition-colors ${audioOn ? 'border-yellow-500/40 text-yellow-400 bg-yellow-500/5' : 'border-slate-800 text-slate-500'}`}
-              >
-                {audioOn ? '🔈 AUDIO ON' : '🔇 AUDIO OFF'}
-              </button>
-              <div className="text-right">
-                <span className="text-slate-300 font-bold block">{currentTime || 'UTC LOADING...'}</span>
-                <span className="text-[8px] text-emerald-400 block tracking-widest">SISTEMA SIMULADOR ACTIVO</span>
-              </div>
-            </div>
-          </header>
-
-          {/* GRID PANETS MATCHING 100% SCREEN */}
-          <main className="flex-1 min-h-0 grid grid-cols-12 gap-3 p-3 bg-slate-950">
-            
-            {/* LEFT ROW: Watchlist */}
-            <div className="col-span-3 flex flex-col gap-3 min-h-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                <span className="text-xs font-mono font-black text-slate-300">INDEXADOR SOLANA</span>
-                <button 
-                  onClick={() => { playSound('click', audioOn); setShowAddForm(!showAddForm); }}
-                  className="px-1.5 py-0.5 text-[10px] bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold rounded"
-                >
-                  Agregar Token (+)
-                </button>
-              </div>
-
-              {showAddForm && (
-                <form onSubmit={handleAddToken} className="p-2 border border-yellow-500/20 bg-slate-900 rounded-lg space-y-1.5">
-                  <input type="text" required placeholder="SYMBOL" value={newSymbol} onChange={e=>setNewSymbol(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
-                  <input type="text" placeholder="NAME" value={newName} onChange={e=>setNewName(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <input type="number" placeholder="PRICE" step="any" value={newPrice} onChange={e=>setNewPrice(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
-                    <input type="number" placeholder="RSI" value={newRsi} onChange={e=>setNewRsi(e.target.value)} className="w-full bg-slate-950 text-slate-200 border border-slate-800 p-1 text-xs rounded" />
-                  </div>
-                  <button type="submit" className="w-full py-1 text-xs font-bold bg-yellow-500 text-slate-950 rounded">INDEXAR</button>
-                </form>
-              )}
-
-              <input 
-                type="text" 
-                placeholder="Filtro rápido..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 p-1.5 text-xs rounded font-mono text-slate-200 focus:outline-none" 
-              />
-
-              <div className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin">
-                {filteredList.map(t => {
-                  const isS = t.id === selectedToken?.id;
-                  return (
-                    <div 
-                      key={t.id}
-                      onClick={() => { playSound('select', audioOn); setSelectedToken(t); }} 
-                      className={`p-2 border rounded-lg cursor-pointer flex items-center justify-between hover:bg-slate-900/60 ${isS ? 'border-yellow-500 bg-blue-950/20' : 'border-slate-800 bg-slate-950/50'}`}
-                    >
-                      <div>
-                        <span className="font-mono text-xs font-bold block text-slate-200">{t.symbol}</span>
-                        <span className="text-[9px] text-slate-500">{t.name}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-mono font-bold block">${t.price.toLocaleString(undefined, {maximumFractionDigits: t.decimals})}</span>
-                        <span className={`text-[10px] font-mono font-bold px-1 rounded ${t.rsi <= 30 ? 'bg-emerald-500/10 text-emerald-400' : t.rsi >= 70 ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-800'}`}>
-                          RSI: {t.rsi.toFixed(0)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* MIDDLE ROW: Candle chart & logs */}
-            <div className="col-span-6 flex flex-col gap-3 min-h-0">
-              
-              {/* Dynamic chart canvas */}
-              <div className="flex-1 min-h-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                  <span className="text-xs font-mono font-black text-yellow-500">{selectedToken?.symbol} chart</span>
-                  <div className="flex gap-1">
-                    {['M5', 'M15', 'H1'].map(tf => (
-                      <button key={tf} onClick={() => { playSound('click', audioOn); setTimeframe(tf); }} className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded ${timeframe === tf ? 'bg-yellow-500 text-slate-950' : 'text-slate-400 bg-slate-900'}`}>{tf}</button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SVG candle elements */}
-                <div className="flex-1 mt-2 relative min-h-0">
-                  <svg className="w-full h-full min-h-[180px]">
-                    {/* Render random candle models lines */}
-                    {candles.map((c, idx) => {
-                      const spacing = 12;
-                      const x = 30 + idx * spacing;
-                      const min = Math.min(...candles.map(c => c.low));
-                      const max = Math.max(...candles.map(c => c.high));
-                      const range = max - min || 1;
-                      
-                      const getY = (val) => 180 - ((val - min) / range) * 140;
-                      
-                      const yOpen = getY(c.open);
-                      const yClose = getY(c.close);
-                      const yHigh = getY(c.high);
-                      const yLow = getY(c.low);
-                      const isUp = c.close >= c.open;
-
-                      return (
-                        <g key={idx}>
-                          <line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={isUp ? '#10b981' : '#f43f5e'} strokeWidth={1} />
-                          <rect x={x - 3} y={Math.min(yOpen, yClose)} width={6} height={Math.max(2, Math.abs(yOpen - yClose))} fill={isUp ? '#064e3b' : '#4c0519'} stroke={isUp ? '#10b981' : '#f43f5e'} strokeWidth={1} />
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-              </div>
-
-              {/* Chronological signals events logger */}
-              <div className="h-[140px] shrink-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col">
-                <span className="text-xs font-mono font-black text-slate-400 border-b border-slate-800 pb-1 flex items-center justify-between">
-                  <span>TIMELINE EVENTOS</span>
-                  <span className="text-[10px] text-yellow-500 animate-pulse">● EN VIVO</span>
-                </span>
-                <div className="flex-1 overflow-y-auto space-y-1.5 mt-2 scrollbar-thin">
-                  {events.map((e, idx) => (
-                    <div key={idx} className="p-1.5 border border-slate-800 bg-slate-950/60 rounded text-[10px] font-mono flex items-center justify-between">
-                      <span className="text-slate-200"><span className="text-yellow-500 font-bold">[{e.tokenSymbol}]</span> {e.message}</span>
-                      <span className="text-slate-500 text-[8px]">{e.minutesAgo}M atras</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT ROW: Bubble Radar & Target Card */}
-            <div className="col-span-3 flex flex-col gap-3 min-h-0">
-              
-              {/* Concentric Bubble Radar widget */}
-              <div className="flex-1 min-h-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col justify-between">
-                <span className="text-xs font-mono font-black text-slate-300 border-b border-slate-800 pb-1 block">RSI BUBBLE RADAR</span>
-                
-                <div className="flex-1 flex items-center justify-center relative my-2">
-                  {/* Circular orbits indicators */}
-                  <div className="absolute w-[160px] h-[160px] border border-blue-900/40 rounded-full flex items-center justify-center">
-                    <div className="absolute w-[100px] h-[100px] border border-dashed border-yellow-500/25 rounded-full animate-spin"></div>
-                  </div>
-
-                  {/* Bubbles representation */}
-                  <div className="relative w-full h-[180px] overflow-hidden flex items-center justify-center">
-                    {tokens.map((t, index) => {
-                      const angle = (index * (360 / tokens.length)) * Math.PI / 180;
-                      const rad = 65;
-                      const x = 75 + Math.cos(angle) * rad;
-                      const y = 80 + Math.sin(angle) * rad;
-                      const isS = t.id === selectedToken?.id;
-
-                      return (
-                        <div 
-                          key={t.id}
-                          onClick={() => { playSound('select', audioOn); setSelectedToken(t); }}
-                          style={{ left: `${x}px`, top: `${y}px` }}
-                          className={`absolute w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[9px] font-black cursor-pointer transition-transform duration-200 hover:scale-110 ${isS ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-slate-700 bg-slate-950 text-slate-300'}`}
-                        >
-                          {t.symbol.substring(0, 3)}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <span className="text-[9px] font-mono text-center text-slate-500 uppercase block">CLIC EN BURBUJA PARA DISPARAR OBJETIVO 🎯</span>
-              </div>
-
-              {/* Highlight active card */}
-              <div className="h-[140px] shrink-0 bg-slate-900/30 border border-blue-900/20 rounded-xl p-3 flex flex-col justify-between">
-                <span className="text-xs font-mono font-black text-rose-500">SNIPER OBJETIVO</span>
-                {selectedToken ? (
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-lg font-mono font-black text-slate-200">{selectedToken.symbol}</span>
-                      <span className="text-xs text-yellow-500 font-mono font-bold">${selectedToken.price.toLocaleString(undefined, {maximumFractionDigits: selectedToken.decimals})}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-400">RSI: {selectedToken.rsi.toFixed(1)}</span>
-                      <span className={selectedToken.priceChange24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{selectedToken.priceChange24h >= 0 ? '+' : ''}{selectedToken.priceChange24h}% (24H)</span>
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-slate-500 text-xs font-mono block">Selecciones un activo</span>
-                )}
-                
-                <a 
-                  href={selectedToken ? `https://birdeye.so/token/${selectedToken.symbol}` : '#'} 
-                  target="_blank" 
-                  className="w-full text-center py-1 bg-yellow-500 text-slate-950 font-bold font-mono text-[11px] rounded"
-                >
-                  VER EN BIRDEYE
-                </a>
-              </div>
-
-            </div>
-
-          </main>
-        </div>
-      );
+      renderWatchlist();
+      renderActiveTokenStats();
+      renderRadar();
     }
 
-    const container = document.getElementById('root');
-    const root = ReactDOM.createRoot(container);
-    root.render(<App />);
+    // Parser CSV lists loader
+    function handleCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        
+        lines.forEach((line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const parts = trimmed.split(/[,;]/);
+          const sym = parts[0]?.trim().toUpperCase();
+          const nm = parts[1]?.trim() || sym;
+
+          if (sym && sym !== 'SYMBOL' && !tokens.some(t => t.symbol === sym)) {
+            const randomRsi = Math.floor(Math.random() * 70) + 20;
+            tokens.push({
+              symbol: sym,
+              name: nm,
+              rsi: randomRsi,
+              score: Math.round(Math.abs(50 - randomRsi) * 1.5),
+              priority: randomRsi > 70 || randomRsi < 30 ? 'HIGH' : 'MEDIUM',
+              price: 0.0008 + Math.random() * 0.01,
+              change: Number((Math.random() * 10 - 5).toFixed(2)),
+              state: 'MANUAL',
+              volume: '150K',
+              buyPressure: Math.floor(Math.random() * 40) + 30,
+              energy: Math.round(Math.abs(50 - randomRsi) * 1.8)
+            });
+          }
+        });
+
+        if (tokens.length > 0) {
+          activeToken = tokens[0];
+        }
+        renderWatchlist();
+        renderActiveTokenStats();
+        renderRadar();
+      };
+      reader.readAsText(file);
+    }
+
+    // Initial load parameters compilation
+    window.onload = () => {
+      renderWatchlist();
+      renderActiveTokenStats();
+      renderRadar();
+    };
+
+    // Quick Resize observer sync window coordinates
+    window.onresize = () => {
+      if (activeToken) {
+        renderActiveTokenStats();
+      }
+    };
   </script>
 </body>
 </html>
