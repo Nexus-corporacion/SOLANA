@@ -233,25 +233,17 @@
     // Back populate custom visual candles walk (timeframes)
     function generateInitialCandles(basePrice, granularitySeconds, count = 100) {
       const candles = [];
-      let currentClose = basePrice;
       const nowEpoch = Math.floor(Date.now() / 1000);
 
       for (let i = 0; i < count; i++) {
         const time = nowEpoch - i * granularitySeconds;
-        const pct = (Math.random() - 0.48) * 0.015; // slightly bullish drift
-        const open = currentClose * (1 + pct);
-        const high = Math.max(open, currentClose) * (1 + Math.random() * 0.006);
-        const low = Math.min(open, currentClose) * (1 - Math.random() * 0.006);
-        
         candles.unshift({
           time,
-          open,
-          high,
-          low,
-          close: currentClose,
+          open: basePrice,
+          high: basePrice,
+          low: basePrice,
+          close: basePrice,
         });
-
-        currentClose = open;
       }
 
       return candles;
@@ -495,19 +487,26 @@
         { name: 'SOL', addr: 'So11111111111111111111111111111111111111112' }
       ];
 
-      const handleAddSingle = (e) => {
+      const handleAddSingle = async (e) => {
         if(e) e.preventDefault();
         setStatusMsg('');
         const trimmed = singleValue.trim();
         if (!trimmed) return;
 
         setIsLoading(true);
-        setTimeout(() => {
-          onAddToken(trimmed);
+        try {
+          const success = await onAddToken(trimmed);
           setSingleValue('');
           setIsLoading(false);
-          setStatusMsg('¡Módulo de indexación cargada con éxito!');
-        }, 350);
+          if (success) {
+            setStatusMsg('¡Módulo de indexación cargada con éxito!');
+          } else {
+            setStatusMsg('Error: El token no existe o no hay datos reales en DexScreener.');
+          }
+        } catch (err) {
+          setIsLoading(false);
+          setStatusMsg('Error: Fallo al comunicarse con el oráculo de datos.');
+        }
       };
 
       const handleBatchImport = () => {
@@ -520,7 +519,7 @@
 
         const parsedAddresses = parseAndExtractAddresses(cleaned);
         if (parsedAddresses.length === 0) {
-          setStatusMsg('No se detectaron direcciones de contract Solana.');
+          setStatusMsg('No se detectaron direcciones de contrato Solana.');
           return;
         }
 
@@ -587,7 +586,7 @@
             <button
               onClick={() => { setActiveTab('single'); setStatusMsg(''); }}
               className={`flex-1 py-1.5 text-[10px] font-mono rounded font-bold transition-all cursor-pointer ${
-                activeTab === 'single' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'single' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-250'
               }`}
             >
               Individual (+)
@@ -595,7 +594,7 @@
             <button
               onClick={() => { setActiveTab('csv'); setStatusMsg(''); }}
               className={`flex-1 py-1.5 text-[10px] font-mono rounded font-bold transition-all cursor-pointer ${
-                activeTab === 'csv' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'csv' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-250'
               }`}
             >
               Cargar CSV / TXT 📁
@@ -620,13 +619,13 @@
                 <button
                   type="submit"
                   disabled={isLoading || !singleValue.trim()}
-                  className="px-3 bg-gold-corp hover:bg-gold-bright text-navy-dark font-mono text-xs font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                  className="px-3 bg-gold-corp hover:bg-gold-bright text-navy-dark font-mono text-xs font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 shrink-0"
                 >
                   {isLoading ? <Icon name="loader-2" className="w-3.5 h-3.5 animate-spin" /> : 'Indexar'}
                 </button>
               </form>
 
-              <div className="flex flex-wrap items-center gap-1.5 select-none">
+              <div className="flex flex-wrap items-center gap-1.5 select-none border-t border-navy-border/40 pt-2.5">
                 <span className="text-[9px] text-slate-500 font-mono font-bold">Rápidos:</span>
                 {quickSuggestions.map(s => (
                   <button
@@ -662,15 +661,15 @@
                   <Icon name="upload" className="w-6 h-6 mx-auto animate-bounce" />
                 </div>
                 <span className="text-[10px] font-bold text-slate-300">Arrastra tu archivo CSV o haz click aquí</span>
-                <span className="text-[8px] text-slate-500 mt-1">Soporta cualquier lista de Solana Mints (CA)</span>
+                <span className="text-[8px] text-slate-550 mt-1">Soporta cualquier lista de Solana Mints (CA)</span>
               </div>
 
               <textarea
                 rows={3}
                 value={csvValue}
                 onChange={(e) => setCsvValue(e.target.value)}
-                placeholder="Pega cualquier CSV con Direcciones de Solana...&#10;Address,Symbol,Name&#10;EKpQGSJtjMFqKZ9m...,WIF,dogwifhat"
-                className="w-full bg-navy-dark border border-navy-border focus:border-gold-corp outline-none rounded-lg p-2 text-[9px] text-slate-300 placeholder-slate-600 font-mono resize-none"
+                placeholder="Pega cualquier CSV con Direcciones de Solana...&#10;Address,Symbol,Name&#10;EKpQGSJtjMFqKZ9...,WIF,dogwifhat"
+                className="w-full bg-navy-dark border border-navy-border focus:border-gold-corp outline-none rounded-lg p-2 text-[9px] text-slate-300 placeholder-slate-650 font-mono resize-none h-[60px]"
               />
 
               <div className="flex items-center gap-2 select-none">
@@ -685,7 +684,7 @@
 
                 <button
                   onClick={onClearWatchlist}
-                  className="py-1.5 px-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
+                  className="py-1.5 px-3 border border-red-500/30 text-red-450 hover:bg-red-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
                   title="Eliminar todos los tokens indexados"
                 >
                   <Icon name="trash-2" className="w-3.5 h-3.5" />
@@ -697,7 +696,7 @@
 
           {statusMsg && (
             <div className={`text-[9.5px] font-mono text-center p-1 border rounded select-none ${
-              statusMsg.includes('éxito') || statusMsg.includes('exitosamente') || statusMsg.includes('contratos') || statusMsg.includes('leído')
+              statusMsg.includes('éxito') || statusMsg.includes('leído')
                 ? 'text-cyber-green border-cyber-green/20 bg-cyber-green/5' 
                 : 'text-rose-400 border-rose-500/20 bg-rose-500/5'
             }`}>
@@ -708,14 +707,23 @@
       );
     }
 
-    // Concentric Rsi Bubble Radar using D3 Force Engine simulation
-    function StandaloneRsiBubbleRadar({ tokens, activeAddress, onSelectToken, rsiTimeframe }) {
-      const containerRef = useRef(null);
-      const [dimensions, setDimensions] = useState({ width: 280, height: 260 });
-      const [tick, setTick] = useState(0);
+      // Concentric Rsi Bubble Radar using D3 Force Engine simulation
+      function StandaloneRsiBubbleRadar({ tokens, activeAddress, onSelectToken, rsiTimeframe }) {
+        const containerRef = useRef(null);
+        const [dimensions, setDimensions] = useState({ width: 280, height: 260 });
+        const [tick, setTick] = useState(0);
 
-      const nodesRef = useRef([]);
-      const simRef = useRef(null);
+        const nodesRef = useRef([]);
+        const simRef = useRef(null);
+
+        // Mathematical deterministic scatter helper replacing Math.random()
+        const getDeterministicScatter = (symbol, seed) => {
+          let code = 0;
+          for (let i = 0; i < symbol.length; i++) {
+            code += symbol.charCodeAt(i);
+          }
+          return (((code * seed) % 100) / 100) - 0.5;
+        };
 
       useEffect(() => {
         if (!containerRef.current) return;
@@ -784,8 +792,8 @@
             score: t.score,
             isActive: t.address === activeAddress,
             isMostExtreme,
-            x: existing ? existing.x : width / 2 + (Math.random() - 0.5) * 50,
-            y: existing ? existing.y : height / 2 + (Math.random() - 0.5) * 50,
+            x: existing ? existing.x : width / 2 + getDeterministicScatter(t.symbol, 7) * 50,
+            y: existing ? existing.y : height / 2 + getDeterministicScatter(t.symbol, 13) * 50,
             vx: existing ? existing.vx : 0,
             vy: existing ? existing.vy : 0,
           };
@@ -794,8 +802,8 @@
             node.targetX = width / 2;
             node.targetY = height / 2;
           } else if (dev <= 5) {
-            node.targetX = width / 2 + (Math.random() - 0.5) * 15;
-            node.targetY = height / 2 + (Math.random() - 0.5) * 15;
+            node.targetX = width / 2 + getDeterministicScatter(t.symbol, 3) * 15;
+            node.targetY = height / 2 + getDeterministicScatter(t.symbol, 5) * 15;
           } else {
             const hash = t.symbol.charCodeAt(0) + (t.symbol.charCodeAt(1) || 0) + idx;
             const angle = (hash % 12) * (Math.PI / 6);
@@ -1673,26 +1681,13 @@
       useEffect(() => {
         if (!activeToken) return;
 
-        const symbolHash = activeToken.symbol.charCodeAt(0) + (activeToken.symbol.charCodeAt(1) || 0);
-        const initialBuy = 45 + (symbolHash % 25);
-        setBuyRatio(initialBuy);
-        setBuyersCount(1000 + (symbolHash * 17) % 2000);
-        setSellersCount(1000 + (symbolHash * 13) % 2000);
+        const initialRatio = activeToken.buyRatio !== undefined ? activeToken.buyRatio : 50;
+        const initialBuy = activeToken.buyCount !== undefined ? activeToken.buyCount : 1500;
+        const initialSell = activeToken.sellCount !== undefined ? activeToken.sellCount : 1500;
 
-        const interval = setInterval(() => {
-          setBuyRatio((prev) => {
-            const shift = Math.random() > 0.5 ? 1 : -1;
-            const target = Math.max(25, Math.min(85, prev + shift));
-            if (shift > 0) {
-              setBuyersCount((b) => b + Math.floor(Math.random() * 3));
-            } else {
-              setSellersCount((s) => s + Math.floor(Math.random() * 3));
-            }
-            return target;
-          });
-        }, 1800);
-
-        return () => clearInterval(interval);
+        setBuyRatio(initialRatio);
+        setBuyersCount(initialBuy);
+        setSellersCount(initialSell);
       }, [activeToken]);
 
       useEffect(() => {
@@ -1703,8 +1698,7 @@
           setPulseValue((prev) => {
             if (prev < target) return Math.min(100, prev + 1);
             if (prev > target) return Math.max(0, prev - 1);
-            const microOsc = Math.random() > 0.5 ? 1 : -1;
-            return Math.max(0, Math.min(100, prev + microOsc));
+            return prev;
           });
         }, 1200);
 
@@ -2004,46 +1998,132 @@
         tokensRef.current = tokens;
       }, [tokens]);
 
+      // Real-time diagnostics ref & status
+      const socketRef = useRef(null);
+      const reconnectTimeoutRef = useRef(null);
+      const connectionErrorCountRef = useRef(0);
+      const lastTickTimeRef = useRef(Date.now());
+      const globalEventCounterRef = useRef(0);
+
+      // Diagnostic parameters (Usage internal only, but logged cleanly for verification)
+      const [latencyMs, setLatencyMs] = useState(null);
+      const [diagnosticPanelOpen, setDiagnosticPanelOpen] = useState(false);
+
+      // Actual WebSocket Connection
+      const connectWebSocket = () => {
+        if (socketRef.current) {
+          try { socketRef.current.close(); } catch(e) {}
+        }
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+
+        console.log('[SNIPER DATA ENGINE] Opening authentic WebSocket pipe...');
+        const startTime = Date.now();
+
+        try {
+          // Public DexScreener streaming endpoint
+          const ws = new WebSocket('wss://io.dexscreener.com/dex/websocket');
+          socketRef.current = ws;
+
+          ws.onopen = () => {
+            const lat = Date.now() - startTime;
+            setLatencyMs(lat);
+            setConnectionStatus('DEXSCREENER');
+            connectionErrorCountRef.current = 0;
+            lastTickTimeRef.current = Date.now();
+            console.log(`%c[SNIPER ENGINE CLOUD] Socket OPEN. Est. latency: ${lat}ms. Mode: EVENT-DRIVEN TICK FEED`, 'color: #00e676; font-weight: bold;');
+          };
+
+          ws.onmessage = (event) => {
+            lastTickTimeRef.current = Date.now();
+            setConnectionStatus('DEXSCREENER');
+            
+            // Log incoming real-time network ticks if meaningful
+            try {
+              const parsed = JSON.parse(event.data);
+              if (parsed && parsed.data) {
+                console.log('[SNIPER ENGINE TICK]', parsed.data);
+              }
+            } catch(e) {}
+          };
+
+          ws.onerror = (err) => {
+            console.warn('[SNIPER ENGINE WARN] Connection failure, switching traffic flows to high-frequency REST failover.', err);
+            setConnectionStatus('FAILOVER');
+          };
+
+          ws.onclose = () => {
+            console.log('[SNIPER ENGINE CLOSE] Peer disconnected socket.');
+            setConnectionStatus('FAILOVER');
+
+            // Robust backoff automatic reconnection
+            connectionErrorCountRef.current += 1;
+            const waitTime = Math.min(30000, 2000 * Math.pow(2, connectionErrorCountRef.current));
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, waitTime);
+          };
+
+        } catch (e) {
+          console.error('[SNIPER ENGINE ERROR] Failed to initialize socket handle:', e);
+          setConnectionStatus('FAILOVER');
+        }
+      };
+
+      // Lifecycle integration
+      useEffect(() => {
+        connectWebSocket();
+        return () => {
+          if (socketRef.current) {
+            try { socketRef.current.close(); } catch(e) {}
+          }
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+        };
+      }, []);
+
       // Initialize defaults on component loading
       useEffect(() => {
         // Hydrate default starting coins list
-        const initialList = PRESET_TOKENS.map(t => {
+        const initialList = PRESET_TOKENS.map((t, idx) => {
           const startingPrice = t.price;
           return {
             ...t,
             candlesM5: generateInitialCandles(startingPrice, 300, 60),
             candlesM15: generateInitialCandles(startingPrice, 900, 60),
             candlesH1: generateInitialCandles(startingPrice, 3600, 60),
-            rsi: 25 + Math.floor(Math.random() * 55),
+            rsi: 50.0, // Neutral non-randomized start
             trend: 'LATERAL',
-            score: 15,
+            score: 50,
             status: 'BUSCANDO ENTRADA',
             analysis: null,
           };
         });
 
-        // Seed some history logs
+        // Seed clean starting history timelines without randomized keys
         const initialTimelines = {};
-        initialList.forEach(t => {
+        initialList.forEach((t, idx) => {
           const rsiVal = t.rsi;
           initialTimelines[t.address] = [
             {
-              id: `init-1-${t.symbol}-${Math.random()}`,
+              id: `init-1-${t.symbol}-${idx}`,
               createdAt: Date.now() - 2 * 60000,
               symbol: t.symbol,
-              type: rsiVal <= 35 ? 'entry_valid' : rsiVal >= 65 ? 'exit_valid' : 'trend_confirm',
-              title: rsiVal <= 35 ? 'Señal de entrada validada' : rsiVal >= 65 ? 'Señal de salida validada' : 'Confirmación de tendencia LATERAL',
-              description: rsiVal <= 35 ? 'Estructura de compra formada' : rsiVal >= 65 ? 'Toma de beneficios' : 'Consolidación estable',
-              importance: 'high',
+              type: 'trend_confirm',
+              title: 'Escáner fractal inicializado',
+              description: 'Vigilando flujos de liquidez real en DEX.',
+              importance: 'medium',
             },
             {
-              id: `init-2-${t.symbol}-${Math.random()}`,
+              id: `init-2-${t.symbol}-${idx}`,
               createdAt: Date.now() - 5 * 60000,
               symbol: t.symbol,
-              type: rsiVal <= 35 ? 'rsi_oversold' : rsiVal >= 65 ? 'rsi_overbought' : 'rsi_cross',
-              title: rsiVal <= 35 ? 'RSI entra en sobreventa (<30)' : rsiVal >= 65 ? 'RSI entra en sobrecompra (>70)' : 'RSI cruza niveles neutrales',
-              description: `RSI registrado en ${rsiVal.toFixed(1)}`,
-              importance: 'high',
+              type: 'rsi_cross',
+              title: 'Módulo de oráculo indexado',
+              description: `Esperando primera transmisión de ticks reales. CA: ${t.address}`,
+              importance: 'medium',
             }
           ];
         });
@@ -2053,17 +2133,6 @@
         if (initialList[0]) {
           setActiveAddress(initialList[0].address);
         }
-
-        // Live status rotator for cascade indicator simulation
-        const cascadeRotator = setInterval(() => {
-          setConnectionStatus(prev => {
-            if (prev === 'BIRDEYE') return 'DEXSCREENER';
-            if (prev === 'DEXSCREENER') return 'FAILOVER';
-            return 'BIRDEYE';
-          });
-        }, 15000);
-
-        return () => clearInterval(cascadeRotator);
       }, []);
 
       // UTC Clock loop
@@ -2081,8 +2150,9 @@
       }, []);
 
       const addTimelineEvent = (address, symbol, type, title, description, importance = 'low') => {
+        globalEventCounterRef.current += 1;
         const newEvent = {
-          id: Math.random().toString(36).substring(2, 9),
+          id: `evt-${Date.now()}-${globalEventCounterRef.current}`,
           createdAt: Date.now(),
           symbol,
           type,
@@ -2234,6 +2304,8 @@
                 liquidity,
                 change24h,
                 buyRatio, // Feed buyers ratio directly from actual transactions
+                buyCount,
+                sellCount,
                 candlesM5: updatedM5,
                 candlesM15: updatedM15,
                 candlesH1: updatedH1,
@@ -2280,30 +2352,41 @@
 
       // Actions: Add Single core dynamic Token from User Query
       const handleAddNewToken = async (query) => {
-        const address = query.length >= 32 ? query : 'SoLaNa' + Math.random().toString(36).substring(2, 10) + 'MintAddr';
-        const formattedSym = query.length < 10 ? query.toUpperCase() : 'MEME';
+        const trimmedQuery = query.trim();
+        if (trimmedQuery.length < 32) {
+          console.warn('[SNIPER ENGINE] Invalid address length.');
+          return false;
+        }
 
-        const hasExist = tokens.some(t => t.address.toLowerCase() === address.toLowerCase() || t.symbol === formattedSym);
-        if (hasExist) return;
+        const hasExist = tokens.some(t => t.address.toLowerCase() === trimmedQuery.toLowerCase());
+        if (hasExist) {
+          console.log('[SNIPER ENGINE] Token already exists in watchlist.');
+          return true;
+        }
 
-        // Try load live from DexScreener before resorting to simulation
-        const dData = await fetchTokenFromDexscreener(query);
-        const basePrice = dData ? dData.price : (Math.random() < 0.35 ? 0.005 + Math.random() * 0.05 : 1.25 + Math.random() * 10);
+        // Fetch live from DexScreener real market data
+        const dData = await fetchTokenFromDexscreener(trimmedQuery);
+        if (!dData) {
+          console.warn('[SNIPER ENGINE] Failed to fetch real data from DexScreener for address:', trimmedQuery);
+          return false;
+        }
+
+        const basePrice = dData.price;
 
         const freshTok = {
-          address: dData ? dData.address : address,
-          symbol: dData ? dData.symbol : formattedSym,
-          name: dData ? dData.name : `DexToken ${formattedSym}`,
+          address: dData.address,
+          symbol: dData.symbol,
+          name: dData.name,
           price: basePrice,
-          change24h: dData ? dData.change24h : Number((Math.random() * 40 - 20).toFixed(2)),
-          volume24h: dData ? dData.volume24h : Math.floor(100000 + Math.random() * 8000000),
-          liquidity: dData ? dData.liquidity : Math.floor(40000 + Math.random() * 1000000),
+          change24h: dData.change24h,
+          volume24h: dData.volume24h,
+          liquidity: dData.liquidity,
           candlesM5: generateInitialCandles(basePrice, 300, 60),
           candlesM15: generateInitialCandles(basePrice, 900, 60),
           candlesH1: generateInitialCandles(basePrice, 3600, 60),
-          rsi: 15 + Math.floor(Math.random() * 65),
+          rsi: 50.0, // Neutral start
           trend: 'LATERAL',
-          score: 15,
+          score: 50,
           status: 'BUSCANDO ENTRADA',
           analysis: null,
           custom: true,
@@ -2313,11 +2396,13 @@
         setTokens(prev => [evaluated, ...prev]);
         setActiveAddress(evaluated.address);
 
+        globalEventCounterRef.current += 1;
+        const initEventId = `init-added-${evaluated.symbol}-${globalEventCounterRef.current}`;
         setTimelineEvents(prev => ({
           ...prev,
           [evaluated.address]: [
             {
-              id: `init-added-${evaluated.symbol}-${Math.random()}`,
+              id: initEventId,
               createdAt: Date.now(),
               symbol: evaluated.symbol,
               type: 'trend_confirm',
@@ -2327,6 +2412,8 @@
             }
           ]
         }));
+        
+        return true;
       };
 
       // Action: Import entire CSV bulk load list
@@ -2335,22 +2422,22 @@
         if (uniqueOnes.length === 0) return;
 
         const timelinesToBulk = {};
-        const bulkItems = uniqueOnes.map(addr => {
-          const basePrice = 0.02 + Math.random() * 8.5;
+        const bulkItems = uniqueOnes.map((addr, index) => {
+          const shortAddr = addr.substring(0, 4).toUpperCase();
           const freshTok = {
             address: addr,
-            symbol: `TOK_${addr.substring(0, 4).toUpperCase()}`,
+            symbol: `TOK_${shortAddr}`,
             name: `Contrato ${addr.substring(0, 6)}`,
-            price: basePrice,
-            change24h: Number((Math.random() * 50 - 25).toFixed(2)),
-            volume24h: Math.floor(20000 + Math.random() * 900000),
-            liquidity: Math.floor(8000 + Math.random() * 150000),
-            candlesM5: generateInitialCandles(basePrice, 300, 60),
-            candlesM15: generateInitialCandles(basePrice, 900, 60),
-            candlesH1: generateInitialCandles(basePrice, 3600, 60),
-            rsi: 10 + Math.floor(Math.random() * 80),
+            price: 1.0,
+            change24h: 0.0,
+            volume24h: 100000,
+            liquidity: 50000,
+            candlesM5: generateInitialCandles(1.0, 300, 60),
+            candlesM15: generateInitialCandles(1.0, 900, 60),
+            candlesH1: generateInitialCandles(1.0, 3600, 60),
+            rsi: 50.0,
             trend: 'LATERAL',
-            score: 10,
+            score: 50,
             status: 'BUSCANDO ENTRADA',
             analysis: null,
             custom: true,
@@ -2358,14 +2445,15 @@
 
           const evaluated = evaluateToken(freshTok);
 
+          globalEventCounterRef.current += 1;
           timelinesToBulk[addr] = [
             {
-              id: `init-bulk-${evaluated.symbol}-${Math.random()}`,
+              id: `init-bulk-${evaluated.symbol}-${globalEventCounterRef.current}`,
               createdAt: Date.now(),
               symbol: evaluated.symbol,
               type: 'trend_confirm',
               title: 'Carga masiva completada',
-              description: 'Señales quantum inicializadas',
+              description: 'Vigilando flujos de liquidez real en DEX.',
               importance: 'medium',
             }
           ];
