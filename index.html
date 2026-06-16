@@ -682,6 +682,17 @@
                   <span>Analizar & Cargar todo</span>
                 </button>
 
+                {csvValue.trim() && (
+                  <button
+                    onClick={() => { setCsvValue(''); setStatusMsg('Texto del archivo CSV/TXT borrado.'); }}
+                    className="py-1.5 px-2.5 border border-slate-500/30 text-slate-400 hover:bg-slate-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
+                    title="Limpiar/Cambiar archivo CSV/TXT actual"
+                  >
+                    <Icon name="trash" className="w-3.5 h-3.5" />
+                    <span>Limpia CSV</span>
+                  </button>
+                )}
+
                 <button
                   onClick={onClearWatchlist}
                   className="py-1.5 px-3 border border-red-500/30 text-red-450 hover:bg-red-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
@@ -1267,7 +1278,7 @@
           ctx.textAlign = 'center';
           ctx.fillText('● RECONECTANDO CON SERVIDORES...', dimensions.width / 2, dimensions.height / 2 - 10);
           ctx.fillStyle = '#64748b';
-          ctx.font = '8.5spx var(--font-mono)';
+          ctx.font = '8.5px var(--font-mono)';
           ctx.fillText('FUENTES DE DATOS INTERRUMPIDAS', dimensions.width / 2, dimensions.height / 2 + 10);
           return;
         }
@@ -2759,3 +2770,4 @@
   </script>
 </body>
 </html>
+
