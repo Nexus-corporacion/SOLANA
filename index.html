@@ -201,6 +201,35 @@
       return 'LATERAL';
     }
 
+    // Roll over and compile real candle series matched in real time
+    function updateCandleSeries(candles, newPrice, timeframeSecs) {
+      if (!candles || candles.length === 0) {
+        return [{ time: Math.floor(Date.now() / 1000), open: newPrice, high: newPrice, low: newPrice, close: newPrice }];
+      }
+      const series = [...candles];
+      const last = { ...series[series.length - 1] };
+      const now = Math.floor(Date.now() / 1000);
+
+      if (now - last.time >= timeframeSecs) {
+        series.push({
+          time: last.time + timeframeSecs,
+          open: last.close,
+          high: newPrice,
+          low: newPrice,
+          close: newPrice
+        });
+        if (series.length > 100) {
+          series.shift();
+        }
+      } else {
+        last.close = newPrice;
+        if (newPrice > last.high) last.high = newPrice;
+        if (newPrice < last.low) last.low = newPrice;
+        series[series.length - 1] = last;
+      }
+      return series;
+    }
+
     // Back populate custom visual candles walk (timeframes)
     function generateInitialCandles(basePrice, granularitySeconds, count = 100) {
       const candles = [];
@@ -1970,6 +1999,11 @@
       const [searchQuery, setSearchQuery] = useState('');
       const [timelineEvents, setTimelineEvents] = useState({});
 
+      const tokensRef = useRef([]);
+      useEffect(() => {
+        tokensRef.current = tokens;
+      }, [tokens]);
+
       // Initialize defaults on component loading
       useEffect(() => {
         // Hydrate default starting coins list
@@ -2142,53 +2176,107 @@
         };
       };
 
-      // Realtime Simulation Price & RSI variance ticks loop
-      useEffect(() => {
-        const tickLoop = setInterval(() => {
-          setTokens(prev => prev.map(t => {
-            const pct = (Math.random() - 0.47) * 0.038;
-            const newPrice = Math.max(0.000000001, t.price * (1 + pct));
+      // High frequency core polling scheduler (updates prices, tx counts, buy metrics and recalculates signals)
+      const requestRealTimeTicks = async () => {
+        const currentAddrs = tokensRef.current.map(t => t.address);
+        if (currentAddrs.length === 0) return;
 
-            const nextCandles = [...t.candlesM5];
-            const activeLast = nextCandles[nextCandles.length - 1];
-            if (activeLast) {
-              const updatedLast = {
-                ...activeLast,
-                close: newPrice,
-                high: Math.max(activeLast.high, newPrice),
-                low: Math.min(activeLast.low, newPrice),
+        try {
+          const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${currentAddrs.slice(0, 30).join(',')}`);
+          if (!res.ok) throw new Error('Market API endpoint disconnected or rate limited');
+          
+          const data = await res.json();
+          const pairs = data.pairs || [];
+          
+          // Map returned pairs to base token address mapping
+          const pairsMap = new Map();
+          pairs.forEach((p) => {
+            if (p && p.baseToken?.address) {
+              const addr = p.baseToken.address.toLowerCase();
+              const currentBest = pairsMap.get(addr);
+              const liqNew = p.liquidity?.usd || 0;
+              const liqOld = currentBest?.liquidity?.usd || 0;
+              if (!currentBest || liqNew > liqOld) {
+                pairsMap.set(addr, p);
+              }
+            }
+          });
+
+          // Set stable updater list
+          setTokens((prevList) => {
+            return prevList.map((tok) => {
+              const pair = pairsMap.get(tok.address.toLowerCase());
+              if (!pair) return tok; // Fallback to keeping old state safely
+
+              const newPrice = parseFloat(pair.priceUsd) || tok.price;
+              const prevPrice = tok.price;
+              const volume24h = parseFloat(pair.volume?.h24) || tok.volume24h;
+              const liquidity = parseFloat(pair.liquidity?.usd) || tok.liquidity;
+              const change24h = parseFloat(pair.priceChange?.h24) || tok.change24h;
+
+              // Roll over and compile real candle series matched in real time
+              const updatedM5 = updateCandleSeries(tok.candlesM5, newPrice, 300);
+              const updatedM15 = updateCandleSeries(tok.candlesM15, newPrice, 900);
+              const updatedH1 = updateCandleSeries(tok.candlesH1, newPrice, 3600);
+
+              // Fetch live trades counts from DexScreener transaction payloads
+              const tx = pair.txns?.h1 || pair.txns?.m5 || pair.txns?.h24 || { buys: 100, sells: 100 };
+              const buyCount = tx.buys || 0;
+              const sellCount = tx.sells || 0;
+              const totalCount = buyCount + sellCount;
+              const buyRatio = totalCount > 0 ? Math.round((buyCount / totalCount) * 100) : 55;
+
+              const rawToken = {
+                ...tok,
+                price: newPrice,
+                prevPrice,
+                volume24h,
+                liquidity,
+                change24h,
+                buyRatio, // Feed buyers ratio directly from actual transactions
+                candlesM5: updatedM5,
+                candlesM15: updatedM15,
+                candlesH1: updatedH1,
               };
-              nextCandles[nextCandles.length - 1] = updatedLast;
+
+              const evaluated = evaluateToken(rawToken);
+
+              // Check events and alerts triggers
+              if (tok.rsi >= 30 && evaluated.rsi < 30) {
+                setTimeout(() => addTimelineEvent(tok.address, tok.symbol, 'rsi_oversold', 'RSI entra en sobreventa (<30)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
+              } else if (tok.rsi <= 70 && evaluated.rsi > 70) {
+                setTimeout(() => addTimelineEvent(tok.address, tok.symbol, 'rsi_overbought', 'RSI entra en sobrecompra (>70)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
+              }
+
+              if (tok.trend !== evaluated.trend && evaluated.trend !== 'LATERAL') {
+                const isBullish = evaluated.trend === 'BULLISH';
+                setTimeout(() => addTimelineEvent(tok.address, tok.symbol, 'trend_confirm', `Tendencia confirmada: ${isBullish ? 'ALCISTA' : 'BAJISTA'}`, `EMA cambia a ${isBullish ? 'compras' : 'ventas'}`, 'medium'), 0);
+              }
+
+              return evaluated;
+            });
+          });
+
+          // Clear offline state if resolved
+          setConnectionStatus((curr) => {
+            if (curr === 'OFFLINE') {
+              return 'DEXSCREENER';
             }
+            return curr;
+          });
 
-            const rsiDiff = (Math.random() - 0.5) * 6;
-            const finalRsi = Math.max(1, Math.min(100, t.rsi + rsiDiff));
+        } catch (err) {
+          console.warn('Real-time synchronization interval failure:', err);
+          setConnectionStatus('OFFLINE');
+        }
+      };
 
-            const tempToken = {
-              ...t,
-              price: newPrice,
-              candlesM5: nextCandles,
-              rsi: finalRsi,
-            };
-
-            const evaluated = evaluateToken(tempToken);
-
-            if (t.rsi >= 30 && evaluated.rsi < 30) {
-              setTimeout(() => addTimelineEvent(t.address, t.symbol, 'rsi_oversold', 'RSI entra en sobreventa (<30)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
-            } else if (t.rsi <= 70 && evaluated.rsi > 70) {
-              setTimeout(() => addTimelineEvent(t.address, t.symbol, 'rsi_overbought', 'RSI entra en sobrecompra (>70)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
-            }
-
-            if (t.trend !== evaluated.trend && evaluated.trend !== 'LATERAL') {
-              setTimeout(() => addTimelineEvent(t.address, t.symbol, 'trend_confirm', `Tendencia cambia: ${evaluated.trend}`, '9 EMA adaptativa recalculando resistencia', 'medium'), 0);
-            }
-
-            return evaluated;
-          }));
-        }, 3200);
-
-        return () => clearInterval(tickLoop);
-      }, [tokens.length, soundEnabled]);
+      // Realtime polling trigger loop
+      useEffect(() => {
+        requestRealTimeTicks();
+        const tickInterval = setInterval(requestRealTimeTicks, 4500);
+        return () => clearInterval(tickInterval);
+      }, [soundEnabled]);
 
       // Actions: Add Single core dynamic Token from User Query
       const handleAddNewToken = async (query) => {
