@@ -36,18 +36,31 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;750;800&display=swap" rel="stylesheet">
 
-  <!-- React & ReactDOM (Development Version to include warnings and easy inline debug) -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- React & ReactDOM - pinned to 18.2.0 -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 
-  <!-- Babel Standalone compiler to support JSX instantly in browser -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Babel Standalone - pinned to 7.23.5 (stable, supports optional chaining) -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
 
-  <!-- D3.js (Required for physics-based force simulation bubble map) -->
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <!-- D3.js - pinned to 7.8.5 -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
 
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons - pinned to 0.263.1 -->
+  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+
+  <!-- Error catcher: show visible message if scripts fail to load -->
+  <script>
+    window.onerror = function(msg, src, line, col, err) {
+      var el = document.getElementById('standalone-root');
+      if (el) {
+        el.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;padding:40px;';
+        el.innerHTML = '<div style="color:#f4d068;font-family:monospace;font-size:16px;font-weight:bold;">ERROR DE JAVASCRIPT</div>' +
+          '<div style="color:#94a3b8;font-family:monospace;font-size:12px;max-width:600px;text-align:center;">' + msg + '<br><br>' + src + ':' + line + '</div>';
+      }
+      return false;
+    };
+  </script>
 
   <style>
     /* Custom Tech Scrollbars */
@@ -107,7 +120,12 @@
 <body class="bg-[#02050c] text-slate-100 min-h-screen font-sans overflow-x-hidden selection:bg-gold-corp selection:text-navy-dark">
 
   <!-- Root element React will target and render into -->
-  <div id="standalone-root" class="h-screen overflow-hidden"></div>
+  <div id="standalone-root" class="h-screen overflow-hidden">
+    <div id="loading-fallback" style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;">
+      <div style="color:#d4af37;font-family:monospace;font-size:13px;letter-spacing:0.1em;">INICIANDO SISTEMA...</div>
+      <div style="color:#334155;font-family:monospace;font-size:10px;">Compilando módulos JSX</div>
+    </div>
+  </div>
 
   <!-- React code compiled live via Babel compiler -->
   <script type="text/babel">
@@ -603,7 +621,7 @@
 
           {activeTab === 'single' ? (
             <div className="flex flex-col gap-3">
-              <form onSubmit={handleAddSingle} className="flex gap-2">
+            <div className="flex gap-2" onKeyDown={(e) => { if (e.key === 'Enter') handleAddSingle(e); }}>
                 <div className="relative flex-1">
                   <input
                     type="text"
@@ -617,13 +635,14 @@
                   </div>
                 </div>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleAddSingle}
                   disabled={isLoading || !singleValue.trim()}
                   className="px-3 bg-gold-corp hover:bg-gold-bright text-navy-dark font-mono text-xs font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 shrink-0"
                 >
                   {isLoading ? <Icon name="loader-2" className="w-3.5 h-3.5 animate-spin" /> : 'Indexar'}
                 </button>
-              </form>
+              </div>
 
               <div className="flex flex-wrap items-center gap-1.5 select-none border-t border-navy-border/40 pt-2.5">
                 <span className="text-[9px] text-slate-500 font-mono font-bold">Rápidos:</span>
@@ -681,17 +700,6 @@
                   <Icon name="file-text" className="w-3.5 h-3.5" />
                   <span>Analizar & Cargar todo</span>
                 </button>
-
-                {csvValue.trim() && (
-                  <button
-                    onClick={() => { setCsvValue(''); setStatusMsg('Texto del archivo CSV/TXT borrado.'); }}
-                    className="py-1.5 px-2.5 border border-slate-500/30 text-slate-400 hover:bg-slate-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
-                    title="Limpiar/Cambiar archivo CSV/TXT actual"
-                  >
-                    <Icon name="trash" className="w-3.5 h-3.5" />
-                    <span>Limpia CSV</span>
-                  </button>
-                )}
 
                 <button
                   onClick={onClearWatchlist}
@@ -1350,7 +1358,7 @@
           ctx.fillText(formatPriceValue(priceVal), dimensions.width - paddingRight + 8, y + 3.5);
         }
 
-        // Draw vertical division lineガイド
+        // Draw vertical division guide lines
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.03)';
         ctx.lineWidth = 1;
         const verticalDivs = 8;
@@ -1774,7 +1782,7 @@
             <div className="w-full h-2 bg-navy-dark border border-[#1e293b]/50 rounded-full overflow-hidden flex">
               <div
                 style={{ width: `${buyRatio}%` }}
-                className="h-full bg-gradient-to-r from-emerald-605 from-emerald-600 to-cyber-green transition-all duration-700 ease-out"
+                className="h-full bg-gradient-to-r from-emerald-600 to-cyber-green transition-all duration-700 ease-out"
               />
               <div
                 style={{ width: `${sellRatio}%` }}
@@ -1989,6 +1997,36 @@
           </div>
         </div>
       );
+    }
+
+    // --- ERROR BOUNDARY ---
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, info) {
+        console.error('[SNIPER ERROR BOUNDARY]', error, info);
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div style={{ background: '#02050c', color: '#f4d068', fontFamily: 'monospace', padding: '40px', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+              <div style={{ fontSize: '24px' }}>ERROR DE RENDERIZADO</div>
+              <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '600px', textAlign: 'center' }}>
+                {this.state.error && this.state.error.toString()}
+              </div>
+              <button onClick={() => this.setState({ hasError: false, error: null })} style={{ padding: '8px 16px', background: '#d4af37', color: '#030712', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                REINTENTAR
+              </button>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
     }
 
     // --- MAIN PORTABLE ROOT DASHBOARD ---
@@ -2766,8 +2804,11 @@
     // Mount and inject inside root container node
     const container = document.getElementById('standalone-root');
     const root = ReactDOM.createRoot(container);
-    root.render(<StandaloneDashboard />);
+    root.render(
+      <ErrorBoundary>
+        <StandaloneDashboard />
+      </ErrorBoundary>
+    );
   </script>
 </body>
 </html>
-
