@@ -1,1315 +1,2585 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-[#050a18]">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TOKEN SNIPER ENGINE v5.2 - NEXUS CORPORACION</title>
-    <!-- Tailwind CSS Fluid Grid -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Iconos Profesionales de FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts de Alta Fidelidad -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Watchlist Indexer & Bubble Radar - Standalone Edition</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'navy-dark': '#030712',
+            'navy-card': '#0b0f19',
+            'navy-border': '#1e293b',
+            'navy-light': '#334155',
+            'gold-corp': '#d4af37',
+            'gold-bright': '#f4d068',
+            'gold-dim': 'rgba(212, 175, 55, 0.08)',
+            'cyber-green': '#00e676',
+            'cyber-red': '#ff3c5f',
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Space Grotesk', 'sans-serif'],
-                        mono: ['Orbitron', 'monospace'],
-                    },
-                    colors: {
-                        navy: {
-                            dark: '#050a18',
-                            card: '#0f1d36',
-                            light: '#1c355e',
-                            border: 'rgba(212, 175, 55, 0.15)'
-                        },
-                        gold: {
-                            corp: '#d4af37',
-                            bright: '#f4d068',
-                            dim: 'rgba(212, 175, 55, 0.08)'
-                        },
-                        cyber: {
-                            green: '#00e676',
-                            red: '#ff3c5f'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;750;800&display=swap" rel="stylesheet">
 
-    <style>
-        body {
-            background-color: #050a18;
-            background-image: radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.04) 0%, transparent 45%),
-                              radial-gradient(circle at 90% 80%, rgba(28, 53, 94, 0.2) 0%, transparent 50%);
-            scrollbar-width: thin;
-            scrollbar-color: rgba(212, 175, 55, 0.2) #050a18;
-        }
-        .glow-gold {
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
-        }
-        .glow-green {
-            box-shadow: 0 0 15px rgba(0, 230, 118, 0.25);
-        }
-        .glow-red {
-            box-shadow: 0 0 15px rgba(255, 60, 95, 0.25);
-        }
-        .glass {
-            backdrop-filter: blur(12px);
-            background: rgba(15, 29, 54, 0.75);
-            border: 1px solid rgba(212, 175, 55, 0.08);
-        }
-        .text-glow-gold {
-            text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #050a18;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(212, 175, 55, 0.15);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(212, 175, 55, 0.35);
-        }
-    </style>
+  <!-- React & ReactDOM (Development Version to include warnings and easy inline debug) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+  <!-- Babel Standalone compiler to support JSX instantly in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- D3.js (Required for physics-based force simulation bubble map) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Custom Tech Scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #030712;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d4af37;
+    }
+
+    /* Custom CSS animations targeting modern look */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1); opacity: 0.4; }
+      100% { transform: scale(1.05); opacity: 0; }
+    }
+    .pulse-ring {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    .glass {
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    
+    .glow-green {
+      filter: drop-shadow(0 0 4px rgba(0, 230, 118, 0.45));
+    }
+    
+    .glow-red {
+      filter: drop-shadow(0 0 4px rgba(255, 60, 95, 0.45));
+    }
+
+    .glow-gold {
+      filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.35));
+    }
+
+    /* Spin loader for tech scan cycle */
+    @keyframes radar-sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .radar-sweep {
+      animation: radar-sweep 5s linear infinite;
+    }
+  </style>
 </head>
-<body class="text-slate-100 flex flex-col h-screen overflow-hidden">
+<body class="bg-[#02050c] text-slate-100 min-h-screen font-sans overflow-x-hidden selection:bg-gold-corp selection:text-navy-dark">
 
-    <!-- HEADER AZUL MARINO Y DORADO CORPORATIVO -->
-    <header class="glass border-b border-navy-border px-6 py-4 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-gold-corp to-gold-bright flex items-center justify-center glow-gold">
-                <i class="fa-solid fa-crosshairs text-navy-dark text-xl font-bold"></i>
+  <!-- Root element React will target and render into -->
+  <div id="standalone-root" class="h-screen overflow-hidden"></div>
+
+  <!-- React code compiled live via Babel compiler -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // --- ALGORITHMIQUE & COMPUTATIONAL UTILS ---
+
+    // standard Welles Wilder RSI(14)
+    function calculateRSI(candles, period = 14) {
+      if (!candles || candles.length <= period) return 50.0;
+      
+      const sorted = [...candles].sort((a, b) => a.time - b.time);
+      const gains = [];
+      const losses = [];
+
+      for (let i = 1; i < sorted.length; i++) {
+        const diff = sorted[i].close - sorted[i - 1].close;
+        if (diff > 0) {
+          gains.push(diff);
+          losses.push(0);
+        } else {
+          gains.push(0);
+          losses.push(-diff);
+        }
+      }
+
+      let avgGain = 0;
+      let avgLoss = 0;
+
+      for (let i = 0; i < Math.min(period, gains.length); i++) {
+        avgGain += gains[i];
+        avgLoss += losses[i];
+      }
+
+      avgGain /= period;
+      avgLoss /= period;
+
+      for (let i = period; i < gains.length; i++) {
+        avgGain = (avgGain * (period - 1) + gains[i]) / period;
+        avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+      }
+
+      if (avgLoss === 0) {
+        return avgGain === 0 ? 50.0 : 100.0;
+      }
+
+      const rs = avgGain / avgLoss;
+      const computed = 100 - (100 / (1 + rs));
+      return isNaN(computed) ? 50.0 : Math.round(computed * 10) / 10;
+    }
+
+    // Identifies 5-bar structural fractals high/low points
+    function identifyFractals(candles) {
+      const highs = [];
+      const lows = [];
+      const n = 2; // Needs 2 bars left and 2 bars right
+      const sorted = [...candles].sort((a, b) => a.time - b.time);
+
+      for (let i = n; i < sorted.length - n; i++) {
+        let isHigh = true;
+        let isLow = true;
+
+        for (let j = -n; j <= n; j++) {
+          if (j === 0) continue;
+          if (sorted[i].high < sorted[i + j].high) isHigh = false;
+          if (sorted[i].low > sorted[i + j].low) isLow = false;
+        }
+
+        if (isHigh) {
+          highs.push({ price: sorted[i].high, time: sorted[i].time });
+        }
+        if (isLow) {
+          lows.push({ price: sorted[i].low, time: sorted[i].time });
+        }
+      }
+
+      return { highs, lows };
+    }
+
+    // Determine trend based on support-resistance peak values
+    function determineTrend(highs, lows) {
+      if (highs.length < 2 || lows.length < 2) return 'LATERAL';
+
+      const lastH = highs[highs.length - 1].price;
+      const prevH = highs[highs.length - 2].price;
+      const lastL = lows[lows.length - 1].price;
+      const prevL = lows[lows.length - 2].price;
+
+      if (lastH > prevH && lastL > prevL) return 'BULLISH';
+      if (lastH < prevH && lastL < prevL) return 'BEARISH';
+      return 'LATERAL';
+    }
+
+    // Back populate custom visual candles walk (timeframes)
+    function generateInitialCandles(basePrice, granularitySeconds, count = 100) {
+      const candles = [];
+      let currentClose = basePrice;
+      const nowEpoch = Math.floor(Date.now() / 1000);
+
+      for (let i = 0; i < count; i++) {
+        const time = nowEpoch - i * granularitySeconds;
+        const pct = (Math.random() - 0.48) * 0.015; // slightly bullish drift
+        const open = currentClose * (1 + pct);
+        const high = Math.max(open, currentClose) * (1 + Math.random() * 0.006);
+        const low = Math.min(open, currentClose) * (1 - Math.random() * 0.006);
+        
+        candles.unshift({
+          time,
+          open,
+          high,
+          low,
+          close: currentClose,
+        });
+
+        currentClose = open;
+      }
+
+      return candles;
+    }
+
+    // Extract Solana mint address tokens via regex filter
+    function parseAndExtractAddresses(text) {
+      const solregex = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
+      const matches = text.match(solregex) || [];
+      const unique = Array.from(new Set(matches));
+      return unique.filter(addr => {
+        const isHeaderField = /^(Type|List|Color|Address|Chain|Watchlist|Name|Id|solana)$/i.test(addr);
+        return !isHeaderField && addr.length >= 32;
+      });
+    }
+
+    // --- DEXSCREENER CLIENT CONNECTION ASSISTANT ---
+    async function fetchTokenFromDexscreener(query) {
+      const cleanQuery = query.trim();
+      if (!cleanQuery) return null;
+
+      const urlsToTry = [];
+      if (cleanQuery.length > 25) {
+        urlsToTry.push(`https://api.dexscreener.com/latest/dex/tokens/${cleanQuery}`);
+        urlsToTry.push(`https://api.dexscreener.com/latest/dex/search?q=${cleanQuery}`);
+        urlsToTry.push(`https://api.dexscreener.com/latest/dex/pairs/solana/${cleanQuery}`);
+      } else {
+        urlsToTry.push(`https://api.dexscreener.com/latest/dex/search?q=${cleanQuery}`);
+        urlsToTry.push(`https://api.dexscreener.com/latest/dex/tokens/${cleanQuery}`);
+      }
+
+      for (const url of urlsToTry) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          const pairs = data.pairs || data.pair || (data.pair ? [data.pair] : null);
+
+          if (!pairs || (Array.isArray(pairs) && pairs.length === 0)) {
+            continue;
+          }
+
+          const rawPairs = Array.isArray(pairs) ? pairs : [pairs];
+
+          // Sort on highest liquidity to isolate best pair representation
+          const sortedPairs = [...rawPairs].sort((a, b) => {
+            const liqA = a.liquidity?.usd || 0;
+            const liqB = b.liquidity?.usd || 0;
+            return liqB - liqA;
+          });
+
+          const bestPair = sortedPairs[0];
+          if (bestPair && bestPair.baseToken) {
+            return {
+              address: bestPair.baseToken.address,
+              symbol: bestPair.baseToken.symbol,
+              name: bestPair.baseToken.name,
+              price: parseFloat(bestPair.priceUsd) || 0,
+              change24h: bestPair.priceChange?.h24 || 0,
+              volume24h: bestPair.volume?.h24 || 0,
+              liquidity: bestPair.liquidity?.usd || 0,
+            };
+          }
+        } catch (err) {
+          console.warn(`Endpoint connect failed: ${url}`, err);
+        }
+      }
+      return null;
+    }
+
+    // Preset list values to load immediately
+    const PRESET_TOKENS = [
+      {
+        address: 'So11111111111111111111111111111111111111112',
+        symbol: 'SOL',
+        name: 'Wrapped SOL',
+        price: 153.42,
+        change24h: 3.45,
+        volume24h: 3829440,
+        liquidity: 24700000,
+        custom: false,
+      },
+      {
+        address: 'EPjFW364G14ux29hkX7U62F1MwN6H86gE6pkbA6tVv',
+        symbol: 'USDC',
+        name: 'USD Coin',
+        price: 1.0001,
+        change24h: 0.01,
+        volume24h: 18239000,
+        liquidity: 150000000,
+        custom: false,
+      },
+      {
+        address: 'DezXAZ8z7PnrnRJjz3wX4mGCmzNgR6937JoxCwt6A85',
+        symbol: 'BONK',
+        name: 'Bonk',
+        price: 0.00002134,
+        change24h: -5.12,
+        volume24h: 894000,
+        liquidity: 4200000,
+        custom: false,
+      },
+    ];
+
+    // --- REUSABLE SUBCOMPONENTS ---
+
+    // Smart adaptive Lucide rendering icon
+    function Icon({ name, className = 'w-4 h-4' }) {
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
+      return <i data-lucide={name} className={className + " inline-flex items-center justify-center leading-none"}></i>;
+    }
+
+    // Watchlist token card
+    function TokenCard({ token, isActive, onSelect, onDelete }) {
+      const isPriceUp = token.prevPrice ? token.price > token.prevPrice : token.change24h >= 0;
+
+      const formatPrice = (price) => {
+        if (price === 0) return '0.00';
+        if (price < 0.0001) return price.toFixed(8);
+        if (price < 0.1) return price.toFixed(6);
+        if (price < 10) return price.toFixed(4);
+        return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      };
+
+      const getStatusBadge = () => {
+        if (token.status === 'POSICIÓN ACTIVA') {
+          return (
+            <span className="px-2 py-0.5 rounded-full bg-cyber-green/10 border border-cyber-green/30 text-cyber-green text-[9px] font-bold animate-pulse font-mono">
+              POSICIÓN
+            </span>
+          );
+        }
+        if (token.score >= 80) {
+          return (
+            <span className="px-2 py-0.5 rounded-full bg-gold-corp/20 border border-gold-corp/40 text-gold-bright text-[9px] font-bold animate-pulse font-mono">
+              SNIPER GATILLO
+            </span>
+          );
+        }
+        if (token.status === 'ZONA CRÍTICA') {
+          return (
+            <span className="px-2 py-0.5 rounded-full bg-navy-light border border-gold-corp/20 text-blue-300 text-[9px] font-medium font-mono">
+              ZONA H1
+            </span>
+          );
+        }
+        return (
+          <span className="px-2 py-0.5 rounded-full bg-navy-dark border border-navy-light text-slate-400 text-[9px] font-mono">
+            ESCANEO
+          </span>
+        );
+      };
+
+      const getScoreBadgeClass = () => {
+        if (token.score >= 80) return "bg-gold-dim border border-gold-corp text-gold-bright";
+        if (token.score >= 60) return "bg-navy-dark border border-gold-corp/30 text-gold-corp";
+        return "bg-navy-dark border border-navy-light text-slate-400";
+      };
+
+      return (
+        <div
+          onClick={() => onSelect(token.address)}
+          className={`relative overflow-hidden cursor-pointer rounded-xl border p-4 transition-all duration-300 group ${
+            isActive
+              ? 'bg-navy-card/90 border-gold-corp glow-gold scale-[1.01]'
+              : 'bg-navy-card/40 border-[#1e293b]/50 hover:bg-navy-card/85 hover:border-gold-corp/30'
+          }`}
+        >
+          <div className="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-gold-corp/5 to-transparent rounded-full blur-xl group-hover:from-gold-corp/10 transition duration-300 pointer-events-none" />
+
+          <div className="flex justify-between items-start mb-2 relative z-10">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="flex items-center gap-1.5 flex-nowrap">
+                <span className="font-mono text-xs font-bold text-slate-200 uppercase truncate">
+                  {token.symbol}
+                </span>
+                {token.custom && (
+                  <span className="text-[8px] px-1.5 py-0.2 bg-gold-dim border border-gold-corp/20 text-gold-corp rounded uppercase font-mono">
+                    Manual
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-slate-500 block truncate leading-tight mt-0.5">
+                {token.name}
+              </span>
+              <div className={`font-mono text-base font-bold tracking-tight mt-1.5 transition-colors duration-200 ${
+                isPriceUp ? 'text-cyber-green' : 'text-cyber-red'
+              }`}>
+                ${formatPrice(token.price)}
+              </div>
             </div>
-            <div>
-                <h1 class="font-mono text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-300 to-gold-bright">
-                    TOKEN SNIPER ENGINE <span class="text-gold-corp">v5.2</span>
-                </h1>
-                <p class="text-[10px] text-slate-400 tracking-wider uppercase font-medium">Estructura e Indexador en Tiempo Real de Activos Criptográficos</p>
+
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <span className={`font-mono text-[10px] px-2 py-0.5 rounded font-medium ${getScoreBadgeClass()}`}>
+                {token.score} PTS
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(token.address);
+                }}
+                className="p-1 rounded bg-[#030712] border border-navy-light hover:bg-cyber-red/25 hover:border-cyber-red/40 hover:text-cyber-red text-slate-500 transition-colors cursor-pointer"
+                title="Eliminar Token"
+              >
+                <Icon name="trash" className="w-3.5 h-3.5" />
+              </button>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] mt-3 pt-2.5 border-t border-[#1e293b]/70 relative z-10 font-mono">
+            <span className={`font-semibold ${
+              token.trend === 'BULLISH' ? 'text-cyber-green' : token.trend === 'BEARISH' ? 'text-cyber-red' : 'text-slate-500'
+            }`}>
+              {token.trend === 'BULLISH' ? '▲ ALCISTA' : token.trend === 'BEARISH' ? '▼ BAJISTA' : '◆ RANGO'}
+            </span>
+            {getStatusBadge()}
+          </div>
         </div>
+      );
+    }
 
-        <div class="flex items-center gap-6 text-sm">
-            <div class="flex items-center gap-2 bg-[#050a18] px-3 py-1.5 rounded border border-navy-border shadow-inner">
-                <span class="w-2.5 h-2.5 rounded-full bg-cyber-green animate-pulse glow-green" id="ws-status-dot"></span>
-                <span class="font-mono text-xs text-slate-300" id="ws-status-text">INDEXER ONLINE</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="toggleSound()" class="px-3 py-1.5 rounded bg-[#050a18] border border-navy-border hover:bg-navy-light hover:text-gold-bright transition flex items-center gap-2 text-xs">
-                    <i id="sound-icon" class="fa-solid fa-volume-high text-gold-corp"></i>
-                    <span id="sound-text" class="text-slate-300 font-mono">SONIDO ON</span>
+    // Unlimited Solana Contract Indexer
+    function StandaloneIndexer({ onAddToken, onAddMultipleTokens, tokenCount, onClearWatchlist }) {
+      const [activeTab, setActiveTab] = useState('single');
+      const [singleValue, setSingleValue] = useState('');
+      const [csvValue, setCsvValue] = useState('');
+      const [dragActive, setDragActive] = useState(false);
+      const [statusMsg, setStatusMsg] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+      const fileInputRef = useRef(null);
+
+      const quickSuggestions = [
+        { name: 'WIF', addr: 'EKpQGSJtjMFqKZ9m2E7ekMainMc2tsy676A9A87SuSUX' },
+        { name: 'POPCAT', addr: '7GCih69g7FfX9Y677AAVXg6CcWjuyaiU4Pg7yXARf3u3' },
+        { name: 'BONK', addr: 'DezXAZ8z7PnrnRJjz3wX4mGCmzNgR6937JoxCwt6A85' },
+        { name: 'SOL', addr: 'So11111111111111111111111111111111111111112' }
+      ];
+
+      const handleAddSingle = (e) => {
+        if(e) e.preventDefault();
+        setStatusMsg('');
+        const trimmed = singleValue.trim();
+        if (!trimmed) return;
+
+        setIsLoading(true);
+        setTimeout(() => {
+          onAddToken(trimmed);
+          setSingleValue('');
+          setIsLoading(false);
+          setStatusMsg('¡Módulo de indexación cargada con éxito!');
+        }, 350);
+      };
+
+      const handleBatchImport = () => {
+        setStatusMsg('');
+        const cleaned = csvValue.trim();
+        if (!cleaned) {
+          setStatusMsg('El campo CSV está vacío.');
+          return;
+        }
+
+        const parsedAddresses = parseAndExtractAddresses(cleaned);
+        if (parsedAddresses.length === 0) {
+          setStatusMsg('No se detectaron direcciones de contract Solana.');
+          return;
+        }
+
+        setIsLoading(true);
+        setTimeout(() => {
+          onAddMultipleTokens(parsedAddresses);
+          setCsvValue('');
+          setIsLoading(false);
+          setStatusMsg(`¡Cargados con éxito ${parsedAddresses.length} tokens descritos!`);
+        }, 500);
+      };
+
+      const handleDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+          setDragActive(true);
+        } else if (e.type === "dragleave") {
+          setDragActive(false);
+        }
+      };
+
+      const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          readFile(e.dataTransfer.files[0]);
+        }
+      };
+
+      const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+          readFile(e.target.files[0]);
+        }
+      };
+
+      const readFile = (file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          if (text) {
+            setCsvValue(text);
+            const count = parseAndExtractAddresses(text).length;
+            setStatusMsg(`Archivo "${file.name}" leído (${count} direcciones encontradas).`);
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      return (
+        <div className="bg-navy-card rounded-xl border border-navy-border p-4 relative overflow-hidden flex flex-col gap-3">
+          <div className="flex items-center justify-between pb-1 select-none">
+            <h3 className="font-mono text-xs font-bold uppercase text-slate-200 flex items-center gap-1.5">
+              <Icon name="sparkles" className="w-4 h-4 text-gold-corp" />
+              Indexador Watchlist ilimitado
+            </h3>
+            <span className="font-mono text-[9px] bg-gold-dim text-gold-bright px-2 py-0.5 rounded border border-gold-corp/20 leading-none">
+              {tokenCount} Indexados
+            </span>
+          </div>
+
+          <div className="flex bg-navy-dark p-1 rounded-lg border border-[#1e293b]/70 select-none">
+            <button
+              onClick={() => { setActiveTab('single'); setStatusMsg(''); }}
+              className={`flex-1 py-1.5 text-[10px] font-mono rounded font-bold transition-all cursor-pointer ${
+                activeTab === 'single' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Individual (+)
+            </button>
+            <button
+              onClick={() => { setActiveTab('csv'); setStatusMsg(''); }}
+              className={`flex-1 py-1.5 text-[10px] font-mono rounded font-bold transition-all cursor-pointer ${
+                activeTab === 'csv' ? 'bg-gold-corp text-navy-dark font-black' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Cargar CSV / TXT 📁
+            </button>
+          </div>
+
+          {activeTab === 'single' ? (
+            <div className="flex flex-col gap-3">
+              <form onSubmit={handleAddSingle} className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={singleValue}
+                    onChange={(e) => setSingleValue(e.target.value)}
+                    placeholder="Escribe el CA / Dirección del token..."
+                    className="w-full bg-navy-dark border border-navy-border focus:border-gold-corp outline-none rounded-lg py-2 pl-8 pr-3 text-xs text-slate-200 placeholder-slate-500 font-mono"
+                  />
+                  <div className="absolute left-2.5 top-2.5 text-slate-500">
+                    <Icon name="search" className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isLoading || !singleValue.trim()}
+                  className="px-3 bg-gold-corp hover:bg-gold-bright text-navy-dark font-mono text-xs font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                >
+                  {isLoading ? <Icon name="loader-2" className="w-3.5 h-3.5 animate-spin" /> : 'Indexar'}
                 </button>
+              </form>
+
+              <div className="flex flex-wrap items-center gap-1.5 select-none">
+                <span className="text-[9px] text-slate-500 font-mono font-bold">Rápidos:</span>
+                {quickSuggestions.map(s => (
+                  <button
+                    key={s.name}
+                    onClick={() => setSingleValue(s.addr)}
+                    className="text-[9px] font-mono px-2 py-0.5 rounded bg-navy-dark hover:bg-navy-light border border-[#1e293b]/60 text-slate-300 hover:text-[#f4d068] transition cursor-pointer"
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div class="text-right hidden md:block">
-                <div class="font-mono text-xs text-slate-300 font-bold" id="live-clock">00:00:00 UTC</div>
-                <div class="text-[9px] text-gold-corp tracking-widest uppercase">Motor Cuántico Activo</div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current.click()}
+                className={`cursor-pointer border border-dashed rounded-lg p-3 text-center flex flex-col items-center justify-center transition bg-navy-dark/40 ${
+                  dragActive ? 'border-gold-corp bg-gold-dim' : 'border-[#1e293b] hover:border-gold-corp/50'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <div className="text-gold-corp mb-1">
+                  <Icon name="upload" className="w-6 h-6 mx-auto animate-bounce" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-300">Arrastra tu archivo CSV o haz click aquí</span>
+                <span className="text-[8px] text-slate-500 mt-1">Soporta cualquier lista de Solana Mints (CA)</span>
+              </div>
+
+              <textarea
+                rows={3}
+                value={csvValue}
+                onChange={(e) => setCsvValue(e.target.value)}
+                placeholder="Pega cualquier CSV con Direcciones de Solana...&#10;Address,Symbol,Name&#10;EKpQGSJtjMFqKZ9m...,WIF,dogwifhat"
+                className="w-full bg-navy-dark border border-navy-border focus:border-gold-corp outline-none rounded-lg p-2 text-[9px] text-slate-300 placeholder-slate-600 font-mono resize-none"
+              />
+
+              <div className="flex items-center gap-2 select-none">
+                <button
+                  onClick={handleBatchImport}
+                  disabled={isLoading || !csvValue.trim()}
+                  className="flex-1 py-1.5 text-xs font-mono font-bold bg-gold-corp text-navy-dark hover:bg-gold-bright rounded-lg disabled:opacity-50 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Icon name="file-text" className="w-3.5 h-3.5" />
+                  <span>Analizar & Cargar todo</span>
+                </button>
+
+                <button
+                  onClick={onClearWatchlist}
+                  className="py-1.5 px-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-mono transition flex items-center gap-1 cursor-pointer"
+                  title="Eliminar todos los tokens indexados"
+                >
+                  <Icon name="trash-2" className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+              </div>
             </div>
+          )}
+
+          {statusMsg && (
+            <div className={`text-[9.5px] font-mono text-center p-1 border rounded select-none ${
+              statusMsg.includes('éxito') || statusMsg.includes('exitosamente') || statusMsg.includes('contratos') || statusMsg.includes('leído')
+                ? 'text-cyber-green border-cyber-green/20 bg-cyber-green/5' 
+                : 'text-rose-400 border-rose-500/20 bg-rose-500/5'
+            }`}>
+              {statusMsg}
+            </div>
+          )}
         </div>
-    </header>
+      );
+    }
 
-    <!-- CUADRO PRINCIPAL DE PANTALLA -->
-    <main class="flex-1 flex overflow-hidden p-4 gap-4 flex-col lg:flex-row">
+    // Concentric Rsi Bubble Radar using D3 Force Engine simulation
+    function StandaloneRsiBubbleRadar({ tokens, activeAddress, onSelectToken, rsiTimeframe }) {
+      const containerRef = useRef(null);
+      const [dimensions, setDimensions] = useState({ width: 280, height: 260 });
+      const [tick, setTick] = useState(0);
 
-        <!-- PANEL IZQUIERDO: SELECCIÓN DE ACTIVOS, RECUADRO VACÍO MANUAL (HASTA 20) & REGLAMENTO -->
-        <div class="w-full lg:w-1/4 lg:min-w-[320px] flex flex-col gap-4 overflow-y-auto shrink-0 pb-4 lg:pb-0">
-            
-            <!-- FORMULARIO MANUAL DE AGREGADO/ELIMINACIÓN DE TOKENS -->
-            <div class="glass p-4 rounded-xl border border-navy-border flex flex-col gap-3 relative overflow-hidden bg-navy-card/85">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-mono tracking-widest uppercase text-slate-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus text-gold-corp"></i> Indexar Token Manual
-                    </h2>
-                    <span class="font-mono text-[9px] text-gold-corp bg-gold-dim px-2 py-0.5 rounded border border-navy-border" id="token-counter">3/20 Activos</span>
+      const nodesRef = useRef([]);
+      const simRef = useRef(null);
+
+      useEffect(() => {
+        if (!containerRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+          if (!entries || entries.length === 0) return;
+          const { width, height } = entries[0].contentRect;
+          setDimensions({
+            width: width || 280,
+            height: height || 260,
+          });
+        });
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+      }, []);
+
+      const sortedByRsiDev = useMemo(() => {
+        return [...tokens].sort((a, b) => {
+          const devA = Math.abs((a.rsi || 50) - 50);
+          const devB = Math.abs((b.rsi || 50) - 50);
+          return devB - devA;
+        });
+      }, [tokens]);
+
+      const top6Tokens = useMemo(() => sortedByRsiDev.slice(0, 6), [sortedByRsiDev]);
+      const activeTokenObj = useMemo(() => tokens.find((t) => t.address === activeAddress), [tokens, activeAddress]);
+      const isActiveIncluded = useMemo(() => top6Tokens.some((t) => t.address === activeAddress), [top6Tokens, activeAddress]);
+      
+      const radarTokens = useMemo(() => {
+        return isActiveIncluded || !activeTokenObj
+          ? top6Tokens
+          : [...top6Tokens, activeTokenObj];
+      }, [top6Tokens, isActiveIncluded, activeTokenObj]);
+
+      useEffect(() => {
+        const currentNodes = nodesRef.current;
+        const nodeMap = new Map(currentNodes.map((n) => [n.address, n]));
+        const { width, height } = dimensions;
+
+        let maxDev = 0;
+        let maxDevAddr = '';
+        radarTokens.forEach((t) => {
+          const dev = Math.abs((t.rsi || 50) - 50);
+          if (dev > maxDev) {
+            maxDev = dev;
+            maxDevAddr = t.address;
+          }
+        });
+
+        const nextNodes = radarTokens.map((t, idx) => {
+          const baseRsi = Math.max(1, Math.min(100, Math.round(t.rsi || 50)));
+          const dev = Math.abs(baseRsi - 50);
+
+          let r = 10;
+          if (dev > 4) {
+            r = 14 + (Math.min(50, dev) / 50) * 32;
+          }
+
+          const existing = nodeMap.get(t.address);
+          const isMostExtreme = t.address === maxDevAddr && dev > 4;
+
+          const node = {
+            address: t.address,
+            symbol: t.symbol,
+            rsi: baseRsi,
+            r,
+            score: t.score,
+            isActive: t.address === activeAddress,
+            isMostExtreme,
+            x: existing ? existing.x : width / 2 + (Math.random() - 0.5) * 50,
+            y: existing ? existing.y : height / 2 + (Math.random() - 0.5) * 50,
+            vx: existing ? existing.vx : 0,
+            vy: existing ? existing.vy : 0,
+          };
+
+          if (isMostExtreme) {
+            node.targetX = width / 2;
+            node.targetY = height / 2;
+          } else if (dev <= 5) {
+            node.targetX = width / 2 + (Math.random() - 0.5) * 15;
+            node.targetY = height / 2 + (Math.random() - 0.5) * 15;
+          } else {
+            const hash = t.symbol.charCodeAt(0) + (t.symbol.charCodeAt(1) || 0) + idx;
+            const angle = (hash % 12) * (Math.PI / 6);
+            const maxRadius = Math.min(width, height) * 0.43;
+            const distance = 30 + (dev / 50) * (maxRadius - 30);
+
+            node.targetX = width / 2 + Math.cos(angle) * distance;
+            node.targetY = width / 2 < height / 2 
+              ? (height / 2 + Math.sin(angle) * distance) 
+              : (height / 2 + Math.sin(angle) * distance * 0.85);
+          }
+
+          return node;
+        });
+
+        nodesRef.current = nextNodes;
+
+        if (!simRef.current) {
+          simRef.current = d3
+            .forceSimulation(nextNodes)
+            .force('x', d3.forceX((d) => d.targetX ?? width / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15))
+            .force('y', d3.forceY((d) => d.targetY ?? height / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15))
+            .force('collide', d3.forceCollide((d) => d.r + 6).strength(0.98))
+            .alphaTarget(0.015);
+
+          simRef.current.on('tick', () => {
+            setTick((prev) => prev + 1);
+          });
+        } else {
+          simRef.current.nodes(nextNodes);
+          simRef.current.force('x', d3.forceX((d) => d.targetX ?? width / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15));
+          simRef.current.force('y', d3.forceY((d) => d.targetY ?? height / 2).strength((d) => d.isMostExtreme ? 0.40 : 0.15));
+          simRef.current.force('collide', d3.forceCollide((d) => d.r + 6).strength(0.98));
+          simRef.current.alpha(0.35).restart();
+        }
+      }, [radarTokens, activeAddress, dimensions.width, dimensions.height]);
+
+      const handleNodeMouseDown = (e, node) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const initNodeX = node.x ?? dimensions.width / 2;
+        const initNodeY = node.y ?? dimensions.height / 2;
+
+        if (simRef.current) {
+          simRef.current.alphaTarget(0.25).restart();
+        }
+
+        node.fx = initNodeX;
+        node.fy = initNodeY;
+
+        const onMouseMove = (moveEvent) => {
+          const dx = moveEvent.clientX - startX;
+          const dy = moveEvent.clientY - startY;
+
+          const minX = node.r + 8;
+          const maxX = dimensions.width - node.r - 8;
+          const minY = node.r + 8;
+          const maxY = dimensions.height - node.r - 8;
+
+          node.fx = Math.max(minX, Math.min(maxX, initNodeX + dx));
+          node.fy = Math.max(minY, Math.min(maxY, initNodeY + dy));
+        };
+
+        const onMouseUp = () => {
+          node.fx = null;
+          node.fy = null;
+          if (simRef.current) {
+            simRef.current.alphaTarget(0.015);
+          }
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      };
+
+      const currentNodes = nodesRef.current;
+      const extremeNode = currentNodes.find((n) => n.isMostExtreme);
+      const activeSelectedToken = tokens.find((t) => t.address === activeAddress) || null;
+
+      return (
+        <div className="flex flex-col h-full bg-navy-dark/70 rounded-xl border border-navy-border/80 overflow-hidden relative group">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(212,175,55,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(212,175,55,0.012)_1px,transparent_1px)] bg-[size:14px_14px] pointer-events-none" />
+
+          <div className="flex items-center justify-between px-4 py-2 border-b border-navy-light/40 bg-navy-dark/95 relative z-10 select-none">
+            <div className="flex items-center gap-1.5 font-bold">
+              <Icon name="radio" className="w-3.5 h-3.5 text-gold-corp animate-pulse" />
+              <span className="text-[10px] font-mono font-black tracking-widest text-slate-100 uppercase">
+                RSI BUBBLE RADAR
+              </span>
+            </div>
+            <span className="font-mono text-[8.5px] bg-gold-dim border border-gold-corp/35 text-gold-bright rounded px-2 py-0.5 uppercase tracking-wider animate-pulse font-bold">
+              TOP 6 EXTREMOS ({rsiTimeframe.toUpperCase()})
+            </span>
+          </div>
+
+          <div ref={containerRef} className="flex-1 w-full bg-navy-dark/30 relative overflow-hidden min-h-[220px]">
+            {tokens.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 select-none animate-pulse">
+                <span className="text-[9px] font-mono tracking-widest text-slate-500 uppercase">
+                  ESPERANDO CONEXIÓN...
+                </span>
+              </div>
+            ) : (
+              <svg width={dimensions.width} height={dimensions.height} className="block select-none overflow-hidden">
+                <g opacity="0.3" pointerEvents="none">
+                  <circle
+                    cx={dimensions.width / 2}
+                    cy={dimensions.height / 2}
+                    r={15}
+                    fill="none"
+                    stroke="rgba(212, 175, 55, 0.25)"
+                    strokeWidth="1"
+                    strokeDasharray="2,3"
+                  />
+                  <circle
+                    cx={dimensions.width / 2}
+                    cy={dimensions.height / 2}
+                    r={55}
+                    fill="none"
+                    stroke="rgba(212, 175, 55, 0.15)"
+                    strokeWidth="1"
+                    strokeDasharray="4,4"
+                  />
+                  <circle
+                    cx={dimensions.width / 2}
+                    cy={dimensions.height / 2}
+                    r={105}
+                    fill="none"
+                    stroke="rgba(212, 175, 55, 0.12)"
+                    strokeWidth="1.2"
+                  />
+                  <line
+                    x1={dimensions.width / 2}
+                    y1={dimensions.height / 2 - 120}
+                    x2={dimensions.width / 2}
+                    y2={dimensions.height / 2 + 120}
+                    stroke="rgba(212, 175, 55, 0.08)"
+                    strokeWidth="1"
+                    strokeDasharray="2,4"
+                  />
+                  <line
+                    x1={dimensions.width / 2 - 120}
+                    y1={dimensions.height / 2}
+                    x2={dimensions.width / 2 + 120}
+                    y2={dimensions.height / 2}
+                    stroke="rgba(212, 175, 55, 0.08)"
+                    strokeWidth="1"
+                    strokeDasharray="2,4"
+                  />
+                </g>
+
+                {extremeNode && extremeNode.x !== undefined && extremeNode.y !== undefined && (
+                  <g 
+                    transform={`translate(${extremeNode.x}, ${extremeNode.y})`}
+                    className="transition-all duration-300 pointer-events-none"
+                  >
+                    <circle
+                      r={extremeNode.r + 14}
+                      fill="none"
+                      stroke="#d4af37"
+                      strokeWidth="1.2"
+                      strokeDasharray="5,6"
+                      className="animate-spin"
+                      style={{ transformOrigin: '0px 0px', animationDuration: '8s' }}
+                    />
+                    
+                    <path
+                      d={`M -${extremeNode.r + 9} -${extremeNode.r + 2} L -${extremeNode.r + 9} -${extremeNode.r + 9} L -${extremeNode.r + 2} -${extremeNode.r + 9}`}
+                      fill="none"
+                      stroke="#d4af37"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d={`M ${extremeNode.r + 9} -${extremeNode.r + 2} L ${extremeNode.r + 9} -${extremeNode.r + 9} L ${extremeNode.r + 2} -${extremeNode.r + 9}`}
+                      fill="none"
+                      stroke="#d4af37"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d={`M -${extremeNode.r + 9} ${extremeNode.r + 2} L -${extremeNode.r + 9} ${extremeNode.r + 9} L -${extremeNode.r + 2} ${extremeNode.r + 9}`}
+                      fill="none"
+                      stroke="#d4af37"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d={`M ${extremeNode.r + 9} ${extremeNode.r + 2} L ${extremeNode.r + 9} ${extremeNode.r + 9} L ${extremeNode.r + 2} ${extremeNode.r + 9}`}
+                      fill="none"
+                      stroke="#d4af37"
+                      strokeWidth="1.5"
+                    />
+
+                    <g transform={`translate(0, -${extremeNode.r + 16})`}>
+                      <rect
+                        x="-42"
+                        y="-9"
+                        width="84"
+                        height="12"
+                        fill="rgba(5, 10, 24, 0.95)"
+                        stroke="#d4af37"
+                        strokeWidth="0.8"
+                        rx="2"
+                      />
+                      <text
+                        textAnchor="middle"
+                        y="0"
+                        fill="#f4d068"
+                        className="font-mono text-[6.5px] font-black tracking-widest uppercase animate-pulse"
+                      >
+                        MOMENTUM MAX
+                      </text>
+                    </g>
+                  </g>
+                )}
+
+                {currentNodes.map((node) => {
+                  if (node.x === undefined || node.y === undefined) return null;
+
+                  const rsiVal = node.rsi;
+                  const D = rsiVal - 50;
+                  const dev = Math.abs(D);
+
+                  let opacity = 1.0;
+                  if (dev <= 4) {
+                    opacity = 0.02;
+                  } else if (dev <= 9) {
+                    opacity = 0.02 + ((dev - 4) / 5) * 0.75;
+                  }
+
+                  let bubbleFill = 'rgba(15, 29, 54, 0.85)';
+                  let textColor = 'fill-slate-400';
+                  let rsiColor = 'fill-slate-500';
+
+                  if (dev > 4) {
+                    const intens = Math.min(1.0, (dev - 4) / 32);
+
+                    if (D < 0) {
+                      bubbleFill = `rgba(0, 230, 118, ${0.12 + intens * 0.48})`;
+                      textColor = 'fill-white';
+                      rsiColor = 'fill-cyber-green text-glow-green';
+                    } else {
+                      bubbleFill = `rgba(255, 60, 95, ${0.12 + intens * 0.48})`;
+                      textColor = 'fill-white';
+                      rsiColor = 'fill-cyber-red text-glow-red';
+                    }
+                  }
+
+                  let strokeColor = 'rgba(212, 175, 55, 0.15)';
+                  let strokeWidth = 0.5;
+
+                  if (dev > 4) {
+                    const strokeFactor = Math.min(1.0, (dev - 4) / 36);
+                    strokeWidth = 1.0 + strokeFactor * 6.5;
+
+                    if (D < 0) {
+                      strokeColor = `rgba(0, 230, 118, ${0.5 + strokeFactor * 0.5})`;
+                    } else {
+                      strokeColor = `rgba(255, 60, 95, ${0.5 + strokeFactor * 0.5})`;
+                    }
+                  }
+
+                  const symbolSize = Math.max(9, Math.round(node.r * 0.38));
+                  const rsiSize = Math.max(7.5, Math.round(node.r * 0.28));
+
+                  if (node.isActive) {
+                    strokeColor = '#d4af37';
+                    strokeWidth += 2.0;
+                  }
+
+                  return (
+                    <g
+                      key={node.address}
+                      transform={`translate(${node.x}, ${node.y})`}
+                      onMouseDown={(e) => handleNodeMouseDown(e, node)}
+                      onClick={() => onSelectToken(node.address)}
+                      className="cursor-pointer select-none"
+                      opacity={opacity}
+                      style={{ transition: 'opacity 0.4s ease-out' }}
+                    >
+                      {node.isActive && (
+                        <circle
+                          r={node.r + 5}
+                          fill="transparent"
+                          stroke="#d4af37"
+                          strokeWidth="1.2"
+                          className="pulse-ring"
+                        />
+                      )}
+
+                      <circle
+                        r={node.r}
+                        fill="rgba(15, 29, 54, 0.9)"
+                      />
+
+                      <circle
+                        r={node.r}
+                        fill={bubbleFill}
+                        stroke={strokeColor}
+                        strokeWidth={strokeWidth}
+                        className="transition-all duration-300 hover:brightness-135"
+                      />
+
+                      {node.r > 12 && (
+                        <text
+                          textAnchor="middle"
+                          y="-1"
+                          className={`font-mono font-black tracking-tight select-none pointer-events-none ${textColor}`}
+                          style={{ fontSize: `${symbolSize}px`, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                        >
+                          {node.symbol}
+                        </text>
+                      )}
+
+                      {node.r > 16 && (
+                        <text
+                          textAnchor="middle"
+                          y={symbolSize + 2}
+                          className={`font-mono font-bold select-none pointer-events-none ${rsiColor}`}
+                          style={{ fontSize: `${rsiSize}px`, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                        >
+                          {node.rsi}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
+          </div>
+
+          {activeSelectedToken && (
+            <div className="mx-3 my-3 p-3 bg-navy-card/95 border border-gold-corp/30 rounded-lg shadow-xl relative z-10 select-none animate-fade-in flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <div className={`w-2 h-2 rounded-full ${activeSelectedToken.rsi <= 35 ? 'bg-cyber-green animate-pulse' : activeSelectedToken.rsi >= 65 ? 'bg-cyber-red animate-pulse' : 'bg-slate-400'}`} />
+                  <span className="font-mono text-xs font-black text-slate-100">{activeSelectedToken.symbol}</span>
+                  <span className="text-[9px] text-slate-400 truncate max-w-[120px] font-medium">({activeSelectedToken.name})</span>
+                </div>
+                <span className="font-mono text-[9px] tracking-wider text-slate-400">
+                  RSI: <span className={`font-black ${activeSelectedToken.rsi <= 35 ? 'text-cyber-green' : activeSelectedToken.rsi >= 65 ? 'text-cyber-red' : 'text-gold-bright'}`}>{activeSelectedToken.rsi.toFixed(1)}</span>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono border-t border-navy-light/30 pt-2">
+                <div>
+                  <span className="text-slate-500 block text-[8px] uppercase">Precio actual</span>
+                  <span className="text-gold-bright font-black">${activeSelectedToken.price.toFixed(activeSelectedToken.price < 0.1 ? 6 : 2)}</span>
                 </div>
                 
-                <div class="flex gap-2">
-                    <input type="text" id="manual-token-input" placeholder="Dirección de Contrato o Símbolo..." 
-                           class="flex-1 bg-[#050a18] border border-navy-border outline-none rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-gold-corp transition font-mono">
-                    <button onclick="addManualToken()" class="px-3 rounded-lg bg-gold-corp hover:bg-gold-bright text-navy-dark font-mono text-xs font-bold transition flex items-center gap-1 shrink-0">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Agregar</span>
-                    </button>
-                </div>
-                <span id="manual-error-msg" class="text-[10px] text-cyber-red font-mono hidden"></span>
+                <a
+                  href={`https://birdeye.so/token/${activeSelectedToken.address}?chain=solana`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-1 px-2.5 text-[9px] font-bold font-mono bg-gold-corp text-navy-dark hover:bg-gold-bright hover:shadow rounded transition duration-250 flex items-center gap-1 hover:scale-103 active:scale-97 cursor-pointer uppercase select-none"
+                  title="Abrir gráfico en Birdeye para análisis"
+                >
+                  <span>Birdeye ↗</span>
+                </a>
+              </div>
             </div>
-
-            <!-- LISTA DE MONITOREADOS -->
-            <div class="flex flex-col gap-2.5 flex-grow overflow-y-auto pr-1">
-                <h2 class="text-xs font-mono tracking-widest uppercase text-slate-400 px-1">Instrumentos Monitoreados</h2>
-                <div id="monitored-tokens-list" class="space-y-2.5">
-                    <!-- Cards se llenan dinámicamente -->
-                </div>
-            </div>
-
-            <!-- FILOSOFÍA DEL SISTEMA & RECUADROS RSI EN VIVO -->
-            <div class="glass p-4 rounded-xl border border-navy-border shrink-0 flex flex-col justify-between bg-navy-card/95 gap-4">
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="fa-solid fa-shield-halved text-gold-corp text-xs"></i>
-                        <span class="text-[10px] font-mono tracking-widest text-slate-300 uppercase">Filosofía de Operación</span>
-                    </div>
-                    <ul class="text-[11px] text-slate-400 space-y-2 font-sans">
-                        <li class="flex gap-2"><span class="text-gold-corp font-mono font-bold">1.</span> <span>No operar extremos aislados sino Estructura de Tendencia.</span></li>
-                        <li class="flex gap-2"><span class="text-gold-corp font-mono font-bold">2.</span> <span>Zonas S/R Macro H1 definen límites; M5 confirma el Gatillo.</span></li>
-                        <li class="flex gap-2"><span class="text-gold-corp font-mono font-bold">3.</span> <span>Impulso direccional y RSI extremo garantizan el sniper.</span></li>
-                    </ul>
-                </div>
-
-                <!-- CONTENEDOR DE 3 CUADROS DE RSI EN VIVO CONFIGURABLE -->
-                <div class="pt-3 border-t border-navy-light">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="text-[10px] font-mono tracking-wider text-slate-400 uppercase">RSI (14) en Vivo</div>
-                        <select id="rsi-tf-select" onchange="changeRSITimeframe()" class="bg-[#050a18] border border-navy-border text-[9px] font-mono text-gold-bright rounded px-1.5 py-0.5 outline-none focus:border-gold-corp transition cursor-pointer">
-                            <option value="m5" selected>M5 (Nativo)</option>
-                            <option value="m15">M15 (Confirmación)</option>
-                            <option value="h1">H1 (Macro)</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2" id="rsi-widgets-container">
-                        <!-- RSI de los primeros 3 tokens se listan acá -->
-                    </div>
-                </div>
-            </div>
+          )}
         </div>
+      );
+    }
 
-        <!-- PANEL CENTRAL: GRÁFICO PROFESIONAL EN TIEMPO REAL -->
-        <div class="flex-grow flex flex-col gap-4 overflow-hidden min-h-[450px]">
-            <div class="glass p-4 rounded-xl border border-navy-border flex-1 flex flex-col overflow-hidden relative">
-                <!-- Header del Gráfico -->
-                <div class="flex justify-between items-center mb-4 shrink-0 flex-wrap gap-2">
-                    <div class="flex items-center gap-3">
-                        <span class="text-[11px] font-mono font-bold text-gold-bright bg-gold-dim px-2.5 py-1 rounded border border-gold-corp/30" id="chart-symbol-badge">V75</span>
-                        <div class="text-sm font-bold tracking-tight text-slate-100" id="chart-symbol-title">Seleccione un Token</div>
-                        <span class="text-[10px] text-slate-500 font-mono hidden sm:inline">DEXSCREENER ENGINE & 9 EMA</span>
-                    </div>
-                    <div class="flex gap-1.5 bg-[#050a18] p-1 rounded border border-navy-border text-[10px] font-mono">
-                        <span class="px-2 py-0.5 bg-gold-corp text-navy-dark rounded font-bold">NATIVO M5</span>
-                        <span class="px-2 py-0.5 text-slate-400 hidden sm:inline">S/R SEGREGADO ACTIVADO</span>
-                    </div>
-                </div>
+    // Interactive high contrast candlestick chart
+    function SniperCanvas({ token, timeframe, onTimeframeChange, connectionStatus }) {
+      const canvasRef = useRef(null);
+      const containerRef = useRef(null);
+      const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
+      const [hoverPos, setHoverPos] = useState(null);
 
-                <!-- Contenedor del Gráfico con Canvas Integrado -->
-                <div class="flex-1 rounded-lg overflow-hidden border border-navy-border/50 relative bg-[#050a18] min-h-[280px]" id="tv-chart-container">
-                    <canvas id="native-sniper-canvas" class="w-full h-full block bg-[#050a18]"></canvas>
-                </div>
-            </div>
+      useEffect(() => {
+        if (!containerRef.current) return;
+        const resizeObserver = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            const { width, height } = entry.contentRect;
+            setDimensions({
+              width: Math.max(300, width),
+              height: Math.max(260, height),
+            });
+          }
+        });
+        resizeObserver.observe(containerRef.current);
+        return () => resizeObserver.disconnect();
+      }, []);
 
-            <!-- PANEL DE EVENTOS / BITÁCORA SNIPER -->
-            <div class="h-1/4 min-h-[140px] max-h-[180px] glass p-4 rounded-xl border border-navy-border flex flex-col overflow-hidden shrink-0">
-                <div class="flex items-center justify-between mb-2 shrink-0">
-                    <span class="text-xs font-mono tracking-widest uppercase text-slate-300 flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-gold-bright animate-ping"></span>
-                        Bitácora del Sistema (Historial de Alertas)
-                    </span>
-                    <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-gold-bright transition font-mono border border-navy-border px-2 py-0.5 rounded bg-navy-dark">LIMPIAR LOGS</button>
-                </div>
-                <div class="flex-1 overflow-y-auto space-y-1.5 font-mono text-xs text-slate-400 pr-1" id="system-logs">
-                    <!-- Logs entran en vivo -->
-                </div>
-            </div>
-        </div>
+      const formatPriceValue = (val) => {
+        if (val === 0) return '0.00';
+        if (val < 0.001) return val.toFixed(6);
+        if (val < 1) return val.toFixed(4);
+        if (val < 100) return val.toFixed(2);
+        return val.toLocaleString(undefined, { maximumFractionDigits: 1 });
+      };
 
-        <!-- PANEL DERECHO: CONSOLA DE GATILLO & SCORE -->
-        <div class="w-full lg:w-1/4 lg:min-w-[300px] flex flex-col gap-4 overflow-y-auto shrink-0">
-            
-            <!-- PANEL DE PUNTUACIÓN -->
-            <div class="glass p-5 rounded-xl border border-navy-border text-center relative overflow-hidden bg-navy-card/90 flex flex-col items-center shrink-0">
-                <div class="absolute inset-0 bg-gradient-to-b from-gold-dim to-transparent pointer-events-none"></div>
-                <span class="text-xs font-mono tracking-widest uppercase text-slate-300">Puntaje de Configuración</span>
-                
-                <!-- Círculo de Score -->
-                <div class="relative w-36 h-36 mx-auto my-4 flex items-center justify-center">
-                    <svg class="w-full h-full transform -rotate-90">
-                        <circle cx="72" cy="72" r="62" stroke="rgba(255,255,255,0.02)" stroke-width="8" fill="transparent"></circle>
-                        <circle id="score-circle" cx="72" cy="72" r="62" stroke="#d4af37" stroke-width="10" fill="transparent"
-                                stroke-dasharray="390" stroke-dashoffset="390" class="transition-all duration-1000 ease-out glow-gold"></circle>
-                    </svg>
-                    <div class="absolute text-center">
-                        <span class="font-mono text-3xl font-black tracking-tighter text-slate-100" id="score-text">0</span>
-                        <span class="font-mono text-[10px] text-slate-500 block -mt-1">PTS</span>
-                    </div>
-                </div>
+      const formatDate = (timeSecsOrMs) => {
+        const isSeconds = timeSecsOrMs < 5000000000;
+        const d = new Date(isSeconds ? timeSecsOrMs * 1000 : timeSecsOrMs);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        return `${day}/${month} ${hours}:${minutes}`;
+      };
 
-                <div class="px-4 py-1.5 rounded bg-navy-dark border border-navy-border inline-block text-[11px] font-mono font-bold tracking-widest text-gold-corp" id="quality-badge">
-                    ESPERANDO SEÑAL
-                </div>
-            </div>
+      const getClosestCandleIndex = (mouseX, candlesCount, chartWidth, paddingLeft) => {
+        if (candlesCount <= 1) return 0;
+        const relativeX = mouseX - paddingLeft;
+        const fraction = relativeX / chartWidth;
+        const calculatedIndex = Math.round(fraction * (candlesCount - 1));
+        return Math.min(candlesCount - 1, Math.max(0, calculatedIndex));
+      };
 
-            <!-- CHECKLIST DE ANÁLISIS MULTI-TIME-FRAME -->
-            <div class="glass p-5 rounded-xl border border-navy-border flex-1 flex flex-col justify-between bg-navy-card/95 gap-4">
-                <div>
-                    <h3 class="text-xs font-mono tracking-widest uppercase text-slate-300 mb-4 flex items-center gap-2 border-b border-navy-border pb-2">
-                        <i class="fa-solid fa-list-check text-gold-corp"></i>
-                        Matrices de Decisión (Filtro Estricto)
-                    </h3>
-                    <div class="space-y-3.5 text-xs">
-                        <!-- H1 Structure -->
-                        <div class="flex items-center justify-between border-b border-navy-light pb-2">
-                            <div class="flex flex-col">
-                                <span class="font-semibold text-slate-200">Estructura H1 Macro</span>
-                                <span class="text-[10px] text-slate-500 font-mono" id="h1-details">BOS/CHoCH no definido</span>
-                            </div>
-                            <span class="font-mono font-bold text-slate-600" id="score-h1">0/25 PTS</span>
-                        </div>
-                        <!-- M15 Confirmation -->
-                        <div class="flex items-center justify-between border-b border-navy-light pb-2">
-                            <div class="flex flex-col">
-                                <span class="font-semibold text-slate-200">Alineación M15</span>
-                                <span class="text-[10px] text-slate-500 font-mono" id="m15-details">Esperando sincronía</span>
-                            </div>
-                            <span class="font-mono font-bold text-slate-600" id="score-m15">0/20 PTS</span>
-                        </div>
-                        <!-- Key Zone -->
-                        <div class="flex items-center justify-between border-b border-navy-light pb-2">
-                            <div class="flex flex-col">
-                                <span class="font-semibold text-slate-200">Zona H1 Relevante</span>
-                                <span class="text-[10px] text-slate-500 font-mono" id="zone-details">Fuera de Soporte/Resistencia</span>
-                            </div>
-                            <span class="font-mono font-bold text-slate-600" id="score-zone">0/25 PTS</span>
-                        </div>
-                        <!-- M5 CHoCH/BOS -->
-                        <div class="flex items-center justify-between border-b border-navy-light pb-2">
-                            <div class="flex flex-col">
-                                <span class="font-semibold text-slate-200">Gatillo M5</span>
-                                <span class="text-[10px] text-slate-500 font-mono" id="m5-details">Esperando Reversión/Wick</span>
-                            </div>
-                            <span class="font-mono font-bold text-slate-600" id="score-m5">0/20 PTS</span>
-                        </div>
-                        <!-- Impulse -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex flex-col">
-                                <span class="font-semibold text-slate-200">Impulso de Onda M5</span>
-                                <span class="text-[10px] text-slate-500 font-mono" id="impulse-details">Momentum neutral</span>
-                            </div>
-                            <span class="font-mono font-bold text-slate-600" id="score-impulse">0/10 PTS</span>
-                        </div>
-                    </div>
-                </div>
+      const candles = token 
+        ? (timeframe === 'm5' ? token.candlesM5 : timeframe === 'm15' ? token.candlesM15 : token.candlesH1)
+        : [];
 
-                <!-- TARGET BOX (OPERACIÓN SNIPER DETECTADA) -->
-                <div class="mt-4 p-4 rounded-xl border border-dashed border-navy-border bg-navy-dark/60 relative overflow-hidden" id="trigger-panel">
-                    <div class="absolute inset-0 bg-gradient-to-tr from-gold-corp/5 via-transparent to-transparent"></div>
-                    <div class="text-[9px] font-mono tracking-wider text-slate-400 uppercase mb-2">ORDEN SNIPER DETECTADA</div>
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-sm font-mono font-bold text-slate-500" id="op-action">ESPERANDO SEÑAL...</span>
-                        <div class="text-right">
-                            <span class="text-[10px] text-slate-500 block leading-none font-mono">ENTRY ZONE</span>
-                            <span class="font-mono text-xs text-slate-400" id="op-price">0.0000</span>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                        <div class="bg-navy-dark p-1.5 rounded border border-navy-border">
-                            <span class="text-slate-500 text-[9px] block">STOP LOSS</span>
-                            <span class="text-cyber-red font-semibold" id="op-sl">0.0000</span>
-                        </div>
-                        <div class="bg-navy-dark p-1.5 rounded border border-navy-border">
-                            <span class="text-slate-500 text-[9px] block">TAKE PROFIT</span>
-                            <span class="text-cyber-green font-semibold" id="op-tp">0.0000</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
+      const sortedcandles = useMemo(() => {
+        return [...(candles || [])].sort((a, b) => a.time - b.time);
+      }, [candles]);
 
-    <!-- LOGICAL ENGINE DE ALTO RENDIMIENTO -->
-    <script>
-        // Registros Iniciales de Tokens Base Pre-indexados
-        let tokens = [
-            { id: 'sol-token', symbol: 'SOL', name: 'Solana', address: 'So11111111111111111111111111111111111111112', price: 153.42, change24h: 3.45, custom: false },
-            { id: 'wif-token', symbol: 'WIF', name: 'dogwifhat', address: 'EKpQGSJtjMFqKZ9m2E7ekMainMc2tsy676A9A87SuSUX', price:  2.34, change24h: -1.25, custom: false },
-            { id: 'bonk-token', symbol: 'BONK', name: 'Bonk', address: 'DezXAZ8z7PnrnRJjz3wX4mGCmzNgR6937JoxCwt6A85', price: 0.00002134, change24h: 12.50, custom: false }
-        ];
+      const paddingRight = 70;
+      const paddingBottom = 24;
+      const paddingTop = 28;
+      const paddingLeft = 14;
 
-        let activeAddress = 'So11111111111111111111111111111111111111112';
-        let soundEnabled = true;
-        let rsiTimeframe = 'm5'; // m5, m15, h1
+      const chartWidth = dimensions.width - paddingLeft - paddingRight;
+      const chartHeight = dimensions.height - paddingTop - paddingBottom;
 
-        // Memoria de historiales de velas de los activos indexados
-        const db = {};
-        const positions = {};
+      const getX = (index) => {
+        if (sortedcandles.length <= 1) return paddingLeft;
+        return paddingLeft + (index / (sortedcandles.length - 1)) * chartWidth;
+      };
 
-        // Iniciar un reloj UTC que represente la sincronía del mercado
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('live-clock').textContent = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-        }, 1000);
+      const hoveredIndex = hoverPos && hoverPos.active && sortedcandles.length > 0
+        ? getClosestCandleIndex(hoverPos.x, sortedcandles.length, chartWidth, paddingLeft)
+        : null;
 
-        // Configuración de Canvas Multidireccional y Redimensionado
-        const canvas = document.getElementById('native-sniper-canvas');
+      const activeCandle = hoveredIndex !== null && sortedcandles[hoveredIndex]
+        ? sortedcandles[hoveredIndex]
+        : (sortedcandles.length > 0 ? sortedcandles[sortedcandles.length - 1] : null);
+
+      const candleVar = activeCandle ? ((activeCandle.close - activeCandle.open) / activeCandle.open) * 100 : 0;
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !token) return;
+
         const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-        function resizeCanvas() {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            renderChart();
-        }
-        window.addEventListener('resize', resizeCanvas);
+        ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
-        // Inicialización del oscilador acústico para alertas discretas (Snip Chiarps)
-        function playSignalChirp(freq1 = 1200, freq2 = 2400) {
-            if (!soundEnabled) return;
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (!audioCtx) return;
-
-                const osc1 = audioCtx.createOscillator();
-                const osc2 = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-
-                osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(freq1, audioCtx.currentTime);
-                osc1.frequency.exponentialRampToValueAtTime(freq2, audioCtx.currentTime + 0.15);
-
-                osc2.type = 'square';
-                osc2.frequency.setValueAtTime(freq1 / 2, audioCtx.currentTime);
-                osc2.frequency.exponentialRampToValueAtTime(freq1, audioCtx.currentTime + 0.15);
-
-                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-
-                osc1.connect(gain);
-                osc2.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc1.start();
-                osc2.start();
-                osc1.stop(audioCtx.currentTime + 0.45);
-                osc2.stop(audioCtx.currentTime + 0.45);
-            } catch (err) {
-                console.warn('AudioContext bloqueado o inactivo.', err);
-            }
+        if (connectionStatus === 'OFFLINE') {
+          ctx.fillStyle = '#ef4444';
+          ctx.font = 'bold 11px var(--font-mono)';
+          ctx.textAlign = 'center';
+          ctx.fillText('● RECONECTANDO CON SERVIDORES...', dimensions.width / 2, dimensions.height / 2 - 10);
+          ctx.fillStyle = '#64748b';
+          ctx.font = '8.5spx var(--font-mono)';
+          ctx.fillText('FUENTES DE DATOS INTERRUMPIDAS', dimensions.width / 2, dimensions.height / 2 + 10);
+          return;
         }
 
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            const btn = document.getElementById('sound-icon');
-            const txt = document.getElementById('sound-text');
-            if (soundEnabled) {
-                btn.className = 'fa-solid fa-volume-high text-gold-corp';
-                txt.textContent = 'SONIDO ON';
+        if (sortedcandles.length === 0) {
+          ctx.fillStyle = '#64748b';
+          ctx.font = '11px var(--font-mono)';
+          ctx.textAlign = 'center';
+          ctx.fillText('CARGANDO COMPORTAMIENTO VELAS...', dimensions.width / 2, dimensions.height / 2);
+          return;
+        }
+
+        let minPrice = Infinity;
+        let maxPrice = -Infinity;
+
+        const emaPeriod = 9;
+        const k = 2 / (emaPeriod + 1);
+        const emaValues = [];
+        
+        if (sortedcandles.length > 0) {
+          let currentEma = sortedcandles[0].close;
+          emaValues.push(currentEma);
+          for (let i = 1; i < sortedcandles.length; i++) {
+            currentEma = sortedcandles[i].close * k + currentEma * (1 - k);
+            emaValues.push(currentEma);
+          }
+        }
+
+        sortedcandles.forEach((c, idx) => {
+          if (c.high > maxPrice) maxPrice = c.high;
+          if (c.low < minPrice) minPrice = c.low;
+          if (emaValues[idx] > maxPrice) maxPrice = emaValues[idx];
+          if (emaValues[idx] < minPrice) minPrice = emaValues[idx];
+        });
+
+        const levels = [];
+        if (token.analysis) {
+          levels.push(...token.analysis.h1Support, ...token.analysis.h1Resistance);
+        }
+        levels.forEach((lvl) => {
+          if (lvl > maxPrice) maxPrice = lvl;
+          if (lvl < minPrice) minPrice = lvl;
+        });
+
+        const range = maxPrice - minPrice;
+        minPrice -= range * 0.08 || minPrice * 0.01;
+        maxPrice += range * 0.08 || maxPrice * 0.01;
+
+        const getY = (price) => {
+          if (maxPrice === minPrice) return paddingTop + chartHeight / 2;
+          return paddingTop + (1 - (price - minPrice) / (maxPrice - minPrice)) * chartHeight;
+        };
+
+        // Drawprice and horizontal gridlines (8 divisions)
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.04)';
+        ctx.lineWidth = 1;
+        const horizontalDivs = 8;
+        for (let i = 0; i <= horizontalDivs; i++) {
+          const y = paddingTop + (i / horizontalDivs) * chartHeight;
+          ctx.beginPath();
+          ctx.moveTo(paddingLeft, y);
+          ctx.lineTo(dimensions.width - paddingRight, y);
+          ctx.stroke();
+
+          const priceVal = maxPrice - (i / horizontalDivs) * (maxPrice - minPrice);
+          ctx.fillStyle = '#64748b';
+          ctx.font = '9px var(--font-mono)';
+          ctx.textAlign = 'left';
+          ctx.fillText(formatPriceValue(priceVal), dimensions.width - paddingRight + 8, y + 3.5);
+        }
+
+        // Draw vertical division lineガイド
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.03)';
+        ctx.lineWidth = 1;
+        const verticalDivs = 8;
+        for (let j = 1; j < verticalDivs; j++) {
+          const x = paddingLeft + (j / verticalDivs) * chartWidth;
+          ctx.beginPath();
+          ctx.moveTo(x, paddingTop);
+          ctx.lineTo(x, dimensions.height - paddingBottom);
+          ctx.stroke();
+        }
+
+        // Soportes y Resistencias H1 lines integration
+        if (token.analysis) {
+          const currentPrice = token.price;
+          const supports = [...token.analysis.h1Support].filter(s => s <= currentPrice).sort((a, b) => b - a);
+          const resistances = [...token.analysis.h1Resistance].filter(r => r >= currentPrice).sort((a, b) => a - b);
+
+          const cleanSupports = supports.length > 0 ? supports : [...token.analysis.h1Support].sort((a, b) => b - a);
+          const cleanResistances = resistances.length > 0 ? resistances : [...token.analysis.h1Resistance].sort((a, b) => a - b);
+
+          const s1 = cleanSupports[0];
+          const r1 = cleanResistances[0];
+
+          if (s1 !== undefined) {
+            const y = getY(s1);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 230, 118, 0.45)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, y);
+            ctx.lineTo(dimensions.width - paddingRight, y);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = '#00e676';
+            ctx.font = 'bold 8px var(--font-mono)';
+            ctx.textAlign = 'right';
+            ctx.fillText('S1 SOPORTE', dimensions.width - paddingRight - 8, y - 4);
+          }
+
+          if (r1 !== undefined) {
+            const y = getY(r1);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 60, 95, 0.45)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, y);
+            ctx.lineTo(dimensions.width - paddingRight, y);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = '#ff3c5f';
+            ctx.font = 'bold 8px var(--font-mono)';
+            ctx.textAlign = 'right';
+            ctx.fillText('R1 RESISTENCIA', dimensions.width - paddingRight - 8, y - 4);
+          }
+        }
+
+        // Draw Candle wicks and solids
+        const candleWidth = Math.max(1.5, (chartWidth / sortedcandles.length) * 0.55);
+        sortedcandles.forEach((c, idx) => {
+          const x = getX(idx);
+          const yOpen = getY(c.open);
+          const yClose = getY(c.close);
+          const yHigh = getY(c.high);
+          const yLow = getY(c.low);
+
+          const isBullish = c.close >= c.open;
+          ctx.strokeStyle = isBullish ? '#00e676' : '#ff3c5f';
+          ctx.fillStyle = isBullish ? '#00e676' : '#ff3c5f';
+          ctx.lineWidth = 1.2;
+
+          ctx.beginPath();
+          ctx.moveTo(x, yHigh);
+          ctx.lineTo(x, yLow);
+          ctx.stroke();
+
+          const bodyHeight = Math.max(1, Math.abs(yClose - yOpen));
+          ctx.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, bodyHeight);
+        });
+
+        // 9 EMA Trend curves
+        if (emaValues.length > 0) {
+          let trendColor = '#d4af37';
+          if (token.analysis) {
+            if (token.analysis.h1Trend === 'BULLISH') trendColor = '#00e676';
+            else if (token.analysis.h1Trend === 'BEARISH') trendColor = '#ff3c5f';
+          }
+
+          ctx.save();
+          ctx.strokeStyle = trendColor;
+          ctx.lineWidth = 2.2;
+          ctx.shadowColor = trendColor;
+          ctx.shadowBlur = 5;
+
+          ctx.beginPath();
+          for (let i = 0; i < emaValues.length; i++) {
+            const x = getX(i);
+            const y = getY(emaValues[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Latest focus price tag floating node
+        if (sortedcandles.length > 0) {
+          const latestCandle = sortedcandles[sortedcandles.length - 1];
+          const currentY = getY(latestCandle.close);
+          const isUp = latestCandle.close >= latestCandle.open;
+          const priceColor = isUp ? '#00e676' : '#ff3c5f';
+
+          ctx.save();
+          ctx.strokeStyle = priceColor;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 3]);
+          ctx.beginPath();
+          ctx.moveTo(getX(sortedcandles.length - 1), currentY);
+          ctx.lineTo(dimensions.width - paddingRight, currentY);
+          ctx.stroke();
+          ctx.restore();
+
+          if (currentY >= paddingTop && currentY <= dimensions.height - paddingBottom) {
+            ctx.save();
+            ctx.fillStyle = priceColor;
+            ctx.shadowColor = priceColor;
+            ctx.shadowBlur = 4;
+
+            const tagWidth = 65;
+            const tagHeight = 16;
+            const tagX = dimensions.width - paddingRight + 2;
+            const tagY = currentY - tagHeight / 2;
+
+            ctx.beginPath();
+            ctx.rect(tagX, tagY, tagWidth, tagHeight);
+            ctx.fill();
+
+            ctx.fillStyle = '#030712';
+            ctx.font = 'bold 9px var(--font-mono)';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 0;
+            ctx.fillText(formatPriceValue(latestCandle.close), tagX + tagWidth / 2, tagY + tagHeight / 2 + 3);
+            ctx.restore();
+          }
+        }
+
+        // Cursor guide grids
+        if (hoverPos && hoverPos.active && hoveredIndex !== null && hoveredIndex >= 0 && hoveredIndex < sortedcandles.length) {
+          const snappedX = getX(hoveredIndex);
+          const crosshairY = hoverPos.y;
+
+          ctx.save();
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+
+          ctx.beginPath();
+          ctx.moveTo(snappedX, paddingTop);
+          ctx.lineTo(snappedX, dimensions.height - paddingBottom);
+          ctx.stroke();
+
+          if (crosshairY >= paddingTop && crosshairY <= dimensions.height - paddingBottom) {
+            ctx.beginPath();
+            ctx.moveTo(paddingLeft, crosshairY);
+            ctx.lineTo(dimensions.width - paddingRight, crosshairY);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // Price bubble tag
+          if (crosshairY >= paddingTop && crosshairY <= dimensions.height - paddingBottom) {
+            const hoverPrice = maxPrice - ((crosshairY - paddingTop) / chartHeight) * (maxPrice - minPrice);
+            const formattedHoverPrice = formatPriceValue(hoverPrice);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
+            ctx.lineWidth = 1;
+
+            const badgeWidth = 65;
+            const badgeHeight = 16;
+            const badgeX = dimensions.width - paddingRight + 2;
+            const badgeY = crosshairY - badgeHeight / 2;
+
+            ctx.beginPath();
+            ctx.rect(badgeX, badgeY, badgeWidth, badgeHeight);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 9px var(--font-mono)';
+            ctx.textAlign = 'center';
+            ctx.fillText(formattedHoverPrice, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2 + 3);
+          }
+
+          // Date bubble tag
+          const hoveredCandle = sortedcandles[hoveredIndex];
+          const stampStr = formatDate(hoveredCandle.time);
+
+          ctx.fillStyle = '#1e293b';
+          ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
+          ctx.lineWidth = 1;
+
+          const timeBadgeWidth = 84;
+          const timeBadgeHeight = 15;
+          const timeBadgeX = snappedX - timeBadgeWidth / 2;
+          const timeBadgeY = dimensions.height - paddingBottom + 2;
+
+          ctx.beginPath();
+          ctx.rect(timeBadgeX, timeBadgeY, timeBadgeWidth, timeBadgeHeight);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 8.5px var(--font-mono)';
+          ctx.textAlign = 'center';
+          ctx.fillText(stampStr, timeBadgeX + timeBadgeWidth / 2, timeBadgeY + timeBadgeHeight / 2 + 3);
+        }
+
+      }, [dimensions, token, timeframe, hoverPos, sortedcandles, chartWidth, chartHeight]);
+
+      const handleMouseMove = (e) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setHoverPos({ x, y, active: true });
+      };
+
+      const handleMouseLeave = () => {
+        setHoverPos(null);
+      };
+
+      const handleTouchMove = (e) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        setHoverPos({ x, y, active: true });
+      };
+
+      if (!token) {
+        return (
+          <div className="glass flex-1 rounded-xl border border-navy-border flex flex-col justify-center items-center p-6 text-center text-slate-400 gap-3">
+            <Icon name="loader-2" className="w-8 h-8 animate-spin text-gold-corp" />
+            <span className="font-mono text-xs tracking-wider">SELECCIONA O INDEXA UN COMPONENTE EN TU WATCHLIST</span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="glass p-4 rounded-xl border border-[#1e293b]/70 flex-1 flex flex-col overflow-hidden relative">
+          
+          <div className="flex justify-between items-center mb-4 shrink-0 flex-wrap gap-2 select-none">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-mono font-bold text-gold-bright bg-gold-dim px-2.5 py-1 rounded border border-gold-corp/30">
+                {token.symbol}
+              </span>
+              <div className="text-sm font-bold tracking-tight text-slate-100">{token.name}</div>
+            </div>
+
+            <div className="flex gap-1 bg-navy-dark p-1 rounded-lg border border-navy-light text-[9.5px] font-mono">
+              {['m5', 'm15', 'h1'].map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => onTimeframeChange(tf)}
+                  className={`px-3 py-1 rounded transition-all duration-200 capitalize font-bold cursor-pointer ${
+                    timeframe === tf ? 'bg-gold-corp text-navy-dark' : 'text-slate-400 hover:text-gold-bright'
+                  }`}
+                >
+                  {tf === 'm5' ? 'M5 (Nativo)' : tf === 'm15' ? 'M15' : 'H1 (Macro)'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div ref={containerRef} className="flex-1 rounded-lg overflow-hidden border border-navy-light/35 relative bg-[#030712] min-h-[220px]">
+            {connectionStatus === 'OFFLINE' && (
+              <div className="absolute inset-0 z-30 bg-[#030712]/85 backdrop-blur-[4px] flex flex-col items-center justify-center gap-3 select-none">
+                <div className="w-10 h-10 rounded-full border border-rose-500/20 bg-rose-500/5 flex items-center justify-center">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                </div>
+                <div className="font-mono text-xs tracking-widest text-rose-500 font-black animate-pulse">
+                  ● RECONECTANDO...
+                </div>
+                <p className="text-[9px] text-slate-400 font-mono tracking-widest max-w-[280px] text-center uppercase leading-relaxed">
+                  Buscando feeds reales en Birdeye / DexScreener...
+                </p>
+              </div>
+            )}
+
+            {activeCandle && connectionStatus !== 'OFFLINE' && (
+              <div className="absolute top-2 left-3 z-10 font-mono text-[8.5px] text-slate-450 bg-navy-dark/95 px-2.5 py-1 rounded border border-[#1e293b]/60 flex flex-wrap items-center gap-3 select-none pointer-events-none text-slate-300">
+                <span className="text-gold-corp font-black uppercase tracking-wider flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold-bright shrink-0" />
+                  {timeframe.toUpperCase()}
+                </span>
+                <span>O: <span className={activeCandle.close >= activeCandle.open ? 'text-cyber-green' : 'text-cyber-red'}>{formatPriceValue(activeCandle.open)}</span></span>
+                <span>H: <span className="text-cyber-green">{formatPriceValue(activeCandle.high)}</span></span>
+                <span>L: <span className="text-cyber-red">{formatPriceValue(activeCandle.low)}</span></span>
+                <span>C: <span className={activeCandle.close >= activeCandle.open ? 'text-cyber-green' : 'text-cyber-red'}>{formatPriceValue(activeCandle.close)}</span></span>
+                <span>Var: <span className={candleVar >= 0 ? 'text-cyber-green font-bold' : 'text-cyber-red font-bold'}>{candleVar >= 0 ? '+' : ''}{candleVar.toFixed(2)}%</span></span>
+              </div>
+            )}
+
+            <canvas
+              ref={canvasRef}
+              width={dimensions.width}
+              height={dimensions.height}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleMouseLeave}
+              className="w-full h-full block cursor-crosshair select-none touch-none"
+            />
+          </div>
+
+          <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500 font-mono select-none">
+            <span>INTERFAZ GRÁFICA MULTI-TIME-FRAME NATIVA</span>
+            <span className="text-gold-corp uppercase font-bold text-[9px] tracking-wide">9 EMA Y SOPORTE H1 DIRECTO</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Live buy sellers pressure duel & spinning quantum pulse core
+    function LiveBuyersSellers({ activeToken }) {
+      const [buyRatio, setBuyRatio] = useState(55);
+      const [buyersCount, setBuyersCount] = useState(1482);
+      const [sellersCount, setSellersCount] = useState(1210);
+      const [pulseValue, setPulseValue] = useState(65);
+
+      useEffect(() => {
+        if (!activeToken) return;
+
+        const symbolHash = activeToken.symbol.charCodeAt(0) + (activeToken.symbol.charCodeAt(1) || 0);
+        const initialBuy = 45 + (symbolHash % 25);
+        setBuyRatio(initialBuy);
+        setBuyersCount(1000 + (symbolHash * 17) % 2000);
+        setSellersCount(1000 + (symbolHash * 13) % 2000);
+
+        const interval = setInterval(() => {
+          setBuyRatio((prev) => {
+            const shift = Math.random() > 0.5 ? 1 : -1;
+            const target = Math.max(25, Math.min(85, prev + shift));
+            if (shift > 0) {
+              setBuyersCount((b) => b + Math.floor(Math.random() * 3));
             } else {
-                btn.className = 'fa-solid fa-volume-xmark text-slate-500';
-                txt.textContent = 'MUTE';
+              setSellersCount((s) => s + Math.floor(Math.random() * 3));
             }
+            return target;
+          });
+        }, 1800);
+
+        return () => clearInterval(interval);
+      }, [activeToken]);
+
+      useEffect(() => {
+        const rsiVal = activeToken ? activeToken.rsi : 50;
+        const target = Math.round(buyRatio * 0.45 + rsiVal * 0.55);
+
+        const interval = setInterval(() => {
+          setPulseValue((prev) => {
+            if (prev < target) return Math.min(100, prev + 1);
+            if (prev > target) return Math.max(0, prev - 1);
+            const microOsc = Math.random() > 0.5 ? 1 : -1;
+            return Math.max(0, Math.min(100, prev + microOsc));
+          });
+        }, 1200);
+
+        return () => clearInterval(interval);
+      }, [activeToken, buyRatio]);
+
+      const sellRatio = 100 - buyRatio;
+
+      let statusText = 'ESTABLE';
+      let statusColor = 'text-cyan-400';
+      let glowColor = 'rgba(34, 211, 238, 0.15)';
+      
+      if (pulseValue <= 30) {
+        statusText = 'FRÍO';
+        statusColor = 'text-slate-550 text-slate-500 font-bold';
+        glowColor = 'rgba(100, 116, 139, 0.1)';
+      } else if (pulseValue <= 60) {
+        statusText = 'NORMAL';
+        statusColor = 'text-cyan-400 font-semibold';
+        glowColor = 'rgba(34, 211, 238, 0.15)';
+      } else if (pulseValue <= 80) {
+        statusText = 'ACTIVO';
+        statusColor = 'text-amber-400 font-extrabold';
+        glowColor = 'rgba(245, 158, 11, 0.2)';
+      } else {
+        statusText = 'EXTREMO';
+        statusColor = 'text-rose-500 font-black animate-pulse';
+        glowColor = 'rgba(239, 68, 68, 0.3)';
+      }
+
+      return (
+        <div className="bg-[#030712]/50 border border-navy-light/35 p-3.5 rounded-xl flex flex-col gap-4 relative overflow-hidden">
+          <div 
+            className="absolute -right-12 -bottom-12 w-40 h-40 rounded-full pointer-events-none transition-all duration-1000 ease-in-out border border-dashed border-gold-corp/5"
+            style={{ boxShadow: `inset 0 0 30px ${glowColor}` }}
+          />
+
+          <div className="flex justify-between items-center select-none">
+            <div className="flex items-center gap-1.5 font-bold">
+              <Icon name="activity" className="w-3.5 h-3.5 text-cyber-green animate-pulse" />
+              <span className="text-[9px] font-mono tracking-widest text-slate-300 uppercase">
+                PRESIÓN DE COMPRAS (EN VIVO)
+              </span>
+            </div>
+            <span className="font-mono text-[8px] text-cyber-green bg-cyber-green/5 border border-cyber-green/20 px-1.5 py-0.2 rounded animate-pulse uppercase leading-none">
+              Match Live
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-end font-mono text-[9px] font-black leading-none">
+              <div className="flex items-center gap-1 text-cyber-green">
+                <Icon name="trending-up" className="w-3 h-3" />
+                <span>COMPRADORES {buyRatio}%</span>
+              </div>
+              <div className="flex items-center gap-1 text-cyber-red">
+                <span>VENDEDORES {sellRatio}%</span>
+                <Icon name="trending-down" className="w-3 h-3" />
+              </div>
+            </div>
+
+            <div className="w-full h-2 bg-navy-dark border border-[#1e293b]/50 rounded-full overflow-hidden flex">
+              <div
+                style={{ width: `${buyRatio}%` }}
+                className="h-full bg-gradient-to-r from-emerald-605 from-emerald-600 to-cyber-green transition-all duration-700 ease-out"
+              />
+              <div
+                style={{ width: `${sellRatio}%` }}
+                className="h-full bg-gradient-to-r from-cyber-red to-rose-600 transition-all duration-700 ease-out"
+              />
+            </div>
+
+            <div className="flex justify-between text-[7px] font-mono text-slate-500 leading-none">
+              <span>{buyersCount.toLocaleString()} buy orders</span>
+              <span>{sellersCount.toLocaleString()} sell orders</span>
+            </div>
+          </div>
+
+          <div className="border-t border-[#1e293b]/40 pt-3 flex flex-col items-center justify-center select-none">
+            <div className="relative w-24 h-24 flex items-center justify-center">
+              
+              <div className="absolute inset-x-0 w-full h-full animate-[spin_24s_linear_infinite_reverse]">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="46"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeDasharray="4 8 16 8"
+                    className="text-navy-light/15"
+                  />
+                </svg>
+              </div>
+
+              <div className="absolute inset-x-0 w-full h-full animate-[spin_14s_linear_infinite]">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="41"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="0.75"
+                    strokeDasharray="1 4"
+                    className="text-gold-corp/30"
+                  />
+                </svg>
+              </div>
+
+              <div className="absolute inset-x-1.5 w-[90%] h-[90%] animate-[spin_40s_linear_infinite]">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle
+                    cx="46"
+                    cy="46"
+                    r="34"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                    strokeDasharray="12 28 8 28"
+                    className="text-gold-corp/40 opacity-30"
+                  />
+                </svg>
+              </div>
+
+              <div 
+                className="absolute w-[50px] h-[50px] rounded-full bg-navy-card border border-gold-corp/30 flex flex-col items-center justify-center transition-all duration-500"
+                style={{ boxShadow: `0 0 15px ${glowColor}` }}
+              >
+                <span className="text-[9px] text-gold-corp leading-none mb-0.5">⚡</span>
+                <span className="text-base font-mono font-black tracking-tighter text-slate-100 leading-none">
+                  {pulseValue}
+                </span>
+                <span className={`text-[6px] font-mono uppercase font-black tracking-wider mt-0.5 ${statusColor}`}>
+                  {statusText}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center mt-2">
+              <span className="text-[8.5px] font-mono font-black tracking-widest text-[#d4af37] opacity-90">QUANTUM PULSE</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Dynamic signal event timeline tracking
+    function SignalTimeline({ events, tokenSymbol, onClear }) {
+      const containerRef = useRef(null);
+
+      useEffect(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = 0;
+        }
+      }, [events]);
+
+      const getImportanceStyle = (importance, type) => {
+        const isRed = type.includes('overbought') || type.includes('sellers') || type.includes('exit');
+        if (importance === 'high') {
+          return isRed 
+            ? 'border-l border-cyber-red bg-cyber-red/5 text-[#ff3c5f] font-bold glow-red' 
+            : 'border-l border-cyber-green bg-cyber-green/5 text-emerald-400 font-bold glow-green';
+        } else if (importance === 'medium') {
+          return 'border-l border-gold-corp bg-gold-dim text-yellow-300 font-semibold';
+        } else {
+          return 'border-l border-[#1e293b] bg-navy-dark/40 text-slate-400';
+        }
+      };
+
+      const getEventIcon = (type) => {
+        switch (type) {
+          case 'entry_valid':
+            return <Icon name="check-square" className="w-3.5 h-3.5 text-cyber-green shrink-0" />;
+          case 'exit_valid':
+            return <Icon name="alert-triangle" className="w-3.5 h-3.5 text-cyber-red shrink-0" />;
+          case 'rsi_oversold':
+            return <Icon name="zap" className="w-3.5 h-3.5 text-cyber-green shrink-0 animate-pulse" />;
+          case 'rsi_overbought':
+            return <Icon name="zap" className="w-3.5 h-3.5 text-cyber-red shrink-0 animate-pulse" />;
+          case 'trend_confirm':
+            return <Icon name="trending-up" className="w-3.5 h-3.5 text-gold-corp shrink-0" />;
+          case 'volume_spike':
+            return <Icon name="activity" className="w-3.5 h-3.5 text-sky-400 shrink-0" />;
+          default:
+            return <Icon name="award" className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+        }
+      };
+
+      const confirmationEvent = events.find(e => e.type === 'entry_valid' || e.type === 'exit_valid' || e.importance === 'high');
+      let signalMaturity = null;
+      let maturityMinutes = 0;
+
+      if (confirmationEvent) {
+        const msElapsed = Date.now() - confirmationEvent.createdAt;
+        maturityMinutes = Math.max(0, Math.floor(msElapsed / 60000));
+        if (maturityMinutes <= 5) signalMaturity = 'joven';
+        else if (maturityMinutes <= 15) signalMaturity = 'madura';
+        else signalMaturity = 'tardía';
+      }
+
+      const getMaturityBadgeStyle = (maturity) => {
+        switch (maturity) {
+          case 'joven':
+            return 'bg-emerald-500/10 border border-emerald-500/30 text-cyber-green';
+          case 'madura':
+            return 'bg-gold-dim border border-gold-corp/30 text-[#f4d068]';
+          case 'tardía':
+            return 'bg-rose-500/10 border border-rose-500/30 text-cyber-red';
+        }
+      };
+
+      return (
+        <div className="h-1/5 min-h-[140px] max-h-[175px] bg-navy-card/95 p-4 rounded-xl border border-navy-border flex flex-col overflow-hidden shrink-0 relative group">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(212,175,55,0.005)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
+
+          <div className="flex items-center justify-between mb-2.5 shrink-0 relative z-10 select-none">
+            <span className="text-xs font-mono tracking-widest uppercase text-slate-300 flex items-center gap-1.5 font-bold">
+              <Icon name="clock" className="w-3.5 h-3.5 text-gold-corp" />
+              TIMELINE DE CONSTRUCCIÓN DE SEÑAL <span className="text-[10px] text-slate-500 font-light">[{tokenSymbol}]</span>
+            </span>
+
+            <div className="flex items-center gap-2">
+              {signalMaturity && (
+                <span className={`text-[9.5px] font-mono font-black uppercase px-2 py-0.5 rounded tracking-wider flex items-center gap-1.5 ${getMaturityBadgeStyle(signalMaturity)}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${signalMaturity === 'joven' ? 'bg-cyber-green' : signalMaturity === 'madura' ? 'bg-gold-corp' : 'bg-cyber-red'} animate-pulse`} />
+                  Señal {signalMaturity} ({maturityMinutes}m)
+                </span>
+              )}
+              <button
+                onClick={onClear}
+                className="text-[9px] text-slate-400 hover:text-gold-bright transition border border-navy-light/60 px-2.5 py-0.5 rounded bg-[#030712] font-mono font-bold flex items-center gap-1 cursor-pointer"
+                title="Reiniciar eventos"
+              >
+                REINICIAR
+              </button>
+            </div>
+          </div>
+          
+          <div
+            ref={containerRef}
+            className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[11px] pr-1.5 scrollbar-thin select-none relative z-10"
+          >
+            {events.length === 0 ? (
+              <div className="text-slate-650 text-slate-500 italic text-[9.5px] uppercase font-bold tracking-wider py-4 text-center">
+                ESPERANDO GATILLO CRÍTICO DE MERCADO...
+              </div>
+            ) : (
+              events.map((event) => {
+                const ms = Date.now() - event.createdAt;
+                const minutes = Math.max(0, Math.floor(ms / 60000));
+                return (
+                  <div 
+                    key={event.id} 
+                    className={`py-1 px-1.5 rounded flex items-center justify-between text-[9.5px] font-mono leading-relaxed ${getImportanceStyle(event.importance, event.type)}`}
+                  >
+                    <div className="flex items-center gap-2 max-w-[85%] truncate">
+                      {getEventIcon(event.type)}
+                      <span className="truncate"><strong>{event.title}</strong></span>
+                      {event.description && (
+                        <span className="text-[9px] opacity-60 font-sans truncate">| {event.description}</span>
+                      )}
+                    </div>
+                    <span className="text-[8.5px] opacity-70 font-mono shrink-0 font-extrabold">
+                      [{minutes}m]
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="mt-1.5 pt-1.5 border-t border-navy-light/20 flex items-center justify-between text-[8px] text-slate-600 font-mono shrink-0 relative z-10 select-none">
+            <span className="uppercase">CRITERIO OPERATIVO: MONITOREO DE EVOLUCIÓN DETALLADO</span>
+            <span className="text-gold-corp/80 font-bold">FRACTAL MATCH SUCCESS</span>
+          </div>
+        </div>
+      );
+    }
+
+    // --- MAIN PORTABLE ROOT DASHBOARD ---
+    function StandaloneDashboard() {
+      const [tokens, setTokens] = useState([]);
+      const [activeAddress, setActiveAddress] = useState('');
+      const [filter, setFilter] = useState('all');
+      const [timeframe, setTimeframe] = useState('m5');
+      const [rsiTimeframe, setRsiTimeframe] = useState('m5');
+      const [connectionStatus, setConnectionStatus] = useState('BIRDEYE');
+      const [soundEnabled, setSoundEnabled] = useState(false);
+      const [utcTime, setUtcTime] = useState('00:00:00 UTC');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [timelineEvents, setTimelineEvents] = useState({});
+
+      // Initialize defaults on component loading
+      useEffect(() => {
+        // Hydrate default starting coins list
+        const initialList = PRESET_TOKENS.map(t => {
+          const startingPrice = t.price;
+          return {
+            ...t,
+            candlesM5: generateInitialCandles(startingPrice, 300, 60),
+            candlesM15: generateInitialCandles(startingPrice, 900, 60),
+            candlesH1: generateInitialCandles(startingPrice, 3600, 60),
+            rsi: 25 + Math.floor(Math.random() * 55),
+            trend: 'LATERAL',
+            score: 15,
+            status: 'BUSCANDO ENTRADA',
+            analysis: null,
+          };
+        });
+
+        // Seed some history logs
+        const initialTimelines = {};
+        initialList.forEach(t => {
+          const rsiVal = t.rsi;
+          initialTimelines[t.address] = [
+            {
+              id: `init-1-${t.symbol}-${Math.random()}`,
+              createdAt: Date.now() - 2 * 60000,
+              symbol: t.symbol,
+              type: rsiVal <= 35 ? 'entry_valid' : rsiVal >= 65 ? 'exit_valid' : 'trend_confirm',
+              title: rsiVal <= 35 ? 'Señal de entrada validada' : rsiVal >= 65 ? 'Señal de salida validada' : 'Confirmación de tendencia LATERAL',
+              description: rsiVal <= 35 ? 'Estructura de compra formada' : rsiVal >= 65 ? 'Toma de beneficios' : 'Consolidación estable',
+              importance: 'high',
+            },
+            {
+              id: `init-2-${t.symbol}-${Math.random()}`,
+              createdAt: Date.now() - 5 * 60000,
+              symbol: t.symbol,
+              type: rsiVal <= 35 ? 'rsi_oversold' : rsiVal >= 65 ? 'rsi_overbought' : 'rsi_cross',
+              title: rsiVal <= 35 ? 'RSI entra en sobreventa (<30)' : rsiVal >= 65 ? 'RSI entra en sobrecompra (>70)' : 'RSI cruza niveles neutrales',
+              description: `RSI registrado en ${rsiVal.toFixed(1)}`,
+              importance: 'high',
+            }
+          ];
+        });
+
+        setTokens(initialList);
+        setTimelineEvents(initialTimelines);
+        if (initialList[0]) {
+          setActiveAddress(initialList[0].address);
         }
 
-        // Historial de Logs
-        function logMessage(symbol, text, level = 'info') {
-            const logsContainer = document.getElementById('system-logs');
-            const timestamp = new Date().toISOString().substring(11, 19);
-            const prefix = symbol ? `[${symbol}]` : '[SYSTEM]';
+        // Live status rotator for cascade indicator simulation
+        const cascadeRotator = setInterval(() => {
+          setConnectionStatus(prev => {
+            if (prev === 'BIRDEYE') return 'DEXSCREENER';
+            if (prev === 'DEXSCREENER') return 'FAILOVER';
+            return 'BIRDEYE';
+          });
+        }, 15000);
+
+        return () => clearInterval(cascadeRotator);
+      }, []);
+
+      // UTC Clock loop
+      useEffect(() => {
+        const updateUTC = () => {
+          const d = new Date();
+          const hr = d.getUTCHours().toString().padStart(2, '0');
+          const min = d.getUTCMinutes().toString().padStart(2, '0');
+          const sec = d.getUTCSeconds().toString().padStart(2, '0');
+          setUtcTime(`${hr}:${min}:${sec} UTC`);
+        };
+        updateUTC();
+        const clockTimer = setInterval(updateUTC, 1000);
+        return () => clearInterval(clockTimer);
+      }, []);
+
+      const addTimelineEvent = (address, symbol, type, title, description, importance = 'low') => {
+        const newEvent = {
+          id: Math.random().toString(36).substring(2, 9),
+          createdAt: Date.now(),
+          symbol,
+          type,
+          title,
+          description,
+          importance,
+        };
+        setTimelineEvents(prev => {
+          const currentList = prev[address] || [];
+          return {
+            ...prev,
+            [address]: [newEvent, ...currentList].slice(0, 15),
+          };
+        });
+
+        if (soundEnabled && (importance === 'high' || type === 'entry_valid' || type === 'exit_valid')) {
+          try {
+            // High fidelity synthesized oscillator alert sound
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
             
-            let color = 'text-slate-400';
-            if (level === 'success') color = 'text-cyber-green font-bold text-glow-green';
-            if (level === 'warn') color = 'text-gold-bright font-semibold';
-            if (level === 'alert') color = 'text-cyber-red font-bold animate-pulse';
-
-            const logDiv = document.createElement('div');
-            logDiv.className = `${color} transition-all duration-300`;
-            logDiv.innerHTML = `<span class="text-slate-600">[${timestamp}]</span> <span class="text-gold-corp/80 font-mono">${prefix}</span> ${text}`;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
             
-            logsContainer.appendChild(logDiv);
-            logsContainer.scrollTop = logsContainer.scrollHeight;
-
-            while (logsContainer.children.length > 50) {
-                logsContainer.removeChild(logsContainer.firstChild);
-            }
-        }
-
-        function clearLogs() {
-            document.getElementById('system-logs').innerHTML = `<div class="text-slate-500">[${new Date().toISOString().substring(11, 19)}] Historial de bitácora limpiado.</div>`;
-        }
-
-        // Simulación de velas y generación inicial de datos de caminata aleatoria
-        function generateHistoricalCandles(basePrice, count = 100, scaleFactor = 300) {
-            const candles = [];
-            let currentClose = basePrice;
-            const nowEpoch = Math.floor(Date.now() / 1000);
-
-            for (let i = 0; i < count; i++) {
-                const time = nowEpoch - i * scaleFactor;
-                const changePct = (Math.random() - 0.485) * 0.015; // Ligeramente alcista
-                const open = currentClose * (1 + changePct);
-                const high = Math.max(open, currentClose) * (1 + Math.random() * 0.005);
-                const low = Math.min(open, currentClose) * (1 - Math.random() * 0.005);
-
-                candles.unshift({ time, open, high, low, close: currentClose });
-                currentClose = open;
-            }
-            return candles;
-        }
-
-        // Inicializar un token en la base de datos local
-        function initTokenDb(address, price) {
-            if (!db[address]) {
-                db[address] = {
-                    price: price,
-                    prevPrice: price,
-                    m5: generateHistoricalCandles(price, 60, 300),
-                    m15: generateHistoricalCandles(price, 60, 900),
-                    h1: generateHistoricalCandles(price, 60, 3600),
-                    analysis: null
-                };
-                positions[address] = { state: 'IDLE' };
-            }
-        }
-
-        // Indexar o agregar un nuevo token manualmente
-        function addManualToken() {
-            const inputEl = document.getElementById('manual-token-input');
-            const errorEl = document.getElementById('manual-error-msg');
-            errorEl.classList.add('hidden');
-
-            const query = inputEl.value.trim();
-            if (!query) return;
-
-            if (tokens.length >= 20) {
-                errorEl.textContent = "Límite de 20 tokens alcanzado. Elimina alguno antes de agregar nuevos.";
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
-            // Evitar duplicados
-            const exists = tokens.some(t => t.address.toLowerCase() === query.toLowerCase() || t.symbol.toLowerCase() === query.toLowerCase());
-            if (exists) {
-                errorEl.textContent = "El token ya se encuentra indexado.";
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
-            logMessage('SYSTEM', `Buscando e indexando "${query}" en el pool de liquidez...`, 'info');
-
-            // Hacemos una llamada segura a Dexscreener API
-            let url = query.length > 25 
-                ? `https://api.dexscreener.com/latest/dex/tokens/${query}`
-                : `https://api.dexscreener.com/latest/dex/search?q=${query}`;
-
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    const pairs = data.pairs || data.pair;
-                    if (!pairs || pairs.length === 0) {
-                        throw new Error("No se encontró liquidez activa para este token.");
-                    }
-
-                    // Encontrar el par con mayor liquidez
-                    const bestPair = [...pairs].sort((a,b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
-                    const symbol = bestPair.baseToken.symbol;
-                    const name = bestPair.baseToken.name;
-                    const price = parseFloat(bestPair.priceUsd) || 1.0;
-                    const address = bestPair.baseToken.address;
-
-                    const newToken = {
-                        id: 'custom-' + Date.now(),
-                        symbol,
-                        name,
-                        address,
-                        price,
-                        change24h: bestPair.priceChange?.h24 || 0,
-                        custom: true
-                    };
-
-                    tokens.push(newToken);
-                    initTokenDb(address, price);
-                    activeAddress = address;
-
-                    inputEl.value = '';
-                    logMessage(symbol, `Token indexado con éxito y enlazado a la matriz estructural M5. Price: $${price}`, 'success');
-                    playSignalChirp(1100, 2200);
-
-                    updateUI();
-                    resizeCanvas();
-                })
-                .catch(err => {
-                    errorEl.textContent = err.message || "Error al indexar el token.";
-                    errorEl.classList.remove('hidden');
-                    logMessage('SYSTEM', `Fallo al indexar la consulta "${query}".`, 'warn');
-                });
-        }
-
-        // Eliminar un token
-        function deleteToken(address) {
-            const found = tokens.find(t => t.address === address);
-            if (!found) return;
-
-            tokens = tokens.filter(t => t.address !== address);
-            delete db[address];
-            delete positions[address];
-
-            logMessage('SYSTEM', `Token ${found.symbol} desvinculado con éxito.`, 'info');
-
-            if (activeAddress === address && tokens.length > 0) {
-                activeAddress = tokens[0].address;
-            }
-
-            updateUI();
-            resizeCanvas();
-        }
-
-        // FRACTALES DE 5 VELAS (IDENTIFICA PUNTOS EXTREMOS MÍNIMOS Y MÁXIMOS LOCALES)
-        function identifyFractals(candles) {
-            const highs = [];
-            const lows = [];
-            const n = 2; // Izquierda y derecha
-
-            for (let i = n; i < candles.length - n; i++) {
-                let isHigh = true;
-                let isLow = true;
-
-                for (let j = -n; j <= n; j++) {
-                    if (j === 0) continue;
-                    if (candles[i].high < candles[i+j].high) isHigh = false;
-                    if (candles[i].low > candles[i+j].low) isLow = false;
-                }
-
-                if (isHigh) highs.push({ price: candles[i].high, time: candles[i].time });
-                if (isLow) lows.push({ price: candles[i].low, time: candles[i].time });
-            }
-
-            return { highs, lows };
-        }
-
-        // DETERMINACIÓN DE LA TENDENCIA MACRO (HH-HL) O (LH-LL)
-        function determineTrend(highs, lows) {
-            if (highs.length < 2 || lows.length < 2) return 'LATERAL';
+            osc.type = type.includes('buy') || type.includes('oversold') ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(type.includes('buy') || type.includes('oversold') ? 880 : 330, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
             
-            const lastH = highs[highs.length - 1].price;
-            const prevH = highs[highs.length - 2].price;
-            const lastL = lows[lows.length - 1].price;
-            const prevL = lows[lows.length - 2].price;
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+          } catch(e) {}
+        }
+      };
 
-            if (lastH > prevH && lastL > prevL) return 'BULLISH';
-            if (lastH < prevH && lastL < prevL) return 'BEARISH';
-            return 'LATERAL';
+      // Math analytics evaluator
+      const evaluateToken = (tok) => {
+        const candlesMatch = tok.candlesM5;
+        const rsiVal = calculateRSI(candlesMatch, 14);
+
+        const fractals = identifyFractals(candlesMatch);
+        const derivedTrend = determineTrend(fractals.highs, fractals.lows);
+
+        const currentPrice = tok.price;
+        const resistances = fractals.highs.map(h => h.price).filter(p => p > currentPrice);
+        const supports = fractals.lows.map(l => l.price).filter(p => p < currentPrice);
+
+        const h1Resistance = resistances.length > 0 ? resistances : [currentPrice * 1.05];
+        const h1Support = supports.length > 0 ? supports : [currentPrice * 0.95];
+
+        let score = 25;
+        let status = 'BUSCANDO ENTRADA';
+
+        if (rsiVal <= 35) {
+          status = 'ZONA CRÍTICA';
+          score = Math.floor(65 + (35 - rsiVal) * 1.6);
+        } else if (rsiVal >= 65) {
+          status = 'GATILLANDO';
+          score = Math.floor(65 + (rsiVal - 65) * 1.3);
         }
 
-        // CONSTRUCCIÓN DEL ALGORITMO SINTÉTICO DEL RSI(14) ORIGINAL DE WILDER
-        function calculateRSI(candles, period = 14) {
-            if (!candles || candles.length <= period) return 50.0;
-            
-            let gains = [];
-            let losses = [];
+        const analysis = {
+          h1Trend: derivedTrend,
+          m15Trend: derivedTrend,
+          trendAligned: derivedTrend !== 'LATERAL',
+          h1Support,
+          h1Resistance,
+          nearSupport: currentPrice <= h1Support[0] * 1.015,
+          nearResistance: currentPrice >= h1Resistance[0] * 0.985,
+          targetZone: h1Support[0],
+          m5Trigger: rsiVal <= 30,
+          triggerPattern: rsiVal <= 30 ? 'Estructura de sobreventa extrema detectada' : 'Consolidación lateral',
+          scores: {
+            scoreH1: Math.floor(score * 0.9),
+            scoreM15: score,
+            scoreZone: 80,
+            scoreM5: 75,
+            impulseScore: 70,
+            totalScore: Math.min(99, score),
+          }
+        };
 
-            for (let i = 1; i < candles.length; i++) {
-                const diff = candles[i].close - candles[i - 1].close;
-                if (diff > 0) {
-                    gains.push(diff);
-                    losses.push(0);
-                } else {
-                    gains.push(0);
-                    losses.push(-diff);
-                }
+        return {
+          ...tok,
+          rsi: rsiVal,
+          trend: derivedTrend,
+          score: Math.min(99, Math.max(10, score)),
+          status,
+          analysis,
+        };
+      };
+
+      // Realtime Simulation Price & RSI variance ticks loop
+      useEffect(() => {
+        const tickLoop = setInterval(() => {
+          setTokens(prev => prev.map(t => {
+            const pct = (Math.random() - 0.47) * 0.038;
+            const newPrice = Math.max(0.000000001, t.price * (1 + pct));
+
+            const nextCandles = [...t.candlesM5];
+            const activeLast = nextCandles[nextCandles.length - 1];
+            if (activeLast) {
+              const updatedLast = {
+                ...activeLast,
+                close: newPrice,
+                high: Math.max(activeLast.high, newPrice),
+                low: Math.min(activeLast.low, newPrice),
+              };
+              nextCandles[nextCandles.length - 1] = updatedLast;
             }
 
-            let avgGain = 0;
-            let avgLoss = 0;
+            const rsiDiff = (Math.random() - 0.5) * 6;
+            const finalRsi = Math.max(1, Math.min(100, t.rsi + rsiDiff));
 
-            for (let i = 0; i < period; i++) {
-                avgGain += gains[i];
-                avgLoss += losses[i];
-            }
-
-            avgGain /= period;
-            avgLoss /= period;
-
-            for (let i = period; i < gains.length; i++) {
-                avgGain = (avgGain * (period - 1) + gains[i]) / period;
-                avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
-            }
-
-            if (avgLoss === 0) {
-                return avgGain === 0 ? 50.0 : 100.0;
-            }
-
-            const rs = avgGain / avgLoss;
-            return 100 - (100 / (1 + rs));
-        }
-
-        // Cambiar timeframe de visualización general
-        function changeRSITimeframe() {
-            rsiTimeframe = document.getElementById('rsi-tf-select').value;
-            updateUI();
-        }
-
-        // CORE SYSTEM: Evalua la estructura y determina el puntaje de disparo
-        function analyzeMarket(address) {
-            const data = db[address];
-            if (!data) return;
-
-            const currentPrice = data.price;
-
-            // 1. Estructura H1
-            const h1Fractals = identifyFractals(data.h1);
-            const h1Trend = determineTrend(h1Fractals.highs, h1Fractals.lows);
-            const h1Support = h1Fractals.lows.slice(-3).map(f => f.price);
-            const h1Resistance = h1Fractals.highs.slice(-3).map(f => f.price);
-
-            // 2. Estructura M15
-            const m15Fractals = identifyFractals(data.m15);
-            const m15Trend = determineTrend(m15Fractals.highs, m15Fractals.lows);
-            const trendAligned = (h1Trend === m15Trend && h1Trend !== 'LATERAL');
-
-            // 3. Proximidad a zonas H1 (Soporte o Resistencia)
-            let nearSupport = false;
-            let nearResistance = false;
-            let targetZone = null;
-            const tolerance = currentPrice * 0.0015; // 0.15%
-
-            h1Support.forEach(level => {
-                if (Math.abs(currentPrice - level) <= tolerance) {
-                    nearSupport = true;
-                    targetZone = level;
-                }
-            });
-
-            h1Resistance.forEach(level => {
-                if (Math.abs(currentPrice - level) <= tolerance) {
-                    nearResistance = true;
-                    targetZone = level;
-                }
-            });
-
-            // 4. Gatillado M5 (CHoCH o mechas extremas)
-            const m5Fractals = identifyFractals(data.m5);
-            let m5Trigger = false;
-            let triggerPattern = "Ninguno";
-
-            if (nearSupport && h1Trend === 'BULLISH') {
-                if (m5Fractals.highs.length > 0) {
-                    const lastM5High = m5Fractals.highs[m5Fractals.highs.length - 1].price;
-                    if (currentPrice > lastM5High) {
-                        m5Trigger = true;
-                        triggerPattern = "CHoCH Alcista M5 (Break)";
-                    }
-                }
-                const lastCandle = data.m5[data.m5.length - 1];
-                if (lastCandle) {
-                    const body = Math.abs(lastCandle.close - lastCandle.open);
-                    const lowerWick = Math.min(lastCandle.open, lastCandle.close) - lastCandle.low;
-                    if (lowerWick > body * 1.8) {
-                        m5Trigger = true;
-                        triggerPattern = "Vela de Mecha de Rechazo Inferior";
-                    }
-                }
-            } else if (nearResistance && h1Trend === 'BEARISH') {
-                if (m5Fractals.lows.length > 0) {
-                    const lastM5Low = m5Fractals.lows[m5Fractals.lows.length - 1].price;
-                    if (currentPrice < lastM5Low) {
-                        m5Trigger = true;
-                        triggerPattern = "CHoCH Bajista M5 (Break)";
-                    }
-                }
-                const lastCandle = data.m5[data.m5.length - 1];
-                if (lastCandle) {
-                    const body = Math.abs(lastCandle.close - lastCandle.open);
-                    const upperWick = lastCandle.high - Math.max(lastCandle.open, lastCandle.close);
-                    if (upperWick > body * 1.8) {
-                        m5Trigger = true;
-                        triggerPattern = "Vela de Mecha de Rechazo Superior";
-                    }
-                }
-            }
-
-            // 5. Fuerza e impulso
-            let impulseScore = 0;
-            const lastThree = data.m5.slice(-3);
-            if (lastThree.length === 3) {
-                const alcistas = lastThree.filter(c => c.close > c.open).length;
-                if (h1Trend === 'BULLISH' && alcistas >= 2) {
-                    impulseScore = 10;
-                } else if (h1Trend === 'BEARISH' && alcistas <= 1) {
-                    impulseScore = 10;
-                }
-            }
-
-            // Puntuación
-            const scoreH1 = h1Trend !== 'LATERAL' ? 25 : 0;
-            const scoreM15 = trendAligned ? 20 : 0;
-            const scoreZone = (nearSupport || nearResistance) ? 25 : 0;
-            const scoreM5 = m5Trigger ? 20 : 0;
-            const totalScore = scoreH1 + scoreM15 + scoreZone + scoreM5 + impulseScore;
-
-            data.analysis = {
-                h1Trend,
-                m15Trend,
-                trendAligned,
-                h1Support,
-                h1Resistance,
-                nearSupport,
-                nearResistance,
-                targetZone,
-                m5Trigger,
-                triggerPattern,
-                scores: { scoreH1, scoreM15, scoreZone, scoreM5, impulseScore, totalScore }
+            const tempToken = {
+              ...t,
+              price: newPrice,
+              candlesM5: nextCandles,
+              rsi: finalRsi,
             };
 
-            // Ejecución automática simulada del Sniper
-            const pos = positions[address];
-            const tokenDetail = tokens.find(t => t.address === address);
+            const evaluated = evaluateToken(tempToken);
 
-            if (pos.state === 'IDLE') {
-                if (totalScore >= 80) {
-                    let direction = "";
-                    let sl = 0;
-                    let tp = 0;
-
-                    if (nearSupport && h1Trend === 'BULLISH') {
-                        direction = "BUY";
-                        sl = targetZone - (targetZone * 0.0018);
-                        const risk = currentPrice - sl;
-                        tp = currentPrice + (risk * 3.2);
-                    } else if (nearResistance && h1Trend === 'BEARISH') {
-                        direction = "SELL";
-                        sl = targetZone + (targetZone * 0.0018);
-                        const risk = sl - currentPrice;
-                        tp = currentPrice - (risk * 3.2);
-                    }
-
-                    if (direction) {
-                        positions[address] = {
-                            state: 'ACTIVE',
-                            direction: direction,
-                            entryPrice: currentPrice,
-                            sl: sl,
-                            tp: tp,
-                            initialSl: sl,
-                            initialTp: tp,
-                            originZone: targetZone,
-                            timestamp: Date.now(),
-                            highestPrice: currentPrice,
-                            lowestPrice: currentPrice
-                        };
-                        playSignalChirp(1200, 2400);
-                        logMessage(tokenDetail.symbol, `🟢 POSICIÓN ABIERTA: ${direction} a $${currentPrice.toFixed(4)} SL: $${sl.toFixed(4)} - TP: $${tp.toFixed(4)}`, 'success');
-                    }
-                }
-            } else if (pos.state === 'ACTIVE') {
-                // Tracking de posición real-time
-                if (currentPrice > pos.highestPrice) pos.highestPrice = currentPrice;
-                if (currentPrice < pos.lowestPrice) pos.lowestPrice = currentPrice;
-
-                if (pos.direction === 'BUY') {
-                    if (currentPrice >= pos.tp) {
-                        pos.state = 'CLOSED_TP';
-                        logMessage(tokenDetail.symbol, `🎯 TAKE PROFIT ALCANZADO en $${currentPrice.toFixed(4)}! (Rentabilidad máxima exitosa)`, 'success');
-                        playSignalChirp(1400, 2800);
-                        resetPostPosition(address);
-                    } else if (currentPrice <= pos.sl) {
-                        pos.state = 'CLOSED_SL';
-                        logMessage(tokenDetail.symbol, `🛑 STOP LOSS ALCANZADO en $${currentPrice.toFixed(4)}. Reducción de riesgos.`, 'warn');
-                        resetPostPosition(address);
-                    }
-                } else {
-                    if (currentPrice <= pos.tp) {
-                        pos.state = 'CLOSED_TP';
-                        logMessage(tokenDetail.symbol, `🎯 TAKE PROFIT ALCANZADO en $${currentPrice.toFixed(4)}! (Rentabilidad máxima exitosa)`, 'success');
-                        playSignalChirp(1400, 2800);
-                        resetPostPosition(address);
-                    } else if (currentPrice >= pos.sl) {
-                        pos.state = 'CLOSED_SL';
-                        logMessage(tokenDetail.symbol, `🛑 STOP LOSS ALCANZADO en $${currentPrice.toFixed(4)}. Reducción de riesgos.`, 'warn');
-                        resetPostPosition(address);
-                    }
-                }
-
-                // Trailing Stop basado en nuevos Fractales M5 alcistas/bajistas
-                if (pos.state === 'ACTIVE') {
-                    if (pos.direction === 'BUY') {
-                        const m5Lows = m5Fractals.lows.map(f => f.price);
-                        if (m5Lows.length > 0) {
-                            const latestLow = m5Lows[m5Lows.length - 1];
-                            if (latestLow > pos.sl && latestLow > pos.entryPrice && latestLow < currentPrice) {
-                                pos.sl = latestLow;
-                                logMessage(tokenDetail.symbol, `🛡️ Trailing Stop estructural ajustado a: $${latestLow.toFixed(4)}`, 'success');
-                            }
-                        }
-                    } else {
-                        const m5Highs = m5Fractals.highs.map(f => f.price);
-                        if (m5Highs.length > 0) {
-                            const latestHigh = m5Highs[m5Highs.length - 1];
-                            if (latestHigh < pos.sl && latestHigh < pos.entryPrice && latestHigh > currentPrice) {
-                                pos.sl = latestHigh;
-                                logMessage(tokenDetail.symbol, `🛡️ Trailing Stop estructural ajustado a: $${latestHigh.toFixed(4)}`, 'success');
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        function resetPostPosition(address) {
-            setTimeout(() => {
-                positions[address] = { state: 'IDLE' };
-                logMessage(null, "Estructuras reseteadas. Iniciando escaneo cuántico habitual...");
-                updateUI();
-            }, 8000);
-        }
-
-        // SELECCIÓN DE ACTIVO PARA EVALUAR GRÁFICO
-        function selectSymbol(address) {
-            activeAddress = address;
-            updateUI();
-            resizeCanvas();
-        }
-
-        // MOTOR DE RENDERIZACIÓN DE LA UI DINÁMICA DE ALTA CALIDAD
-        function updateUI() {
-            // Actualizar Contador de tokens en la cabecera del manager
-            document.getElementById('token-counter').textContent = `${tokens.length}/20 Activos`;
-
-            // Llenar Instrumentos Monitoreados
-            const monitoredList = document.getElementById('monitored-tokens-list');
-            monitoredList.innerHTML = '';
-
-            tokens.forEach(tok => {
-                const data = db[tok.address];
-                if (!data) return;
-
-                const score = data.analysis?.scores.totalScore || 0;
-                const trend = data.analysis?.h1Trend || 'LATERAL';
-                const pos = positions[tok.address];
-
-                const isActive = tok.address === activeAddress;
-                const isPriceUp = data.price >= data.prevPrice;
-
-                // Clases del Badge de Status
-                let statusBadge = `<span class="px-2 py-0.5 rounded-full bg-navy-dark border border-navy-light text-slate-500 text-[9.5px] font-mono">ESCANEO</span>`;
-                if (pos && pos.state === 'ACTIVE') {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-cyber-green/10 border border-cyber-green/30 text-cyber-green text-[9.5px] font-bold animate-pulse font-mono">POSICIÓN</span>`;
-                } else if (score >= 80) {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-gold-dim border border-gold-corp text-gold-bright text-[9.5px] font-bold animate-pulse font-mono">SNIPER</span>`;
-                } else if (data.analysis?.nearSupport || data.analysis?.nearResistance) {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-navy-light border border-gold-corp/20 text-blue-300 text-[9.5px] font-mono">ZONA H1</span>`;
-                }
-
-                // Trend styling
-                let trendText = '<span class="text-slate-500 uppercase">◆ Rango</span>';
-                if (trend === 'BULLISH') trendText = '<span class="text-cyber-green uppercase">▲ Alcista</span>';
-                if (trend === 'BEARISH') trendText = '<span class="text-cyber-red uppercase">▼ Bajista</span>';
-
-                // Precision formatting for tiny tokens (e.g. BONK)
-                const priceStr = data.price < 0.001 ? data.price.toFixed(8) : data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-
-                const cardDiv = document.createElement('div');
-                cardDiv.onclick = () => selectSymbol(tok.address);
-                cardDiv.className = `relative overflow-hidden cursor-pointer rounded-xl border p-4 transition-all duration-300 group ${
-                    isActive 
-                        ? 'bg-navy-card border-gold-corp glow-gold'
-                        : 'bg-navy-card/40 border-navy-light hover:border-gold-corp/30'
-                }`;
-
-                cardDiv.innerHTML = `
-                    <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-gold-corp/5 to-transparent rounded-full blur-xl group-hover:from-gold-corp/10 transition"></div>
-                    <div class="flex justify-between items-start mb-2 relative z-10">
-                        <div class="flex-1 min-w-0 pr-2">
-                            <div class="flex items-center gap-1.5 flex-nowrap">
-                                <span class="font-mono text-xs font-bold text-slate-200 uppercase truncate">${tok.symbol}</span>
-                                ${tok.custom ? '<span class="text-[8px] px-1 bg-gold-dim border border-gold-corp/20 text-gold-corp rounded uppercase font-mono">Manual</span>' : ''}
-                            </div>
-                            <span class="text-[10px] text-slate-500 block truncate leading-none mt-0.5">${tok.name}</span>
-                            <div class="font-mono text-base font-bold tracking-tight mt-1.5 ${isPriceUp ? 'text-cyber-green' : 'text-cyber-red'}">${priceStr}</div>
-                        </div>
-                        <div class="flex flex-col items-end gap-1.5 shrink-0">
-                            <span class="font-mono text-[9px] px-2 py-0.5 rounded border ${score >= 80 ? 'border-cyber-green bg-cyber-green/5 text-cyber-green' : 'border-navy-light text-slate-400'}">${score} PTS</span>
-                            ${tok.custom ? `
-                                <button onclick="event.stopPropagation(); deleteToken('${tok.address}')" class="p-1 rounded bg-navy-dark border border-navy-light hover:bg-cyber-red/10 hover:border-cyber-red/30 hover:text-cyber-red text-slate-500 transition">
-                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between text-[11px] mt-2.5 pt-2.5 border-t border-navy-light/40 relative z-10 font-mono">
-                        ${trendText}
-                        ${statusBadge}
-                    </div>
-                `;
-
-                monitoredList.appendChild(cardDiv);
-            });
-
-            // Llenar Tripleta del RSI del footer
-            const rsiContainer = document.getElementById('rsi-widgets-container');
-            rsiContainer.innerHTML = '';
-            
-            for(let i=0; i<3; i++) {
-                const tok = tokens[i];
-                if (!tok) {
-                    rsiContainer.innerHTML += `
-                        <div class="bg-navy-dark/40 border border-navy-light/10 p-2.5 rounded-lg text-center opacity-30 select-none">
-                            <span class="text-[8px] text-slate-600 font-mono block">VACÍO</span>
-                            <span class="font-mono text-xs text-slate-500 font-bold">--.-</span>
-                        </div>
-                    `;
-                    continue;
-                }
-
-                const data = db[tok.address];
-                const activeSet = rsiTimeframe === 'm5' ? data.m5 : rsiTimeframe === 'm15' ? data.m15 : data.h1;
-                const rsiVal = calculateRSI(activeSet, 14);
-
-                let rsiClass = 'bg-navy-dark border-navy-light hover:border-gold-corp/30 text-slate-300';
-                if (rsiVal <= 22) rsiClass = 'bg-cyber-green/10 border-cyber-green text-cyber-green animate-pulse glow-green';
-                if (rsiVal >= 78) rsiClass = 'bg-cyber-red/10 border-cyber-red text-cyber-red animate-pulse glow-red';
-
-                rsiContainer.innerHTML += `
-                    <div class="border p-2 rounded-lg text-center transition-all duration-300 ${rsiClass}">
-                        <span class="text-[8px] text-slate-500 font-mono block truncate">RSI ${tok.symbol}</span>
-                        <span class="font-mono text-xs font-bold block mt-1">${rsiVal.toFixed(1)}</span>
-                    </div>
-                `;
+            if (t.rsi >= 30 && evaluated.rsi < 30) {
+              setTimeout(() => addTimelineEvent(t.address, t.symbol, 'rsi_oversold', 'RSI entra en sobreventa (<30)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
+            } else if (t.rsi <= 70 && evaluated.rsi > 70) {
+              setTimeout(() => addTimelineEvent(t.address, t.symbol, 'rsi_overbought', 'RSI entra en sobrecompra (>70)', `RSI actual ${evaluated.rsi.toFixed(1)}`, 'high'), 0);
             }
 
-            // Actualizar Cockpit para Token Activo actual
-            const activeTok = tokens.find(t => t.address === activeAddress);
-            if (activeTok) {
-                const data = db[activeAddress];
-                const analysis = data.analysis;
-                const pos = positions[activeAddress];
-
-                document.getElementById('chart-symbol-badge').textContent = activeTok.symbol;
-                document.getElementById('chart-symbol-title').textContent = `${activeTok.name} Index`;
-
-                // Metricas de decision checklist
-                if (analysis) {
-                    const sc = analysis.scores;
-                    
-                    // Score Text inside standard Circle
-                    let dashOffset = 390;
-                    let displayScore = sc.totalScore;
-                    let displaySub = 'PTS';
-                    let circleColor = '#d4af37';
-
-                    if (pos && pos.state === 'ACTIVE') {
-                        let progress = 0;
-                        if (pos.direction === 'BUY') {
-                            const dist = pos.tp - pos.entryPrice;
-                            progress = ((data.price - pos.entryPrice) / dist) * 100;
-                        } else {
-                            const dist = pos.entryPrice - pos.tp;
-                            progress = ((pos.entryPrice - data.price) / dist) * 100;
-                        }
-                        progress = Math.max(0, Math.min(100, Math.round(progress)));
-                        displayScore = `${progress}%`;
-                        displaySub = 'PROGRESS';
-                        dashOffset = 390 - (390 * progress) / 100;
-                        circleColor = pos.direction === 'BUY' ? '#00e676' : '#ff3c5f';
-                        document.getElementById('quality-badge').textContent = `POSICIÓN ${pos.direction} ACTIVA`;
-                        document.getElementById('quality-badge').className = `px-4 py-1.5 rounded ${pos.direction === 'BUY'?'bg-cyber-green/15 border-cyber-green text-cyber-green glow-green':'bg-cyber-red/15 border-cyber-red text-cyber-red glow-red'} inline-block text-[11px] font-mono font-bold tracking-widest animate-pulse`;
-                    } else if (pos && pos.state !== 'IDLE') {
-                        // Closed limits state
-                        displayScore = 'COMP';
-                        displaySub = pos.state.replace('CLOSED_','');
-                        dashOffset = 0;
-                        circleColor = pos.state === 'CLOSED_TP' ? '#00e676' : '#ff3c5f';
-                        document.getElementById('quality-badge').textContent = 'EVALUADO SNIPER';
-                        document.getElementById('quality-badge').className = 'px-4 py-1.5 rounded bg-navy-dark border border-navy-light text-slate-500 inline-block text-[11px] font-mono tracking-widest';
-                    } else {
-                        dashOffset = 390 - (390 * sc.totalScore) / 100;
-                        if (sc.totalScore >= 80) {
-                            circleColor = '#00e676';
-                            document.getElementById('quality-badge').textContent = "DISPARO SNIPER GATILLADO";
-                            document.getElementById('quality-badge').className = "px-4 py-1.5 rounded bg-cyber-green/15 border border-cyber-green text-cyber-green inline-block text-[11px] font-mono font-bold tracking-widest glow-green animate-pulse";
-                        } else if (sc.totalScore >= 60) {
-                            document.getElementById('quality-badge').textContent = "MONITOREO CRÍTICO";
-                            document.getElementById('quality-badge').className = "px-4 py-1.5 rounded bg-gold-dim border border-gold-corp text-gold-bright inline-block text-[11px] font-mono font-bold tracking-widest";
-                        } else {
-                            document.getElementById('quality-badge').textContent = "BUCEANDO SEÑAL";
-                            document.getElementById('quality-badge').className = "px-4 py-1.5 rounded bg-navy-dark border border-navy-light text-slate-500 inline-block text-[11px] font-mono tracking-widest";
-                        }
-                    }
-
-                    document.getElementById('score-text').textContent = displayScore;
-                    document.getElementById('score-circle').setAttribute('stroke-dashoffset', dashOffset);
-                    document.getElementById('score-circle').setAttribute('stroke', circleColor);
-
-                    // Checklist
-                    document.getElementById('score-h1').textContent = `${sc.scoreH1}/25 PTS`;
-                    document.getElementById('score-h1').className = `font-mono font-bold ${sc.scoreH1>0?'text-cyber-green':'text-slate-600'}`;
-                    document.getElementById('h1-details').textContent = analysis.h1Trend !== 'LATERAL' ? `H1 Tendencia: ${analysis.h1Trend}` : "BOS/CHoCH no definido macro ";
-
-                    document.getElementById('score-m15').textContent = `${sc.scoreM15}/20 PTS`;
-                    document.getElementById('score-m15').className = `font-mono font-bold ${sc.scoreM15>0?'text-cyber-green':'text-slate-600'}`;
-                    document.getElementById('m15-details').textContent = analysis.trendAligned ? "Alineado con H1" : "Estructura desalineada";
-
-                    document.getElementById('score-zone').textContent = `${sc.scoreZone}/25 PTS`;
-                    document.getElementById('score-zone').className = `font-mono font-bold ${sc.scoreZone>0?'text-cyber-green':'text-slate-600'}`;
-                    document.getElementById('zone-details').textContent = (analysis.nearSupport || analysis.nearResistance) ? `Testeo de Zona S/R H1` : "Precio fuera de bloques Macro";
-
-                    document.getElementById('score-m5').textContent = `${sc.scoreM5}/20 PTS`;
-                    document.getElementById('score-m5').className = `font-mono font-bold ${sc.scoreM5>0?'text-cyber-green':'text-slate-600'}`;
-                    document.getElementById('m5-details').textContent = analysis.m5Trigger ? analysis.triggerPattern : "Esperando mecha o ruptura";
-
-                    document.getElementById('score-impulse').textContent = `${sc.impulseScore}/10 PTS`;
-                    document.getElementById('score-impulse').className = `font-mono font-bold ${sc.impulseScore>0?'text-cyber-green':'text-slate-600'}`;
-                    document.getElementById('impulse-details').textContent = sc.impulseScore > 0 ? "Momentum direccional fuerte" : "Volumen en fase intermedia";
-
-                    // Panel de gatillo de ordenes
-                    const triggerPanel = document.getElementById('trigger-panel');
-                    if (pos && pos.state !== 'IDLE') {
-                        triggerPanel.className = `mt-4 p-4 rounded-xl border border-dashed relative overflow-hidden bg-navy-dark ${pos.direction === 'BUY' ? 'border-cyber-green' : 'border-cyber-red'}`;
-                        document.getElementById('op-action').textContent = `${pos.direction} (${pos.state})`;
-                        document.getElementById('op-action').className = `text-sm font-mono font-black ${pos.direction === 'BUY' ? 'text-cyber-green' : 'text-cyber-red'}`;
-                        document.getElementById('op-price').textContent = pos.entryPrice.toFixed(4);
-                        document.getElementById('op-sl').textContent = pos.sl.toFixed(4);
-                        document.getElementById('op-tp').textContent = pos.tp.toFixed(4);
-                    } else if (sc.totalScore >= 80) {
-                        const isBuy = analysis.nearSupport && analysis.h1Trend === 'BULLISH';
-                        triggerPanel.className = `mt-4 p-4 rounded-xl border border-dashed relative overflow-hidden bg-navy-dark ${isBuy ? 'border-cyber-green glow-green' : 'border-cyber-red glow-red'}`;
-                        document.getElementById('op-action').textContent = isBuy ? 'BUY GATILLO' : 'SELL GATILLO';
-                        document.getElementById('op-action').className = `text-sm font-mono font-black ${isBuy ? 'text-cyber-green' : 'text-[#ff3c5a]'}`;
-                        
-                        let slVal = isBuy ? analysis.targetZone - (analysis.targetZone*0.0018) : analysis.targetZone + (analysis.targetZone*0.0018);
-                        let tpVal = isBuy ? data.price + (data.price - slVal)*3.5 : data.price - (slVal - data.price)*3.5;
-
-                        document.getElementById('op-price').textContent = data.price.toFixed(4);
-                        document.getElementById('op-sl').textContent = slVal.toFixed(4);
-                        document.getElementById('op-tp').textContent = tpVal.toFixed(4);
-                    } else {
-                        triggerPanel.className = "mt-4 p-4 rounded-xl border border-dashed border-navy-border bg-navy-dark/60 relative overflow-hidden";
-                        document.getElementById('op-action').textContent = "ESPERANDO SEÑAL...";
-                        document.getElementById('op-action').className = "text-sm font-mono font-semibold text-slate-500";
-                        document.getElementById('op-price').textContent = "0.0000";
-                        document.getElementById('op-sl').textContent = "0.0000";
-                        document.getElementById('op-tp').textContent = "0.0000";
-                    }
-                }
-            }
-        }
-
-        // MOTOR DE RENDERIZACIÓN DE GRÁFICOS NATIVO (HTML5 CANVAS)
-        function renderChart() {
-            if (!canvas || !db[activeAddress]) return;
-            const data = db[activeAddress];
-            const candles = data.m5;
-            const analysis = data.analysis;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (candles.length === 0) return;
-
-            const sorted = [...candles].sort((a,b)=> a.time - b.time);
-
-            let minPrice = Infinity;
-            let maxPrice = -Infinity;
-
-            // Calcular EMA 9 para renderizado de curva de tendencia
-            const emaPeriod = 9;
-            const k = 2 / (emaPeriod + 1);
-            const emaValues = [];
-            if(sorted.length > 0) {
-                let currentEma = sorted[0].close;
-                emaValues.push(currentEma);
-                for(let i=1; i<sorted.length; i++) {
-                    currentEma = sorted[i].close * k + currentEma * (1 - k);
-                    emaValues.push(currentEma);
-                }
+            if (t.trend !== evaluated.trend && evaluated.trend !== 'LATERAL') {
+              setTimeout(() => addTimelineEvent(t.address, t.symbol, 'trend_confirm', `Tendencia cambia: ${evaluated.trend}`, '9 EMA adaptativa recalculando resistencia', 'medium'), 0);
             }
 
-            sorted.forEach((c, idx) => {
-                if (c.high > maxPrice) maxPrice = c.high;
-                if (c.low < minPrice) minPrice = c.low;
-                if (emaValues[idx] > maxPrice) maxPrice = emaValues[idx];
-                if (emaValues[idx] < minPrice) minPrice = emaValues[idx];
-            });
+            return evaluated;
+          }));
+        }, 3200);
 
-            const levels = [];
-            if (analysis) {
-                levels.push(...analysis.h1Support, ...analysis.h1Resistance);
-            }
-            levels.forEach(lvl => {
-                if (lvl > maxPrice) maxPrice = lvl;
-                if (lvl < minPrice) minPrice = lvl;
-            });
+        return () => clearInterval(tickLoop);
+      }, [tokens.length, soundEnabled]);
 
-            const range = maxPrice - minPrice;
-            minPrice -= range * 0.08 || minPrice * 0.01;
-            maxPrice += range * 0.08 || maxPrice * 0.01;
+      // Actions: Add Single core dynamic Token from User Query
+      const handleAddNewToken = async (query) => {
+        const address = query.length >= 32 ? query : 'SoLaNa' + Math.random().toString(36).substring(2, 10) + 'MintAddr';
+        const formattedSym = query.length < 10 ? query.toUpperCase() : 'MEME';
 
-            const paddingRight = 75;
-            const paddingBottom = 25;
-            const paddingTop = 25;
-            const paddingLeft = 15;
+        const hasExist = tokens.some(t => t.address.toLowerCase() === address.toLowerCase() || t.symbol === formattedSym);
+        if (hasExist) return;
 
-            const chartWidth = canvas.width - paddingLeft - paddingRight;
-            const chartHeight = canvas.height - paddingTop - paddingBottom;
+        // Try load live from DexScreener before resorting to simulation
+        const dData = await fetchTokenFromDexscreener(query);
+        const basePrice = dData ? dData.price : (Math.random() < 0.35 ? 0.005 + Math.random() * 0.05 : 1.25 + Math.random() * 10);
 
-            const getX = (index) => paddingLeft + (index / (sorted.length - 1)) * chartWidth;
-            const getY = (price) => paddingTop + (1 - (price - minPrice) / (maxPrice - minPrice)) * chartHeight;
-
-            // Grillas Horizontales
-            ctx.strokeStyle = 'rgba(212, 175, 55, 0.02)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= 5; i++) {
-                const y = paddingTop + (i / 5) * chartHeight;
-                ctx.beginPath();
-                ctx.moveTo(paddingLeft, y);
-                ctx.lineTo(canvas.width - paddingRight, y);
-                ctx.stroke();
-
-                const priceVal = maxPrice - (i / 5) * (maxPrice - minPrice);
-                ctx.fillStyle = '#475569';
-                ctx.font = '10px Space Grotesk';
-                ctx.textAlign = 'left';
-                let formattedPStr = priceVal < 0.001 ? priceVal.toFixed(6) : priceVal.toFixed(2);
-                ctx.fillText(formattedPStr, canvas.width - paddingRight + 8, y + 3.5);
-            }
-
-            // Niveles de Soporte y Resistencias Macro H1
-            if (analysis) {
-                analysis.h1Support.forEach((sup, idx) => {
-                    const y = getY(sup);
-                    ctx.strokeStyle = 'rgba(0, 230, 118, 0.45)';
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([5, 4]);
-                    ctx.beginPath();
-                    ctx.moveTo(paddingLeft, y);
-                    ctx.lineTo(canvas.width - paddingRight, y);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-
-                    ctx.fillStyle = '#00e676';
-                    ctx.font = '9px Orbitron';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(`H1 SOPORTE ${idx+1}`, canvas.width - paddingRight - 8, y - 4);
-                });
-
-                analysis.h1Resistance.forEach((res, idx) => {
-                    const y = getY(res);
-                    ctx.strokeStyle = 'rgba(255, 60, 95, 0.45)';
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([5, 4]);
-                    ctx.beginPath();
-                    ctx.moveTo(paddingLeft, y);
-                    ctx.lineTo(canvas.width - paddingRight, y);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-
-                    ctx.fillStyle = '#ff3c5a';
-                    ctx.font = '9px Orbitron';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(`H1 RESISTENCIA ${idx+1}`, canvas.width - paddingRight - 8, y - 4);
-                });
-            }
-
-            // Velas Japonesas
-            const candleWidth = Math.max(1.5, (chartWidth / sorted.length) * 0.55);
-            sorted.forEach((c, idx) => {
-                const x = getX(idx);
-                const yOpen = getY(c.open);
-                const yClose = getY(c.close);
-                const yHigh = getY(c.high);
-                const yLow = getY(c.low);
-
-                const isBullish = c.close >= c.open;
-                ctx.strokeStyle = isBullish ? '#00e676' : '#ff3c5f';
-                ctx.fillStyle = isBullish ? '#00e676' : '#ff3c5f';
-                ctx.lineWidth = 1.2;
-
-                ctx.beginPath();
-                ctx.moveTo(x, yHigh);
-                ctx.lineTo(x, yLow);
-                ctx.stroke();
-
-                const h = Math.max(1, Math.abs(yClose - yOpen));
-                ctx.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, h);
-            });
-
-            // EMA Linea de tendencia lisa adherida
-            if (emaValues.length > 0) {
-                let trendColor = '#d4af37'; // gold
-                if (analysis) {
-                    if (analysis.h1Trend === 'BULLISH') trendColor = '#00e676';
-                    else if (analysis.h1Trend === 'BEARISH') trendColor = '#ff3c5f';
-                }
-
-                ctx.strokeStyle = trendColor;
-                ctx.lineWidth = 2.5;
-                ctx.shadowColor = trendColor;
-                ctx.shadowBlur = 6;
-
-                ctx.beginPath();
-                for (let i = 0; i < emaValues.length; i++) {
-                    const x = getX(i);
-                    const y = getY(emaValues[i]);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            }
-        }
-
-        // GESTIÓN DE TICKS EN TIEMPO REAL CON INTEGRACIÓN DEXSCREENER
-        function startLiveFeeds() {
-            // Inicializar base de datos de los tokens iniciales
-            tokens.forEach(t => initTokenDb(t.address, t.price));
-
-            logMessage('SYSTEM', 'Inicialización de Búfer e historiales estructurales ok.', 'success');
-
-            // Simular WebSocket de alta frecuencia (ticks recurrentes realistas)
-            setInterval(() => {
-                tokens.forEach(tok => {
-                    const data = db[tok.address];
-                    if (!data) return;
-
-                    const vol = t => t.symbol === 'BUSD' || t.symbol === 'USDC' ? 0.00005 : 0.0022;
-                    const change = (Math.random() - 0.492) * vol(tok); 
-                    
-                    data.prevPrice = data.price;
-                    data.price = data.price * (1 + change);
-
-                    // Actualizar última vela m5
-                    const lastIdx = data.m5.length - 1;
-                    data.m5[lastIdx].close = data.price;
-                    if (data.price > data.m5[lastIdx].high) data.m5[lastIdx].high = data.price;
-                    if (data.price < data.m5[lastIdx].low) data.m5[lastIdx].low = data.price;
-
-                    analyzeMarket(tok.address);
-                });
-
-                // Solo redibujar y procesar UI
-                updateUI();
-                renderChart();
-            }, 1250);
-
-            // Re-vincular de forma pasiva con los fetch auténticos de Dexscreener API para sincronizar anclas
-            setInterval(() => {
-                tokens.forEach(tok => {
-                    const query = tok.address;
-                    let url = `https://api.dexscreener.com/latest/dex/tokens/${query}`;
-
-                    fetch(url)
-                        .then(res => res.json())
-                        .then(data => {
-                            const pairs = data.pairs || data.pair;
-                            if (pairs && pairs.length > 0) {
-                                const bestPair = [...pairs].sort((a,b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
-                                const currentRealPrice = parseFloat(bestPair.priceUsd) || tok.price;
-                                db[tok.address].price = currentRealPrice;
-                            }
-                        })
-                        .catch(err => {
-                            console.warn("Fallo de sincronización para token:", tok.symbol);
-                        });
-                });
-            }, 25000);
-        }
-
-        window.onload = () => {
-            startLiveFeeds();
-            resizeCanvas();
+        const freshTok = {
+          address: dData ? dData.address : address,
+          symbol: dData ? dData.symbol : formattedSym,
+          name: dData ? dData.name : `DexToken ${formattedSym}`,
+          price: basePrice,
+          change24h: dData ? dData.change24h : Number((Math.random() * 40 - 20).toFixed(2)),
+          volume24h: dData ? dData.volume24h : Math.floor(100000 + Math.random() * 8000000),
+          liquidity: dData ? dData.liquidity : Math.floor(40000 + Math.random() * 1000000),
+          candlesM5: generateInitialCandles(basePrice, 300, 60),
+          candlesM15: generateInitialCandles(basePrice, 900, 60),
+          candlesH1: generateInitialCandles(basePrice, 3600, 60),
+          rsi: 15 + Math.floor(Math.random() * 65),
+          trend: 'LATERAL',
+          score: 15,
+          status: 'BUSCANDO ENTRADA',
+          analysis: null,
+          custom: true,
         };
-    </script>
+
+        const evaluated = evaluateToken(freshTok);
+        setTokens(prev => [evaluated, ...prev]);
+        setActiveAddress(evaluated.address);
+
+        setTimelineEvents(prev => ({
+          ...prev,
+          [evaluated.address]: [
+            {
+              id: `init-added-${evaluated.symbol}-${Math.random()}`,
+              createdAt: Date.now(),
+              symbol: evaluated.symbol,
+              type: 'trend_confirm',
+              title: 'Token Solana indexado con éxito',
+              description: 'Iniciando escaneo fractal continuo',
+              importance: 'medium',
+            }
+          ]
+        }));
+      };
+
+      // Action: Import entire CSV bulk load list
+      const handleImportBatchTokens = (addresses) => {
+        const uniqueOnes = addresses.filter(addr => !tokens.some(t => t.address.toLowerCase() === addr.toLowerCase()));
+        if (uniqueOnes.length === 0) return;
+
+        const timelinesToBulk = {};
+        const bulkItems = uniqueOnes.map(addr => {
+          const basePrice = 0.02 + Math.random() * 8.5;
+          const freshTok = {
+            address: addr,
+            symbol: `TOK_${addr.substring(0, 4).toUpperCase()}`,
+            name: `Contrato ${addr.substring(0, 6)}`,
+            price: basePrice,
+            change24h: Number((Math.random() * 50 - 25).toFixed(2)),
+            volume24h: Math.floor(20000 + Math.random() * 900000),
+            liquidity: Math.floor(8000 + Math.random() * 150000),
+            candlesM5: generateInitialCandles(basePrice, 300, 60),
+            candlesM15: generateInitialCandles(basePrice, 900, 60),
+            candlesH1: generateInitialCandles(basePrice, 3600, 60),
+            rsi: 10 + Math.floor(Math.random() * 80),
+            trend: 'LATERAL',
+            score: 10,
+            status: 'BUSCANDO ENTRADA',
+            analysis: null,
+            custom: true,
+          };
+
+          const evaluated = evaluateToken(freshTok);
+
+          timelinesToBulk[addr] = [
+            {
+              id: `init-bulk-${evaluated.symbol}-${Math.random()}`,
+              createdAt: Date.now(),
+              symbol: evaluated.symbol,
+              type: 'trend_confirm',
+              title: 'Carga masiva completada',
+              description: 'Señales quantum inicializadas',
+              importance: 'medium',
+            }
+          ];
+
+          return evaluated;
+        });
+
+        setTokens(prev => [...prev, ...bulkItems]);
+        setTimelineEvents(prev => ({ ...prev, ...timelinesToBulk }));
+        if (bulkItems[0]) {
+          setActiveAddress(bulkItems[0].address);
+        }
+      };
+
+      // Action: Delete manual watchlist token
+      const deleteTokenItem = (addr) => {
+        setTokens(prev => prev.filter(t => t.address !== addr));
+        if (activeAddress === addr) {
+          const leftItems = tokens.filter(t => t.address !== addr);
+          if (leftItems.length > 0) {
+            setActiveAddress(leftItems[0].address);
+          }
+        }
+      };
+
+      const handleClear = () => {
+        setTokens([]);
+      };
+
+      // Search and Filter computation lists
+      const filteredTokens = tokens.filter(t => {
+        const matchesQuery = t.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             t.address.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchesQuery) return false;
+
+        if (filter === 'buy') return t.rsi <= 35;
+        if (filter === 'sell') return t.rsi >= 65;
+        return true;
+      });
+
+      const activeToken = tokens.find(t => t.address === activeAddress) || tokens[0] || null;
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#02050c]">
+          
+          {/* Header Bar Layout */}
+          <header className="bg-navy-card/95 border-b border-[#1e293b]/60 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-20 select-none">
+            <div className="flex items-center gap-4">
+              <div className="bg-gold-dim border border-gold-corp px-3 py-2.5 rounded-xl flex items-center justify-center glow-gold">
+                <Icon name="crosshair" className="w-5.5 h-5.5 text-gold-corp animate-pulse" />
+              </div>
+              <div>
+                <h1 className="text-lg font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-gold-bright to-gold-corp uppercase flex items-center gap-2">
+                  SOLANA WATCHLIST INDEXER
+                  <span className="text-[10px] bg-gold-dim border border-[#d4af37]/45 text-gold-bright px-2 py-0.5 rounded tracking-widest leading-none">PORTABLE</span>
+                </h1>
+                <p className="text-[10px] font-mono text-slate-450 uppercase mt-0.5 text-slate-550">ESCANEO, RADAR DE BUBBLES RSI GRAVITACIONAL E INDEXACIÓN MASIVA COMPLETA</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 text-sm self-end md:self-auto">
+              
+              {/* Telemetry Indicator */}
+              <div className="flex items-center gap-2 bg-navy-dark px-3 py-2 rounded-lg border border-navy-border shadow-inner">
+                <span className={`w-2 h-2 rounded-full shadow-inner ${
+                  connectionStatus === 'BIRDEYE' ? 'bg-cyber-green animate-pulse glow-green' :
+                  connectionStatus === 'DEXSCREENER' ? 'bg-indigo-400 animate-pulse' :
+                  'bg-amber-400 animate-pulse'
+                }`} />
+                <span className="font-mono text-[9px] text-slate-350 font-extrabold uppercase leading-none">
+                  ● CONNECTOR {connectionStatus} LIVE
+                </span>
+              </div>
+
+              {/* Sound audio module toggler */}
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="px-3 py-2 rounded-lg bg-navy-dark border border-navy-border hover:bg-navy-light hover:text-gold-bright transition-all flex items-center gap-2 text-xs font-mono cursor-pointer"
+              >
+                {soundEnabled ? (
+                  <>
+                    <Icon name="volume-2" className="w-4 h-4 text-gold-corp" />
+                    <span className="text-slate-300">AUDIO ON</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="volume-x" className="w-4 h-4 text-slate-550" />
+                    <span className="text-slate-500">MUTE</span>
+                  </>
+                )}
+              </button>
+
+              <div className="text-right hidden md:block border-l border-[#1e293b] pl-5">
+                <div className="font-mono text-xs text-slate-200 flex items-center gap-1.5 font-bold">
+                  <Icon name="clock" className="w-3.5 h-3.5 text-gold-corp" />
+                  <span>{utcTime}</span>
+                </div>
+              </div>
+
+            </div>
+          </header>
+
+          {/* Three Panels Core Stage */}
+          <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden h-[calc(100vh-80px)]">
+            
+            {/* Left Sidebar (Columns: 4) */}
+            <div className="lg:col-span-4 flex flex-col gap-4 overflow-y-auto pr-0.5">
+              
+              <StandaloneIndexer 
+                onAddToken={handleAddNewToken}
+                onAddMultipleTokens={handleImportBatchTokens}
+                tokenCount={tokens.length}
+                onClearWatchlist={handleClear}
+              />
+
+              <div className="bg-navy-card rounded-xl border border-navy-border p-4 flex flex-col gap-3 flex-1 min-h-[300px]">
+                <div className="flex items-center justify-between border-b border-[#1e293b]/70 pb-2 select-none">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-300">Monitores del Sistema ({filteredTokens.length})</span>
+                  
+                  <div className="flex bg-navy-dark border border-navy-border p-0.5 rounded text-[9.5px] font-mono">
+                    <button onClick={() => setFilter('all')} className={`px-2 py-0.5 rounded cursor-pointer ${filter==='all' ? 'bg-gold-corp text-navy-dark font-extrabold' : 'text-slate-400 hover:text-slate-250'}`}>Todos</button>
+                    <button onClick={() => setFilter('buy')} className={`px-2 py-0.5 rounded cursor-pointer ${filter==='buy' ? 'bg-emerald-500 text-white font-extrabold' : 'text-slate-400 hover:text-slate-250'}`}>Buy (≤35)</button>
+                    <button onClick={() => setFilter('sell')} className={`px-2 py-0.5 rounded cursor-pointer ${filter==='sell' ? 'bg-rose-500 text-white font-extrabold' : 'text-slate-400 hover:text-slate-250'}`}>Sell (≥65)</button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e)=>setSearchQuery(e.target.value)}
+                    placeholder="Filtrar por Símbolo o CA..."
+                    className="w-full bg-navy-dark border border-navy-border/60 focus:border-gold-corp/60 outline-none rounded py-2 pl-7 pr-3 text-[10px] text-slate-300 placeholder-slate-650 font-mono"
+                  />
+                  <div className="absolute left-2.5 top-2.5 text-slate-600">
+                    <Icon name="search" className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto max-h-[380px] flex flex-col gap-2 pr-1">
+                  {filteredTokens.length === 0 ? (
+                    <div className="text-center py-10 text-slate-650 font-mono text-[10px] select-none uppercase tracking-widest animate-pulse">
+                      Ningún activo coincide con la búsqueda
+                    </div>
+                  ) : (
+                    filteredTokens.map(t => (
+                      <TokenCard
+                        key={t.address}
+                        token={t}
+                        isActive={t.address === activeAddress}
+                        onSelect={setActiveAddress}
+                        onDelete={deleteTokenItem}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Status Energy Pressure Indicator */}
+              <div className="glass p-4 rounded-xl border border-navy-border flex flex-col justify-between shrink-0 bg-navy-card/95 gap-3">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between select-none">
+                    <div className="flex items-center gap-1.5">
+                      <Icon name="activity" className="w-4 h-4 text-gold-corp animate-pulse" />
+                      <span className="text-[10px] font-mono tracking-widest text-slate-300 uppercase font-black">
+                        MÉTRICA DE ENERGÍA
+                      </span>
+                    </div>
+                    
+                    <select
+                      value={rsiTimeframe}
+                      onChange={(e) => setRsiTimeframe(e.target.value)}
+                      className="bg-navy-dark border border-navy-light text-[9px] font-mono text-gold-bright rounded px-1.5 py-0.5 outline-none cursor-pointer focus:border-gold-corp"
+                    >
+                      <option value="m5">M5 (Nativo)</option>
+                      <option value="m15">M15</option>
+                      <option value="h1">H1 (Macro)</option>
+                    </select>
+                  </div>
+
+                  <LiveBuyersSellers activeToken={activeToken} />
+                </div>
+              </div>
+
+            </div>
+
+            {/* Middle Section: Chart Canvas and Timelines (Columns: 5) */}
+            <div className="lg:col-span-5 flex flex-col gap-4 overflow-y-auto">
+              <SniperCanvas 
+                token={activeToken}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
+                connectionStatus={connectionStatus}
+              />
+
+              <SignalTimeline 
+                events={timelineEvents[activeAddress] || []}
+                tokenSymbol={activeToken ? activeToken.symbol : '---'}
+                onClear={() => setTimelineEvents(prev => ({ ...prev, [activeAddress]: [] }))}
+              />
+            </div>
+
+            {/* Right Section: Momentum Radar Dashboard (Columns: 3) */}
+            <div className="lg:col-span-3 flex flex-col gap-4 overflow-y-auto p-0.5">
+              <StandaloneRsiBubbleRadar
+                tokens={tokens}
+                activeAddress={activeAddress}
+                onSelectToken={setActiveAddress}
+                rsiTimeframe={rsiTimeframe}
+              />
+              
+              {/* Strategy alert card panel */}
+              {activeToken && (
+                <div className="bg-navy-card rounded-xl border border-[#d4af37]/35 p-4 flex flex-col gap-3 relative overflow-hidden">
+                  <div className="absolute -right-6 -top-6 w-20 h-20 bg-gold-dim rounded-full pointer-events-none blur-xl" />
+                  
+                  <div className="flex items-center justify-between border-b border-[#1e293b]/70 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 bg-gold-corp rounded-full animate-pulse" />
+                      <div>
+                        <h4 className="font-mono text-xs font-extrabold text-white leading-tight uppercase flex items-center gap-1.5">
+                          {activeToken.symbol}
+                          <span className="text-[8px] border border-gold-corp/30 text-gold-bright bg-gold-dim px-1.5 py-0.5 rounded leading-none">{activeToken.name}</span>
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 divide-x divide-[#1e293b]">
+                    <div>
+                      <span className="text-[9px] font-mono text-slate-550 text-slate-500 uppercase block">Precio actual</span>
+                      <strong className="font-mono text-sm font-black text-gold-bright mt-1 block">${activeToken.price.toFixed(activeToken.price < 0.01 ? 6 : 4)}</strong>
+                    </div>
+                    <div className="pl-3">
+                      <span className="text-[9px] font-mono text-slate-550 text-slate-500 uppercase block">RSI actual</span>
+                      <strong className={`font-mono text-sm font-black mt-1 block ${activeToken.rsi <= 35 ? 'text-cyber-green' : activeToken.rsi >= 65 ? 'text-cyber-red' : 'text-slate-300'}`}>{activeToken.rsi.toFixed(1)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1 select-none">
+                    <span className="text-[9px] font-mono text-slate-500 uppercase font-black uppercase tracking-wider block">ANÁLISIS DE SCORE & CALIBRACIÓN (MEME)</span>
+                    <div className="bg-navy-dark p-2 rounded-lg border border-navy-border flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between text-[8px] font-mono text-slate-400 mb-0.5">
+                        <span>SCORE DE MOMENTUM</span>
+                        <span className="font-extrabold text-gold-bright">{activeToken.score}/99</span>
+                      </div>
+                      <div className="w-full bg-[#1e293b]/50 h-1.5 rounded-sm overflow-hidden border border-slate-800">
+                        <div className="bg-gradient-to-r from-gold-corp to-gold-bright h-full transition-all duration-500" style={{ width: `${activeToken.score}%` }} />
+                      </div>
+
+                      <div className="flex items-center justify-between text-[9px] font-mono pt-1 text-slate-300 leading-none mt-1">
+                        <span>Recomendación:</span>
+                        <span className={`font-black uppercase px-2 py-0.5 rounded text-[8.5px] ${
+                          activeToken.rsi <= 35 
+                            ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' 
+                            : activeToken.rsi >= 65 
+                              ? 'bg-cyber-red/10 text-cyber-red border border-cyber-red/20' 
+                              : 'bg-slate-800 text-slate-400 border border-slate-705'
+                        }`}>
+                          {activeToken.rsi <= 35 ? 'COMPRE OVERSOLD' : activeToken.rsi >= 65 ? 'VENTA OVERBOUGHT' : 'MANTENER / LATERAL'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[9px] font-mono text-slate-500 uppercase font-black tracking-wider flex items-center gap-1">
+                      <Icon name="shield-alert" className="w-3 h-3 text-red-400" />
+                      Planificar entrada / Sniper alert
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400">
+                      <div className="bg-navy-dark p-2 rounded border border-navy-border/60">
+                        <span className="text-[7.5px] text-slate-500 block uppercase leading-none">Trigger Entrada</span>
+                        <strong className="text-slate-200 mt-1 block">${(activeToken.price * 0.95).toFixed(activeToken.price < 0.01 ? 6 : 3)}</strong>
+                      </div>
+                      <div className="bg-navy-dark p-2 rounded border border-navy-border/60">
+                        <span className="text-[7.5px] text-slate-500 block uppercase leading-none">Frenado Stop loss</span>
+                        <strong className="text-[#ff3c5f] mt-1 block">${(activeToken.price * 0.90).toFixed(activeToken.price < 0.01 ? 6 : 3)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+          </main>
+
+          {/* Standalone copy notification status indicator footer */}
+          <footer className="bg-navy-card/80 border-t border-[#1e293b]/60 px-5 py-4 text-center text-slate-500 font-mono text-[9px] uppercase select-none mt-auto">
+            <span>Para utilizar localmente, guarda este archivo como <strong className="text-slate-400 font-bold">standalone-radar.html</strong> e introduce cualquier Watchlist de Solana sin límites.</span>
+          </footer>
+
+        </div>
+      );
+    }
+
+    // Mount and inject inside root container node
+    const container = document.getElementById('standalone-root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<StandaloneDashboard />);
+  </script>
 </body>
 </html>
